@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { pelangganChatbot, pesanChat, chatLog } from '@/lib/schema'
 import { eq, sql } from 'drizzle-orm'
-import { sendTelegramMessage, sendTelegramTyping, parseTelegramPayload, setTelegramWebhook } from '@/lib/telegram-bot'
+import { sendTelegramMessage, sendTelegramTyping, parseTelegramPayload, setTelegramWebhook, getTelegramWebhookInfo } from '@/lib/telegram-bot'
 import { formatTelegramChatId } from '@/lib/utils'
 import { callGroqLLM } from '@/lib/groq'
 import { generateQueryEmbedding, toTursoVectorString } from '@/lib/gemini'
@@ -123,7 +123,8 @@ export async function GET(req: NextRequest) {
       : `${url.protocol}//${url.host}`
     const webhookUrl = `${baseUrl}/api/webhook/telegram`
     const ok = await setTelegramWebhook(webhookUrl)
-    return NextResponse.json({ ok, webhookUrl })
+    const info = await getTelegramWebhookInfo()
+    return NextResponse.json({ ok, webhookUrl, info })
   }
 
   return NextResponse.json({

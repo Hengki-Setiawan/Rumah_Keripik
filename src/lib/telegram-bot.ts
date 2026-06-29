@@ -33,12 +33,24 @@ export async function setTelegramWebhook(url: string): Promise<boolean> {
   return res.ok
 }
 
+export async function getTelegramWebhookInfo(): Promise<unknown> {
+  const res = await fetch(`${TELEGRAM_API}/getWebhookInfo`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  return res.json()
+}
+
 export function parseTelegramPayload(body: unknown): {
   chatId: string
   text: string
   firstName?: string
 } | null {
-  const msg = (body as any)?.message as TelegramMessage | undefined
+  const payload = body as Record<string, unknown> | undefined
+  const msg = (payload?.message as TelegramMessage | undefined)
+    ?? (payload?.edited_message as TelegramMessage | undefined)
+    ?? (payload?.channel_post as TelegramMessage | undefined)
   if (!msg?.text || !msg?.chat?.id) return null
   return {
     chatId: String(msg.chat.id),
