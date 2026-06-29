@@ -73,7 +73,7 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
 5. `sendTextMessage()` → balas ke pelanggan
 6. Log ke `chat_log` + update `pelanggan_chatbot.terakhir_aktif`
 
-**Middleware:** proteksi semua route kecuali `/login`, `/api/auth`, `/api/webhook` (agar WA webhook bisa diakses publik).
+**Proxy:** proteksi semua route kecuali `/login`, `/api/auth`, `/api/webhook` (agar WA webhook bisa diakses publik).
 
 ---
 
@@ -179,7 +179,7 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
 | `api/auth/[...nextauth]/route.ts` | NextAuth handler |
 | `api/webhook/n8n/route.ts` | **Active** — 10 events untuk n8n (akan diganti WA) |
 | `api/webhook/wa/route.ts` | **NEW** — WA Cloud API webhook GET+POST |
-| `middleware.ts` | Auth guard (public: /login, /api/auth, /api/webhook) |
+| `proxy.ts` | Auth guard (public: /login, /api/auth, /api/webhook) |
 
 ### `src/scripts/`
 | File | Fungsi |
@@ -226,7 +226,7 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
 - Build 0 error (TypeScript + kompilasi + static generation)
 - 9 tabel di Turso (termasuk bot_auto_reply, chat_log)
 - `@libsql/client` patch (CJS + ESM) via patch-package
-- Auth (NextAuth v5, middleware)
+- Auth (NextAuth v5, proxy)
 - Dashboard: sidebar, beranda, analitik, produk, pelanggan, warung, transaksi-offline, livechat, knowledge-base, bot-config
 - CRUD server actions: produk, warung, pelanggan, transaksi, chat, knowledge-base, bot-config
 - LLM chain: Groq (70b→8b→Gemini) dengan 12s timeout + 429 fallback
@@ -291,7 +291,7 @@ N8N_WEBHOOK_SECRET=dev-webhook-secret          # Masih dipakai
 
 - **Dev server:** run via `npm run dev` dari root project. Butuh folder `D:\Vibe coding (Semester 7)\Rumah Keripik\rumah-kripik-app`. Long timeout di terminal.
 - **Turbopack:** build pake Turbopack (default Next 16). Jika error aneh, coba `NO_TURBOPACK=1 npm run build`.
-- **Middleware → Proxy:** Next 16.2.9 masih support middleware tapi deprecated. Migrate ke proxy kapan-kapan.
+- **Middleware → Proxy:** sudah dimigrasikan ke `src/proxy.ts`.
 - **@libsql/client patch:** Jangan lupa `npm run postinstall` atau `npx patch-package` jika node_modules dihapus.
 - **Vector search di Turso:** Belum terverifikasi. Untuk sekarang RAG pake LIKE search aja. Vector search bisa diaktifkan nanti via `vector_distance_cos` jika extension libsql_vector tersedia.
 - **WA rate limits:** WhatsApp Cloud API punya rate limits (~250 msg/day tier gratis). Untuk MVP aman.
