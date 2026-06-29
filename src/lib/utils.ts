@@ -16,7 +16,9 @@ export function formatRupiah(n: number): string {
 
 export function normalizePhoneNumber(phone: string): string {
   return phone
+    .replace(/@s\.whatsapp\.net$/i, '')
     .replace(/[+\s\-()]/g, '')
+    .replace(/[^\d]/g, '')
     .replace(/^0+/, '62')
     .replace(/^62+/, '62')
 }

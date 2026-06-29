@@ -1,11 +1,7 @@
 /**
- * @deprecated Evolution API telah digantikan oleh WhatsApp Cloud API (src/lib/wa-cloud.ts).
- * File ini dipertahankan sementara untuk kompatibilitas dengan n8n webhook.
- * TODO: Hapus setelah migrasi ke WhatsApp Cloud API selesai.
- *
  * Evolution API Helper
- * Untuk integrasi dengan Evolution API v2 (WhatsApp Gateway)
- * Base URL: https://wa.rumahkripik.com (atau dari env)
+ * Untuk integrasi dengan Evolution API v2 (WhatsApp Gateway).
+ * Dipakai untuk kirim pesan, cek status instance, dan parse webhook inbound.
  */
 
 const BASE_URL = process.env.EVOLUTION_API_URL || 'https://wa.rumahkripik.com';
@@ -23,6 +19,15 @@ interface EvolutionResponse {
   message?: string;
   data?: unknown;
   error?: string;
+}
+
+export interface EvolutionIncomingMessage {
+  from: string;
+  message_id: string;
+  text: string;
+  timestamp: string;
+  name: string;
+  fromMe: boolean;
 }
 
 /**

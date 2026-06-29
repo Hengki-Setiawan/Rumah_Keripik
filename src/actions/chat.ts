@@ -6,6 +6,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { sendTelegramMessage } from '@/lib/telegram-bot';
 import { detectChannel, parseTelegramChatId } from '@/lib/utils';
+import { sendTextMessage as sendEvolutionMessage } from '@/lib/evolution';
 
 export async function getDaftarChat() {
   try {
@@ -81,25 +82,14 @@ export async function kirimPesanManual(no_wa: string, pesan: string) {
       }
       id_external = String(Date.now())
     } else {
-      const res = await fetch(
-        `${process.env.EVOLUTION_API_URL}/message/sendText/${process.env.EVOLUTION_INSTANCE_NAME}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': process.env.EVOLUTION_API_KEY || '',
-          },
-          body: JSON.stringify({ number: no_wa, text: pesan }),
-        }
-      );
+      const res = await sendEvolutionMessage(no_wa, pesan);
 
-      if (res.ok) {
-        const data = await res.json();
+      if (res.success) {
+        const data = res.data as { key?: { id?: string }; messageId?: string } | undefined;
         id_external = data?.key?.id ?? data?.messageId ?? null;
       } else {
         status_kirim = 'failed';
-        const err = await res.text();
-        return { success: false, message: `Evolution API error: ${err}` };
+        return { success: false, message: `Evolution API error: ${res.error || 'Unknown error'}` };
       }
     }
 

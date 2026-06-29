@@ -15,17 +15,16 @@
 - `GEMINI_API_KEY`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
+- `AUTH_URL`
 - `ADMIN_USERNAME`
 - `ADMIN_PASSWORD`
 
 ## Optional environment variables
 
 - `TELEGRAM_BOT_TOKEN`
-- `WA_ACCESS_TOKEN`
-- `WA_PHONE_NUMBER_ID`
-- `WA_VERIFY_TOKEN`
-- `WA_API_VERSION`
-- `N8N_WEBHOOK_SECRET`
+- `EVOLUTION_API_URL`
+- `EVOLUTION_API_KEY`
+- `EVOLUTION_INSTANCE_NAME`
 
 ## Telegram webhook
 
@@ -39,7 +38,7 @@ This registers the bot webhook to the deployed domain.
 
 ## WhatsApp webhook
 
-Configure the Meta webhook to point to:
+Configure the Evolution webhook to point to:
 
 ```text
 /api/webhook/wa
