@@ -7,6 +7,7 @@ export default auth((req) => {
     pathname === '/login' ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/webhook') ||
+    pathname === '/api/debug/health' ||
     pathname === '/_not-found';
 
   if (!req.auth && !isPublic) {
