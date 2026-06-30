@@ -36,37 +36,3 @@ index 8d1fa05..9dc6bc4 100644
      const json = (await result.json());
      if (!json.migrations || json.migrations.length === 0) {
          throw new Error("No migrations found");
-diff --git a/node_modules/@libsql/client/lib-esm/migrations.js b/node_modules/@libsql/client/lib-esm/migrations.js
-index a2b8ac4..045dde0 100644
---- a/node_modules/@libsql/client/lib-esm/migrations.js
-+++ b/node_modules/@libsql/client/lib-esm/migrations.js
-@@ -48,8 +48,17 @@ export async function getIsSchemaDatabase({ authToken, baseUrl, }) {
-         if (result.status === 404 || result.status === 500) {
-             return false;
-         }
--        const json = (await result.json());
--        const isChildDatabase = result.status === 400 && json.error === "Invalid namespace";
-+        if (result.status === 400) {
-+            return false;
-+        }
-+        let json;
-+        try {
-+            json = (await result.json());
-+        }
-+        catch (_e) {
-+            return false;
-+        }
-+        const isChildDatabase = result.status === 400 && json?.error === "Invalid namespace";
-         return !isChildDatabase;
-     }
-     catch (e) {
-@@ -71,8 +80,7 @@ async function getLastMigrationJob({ authToken, baseUrl, }) {
-         },
-     });
-     if (result.status !== 200) {
--        throw new Error("Unexpected status code while fetching migration jobs: " +
--            result.status);
-+        return { job_id: 0, status: "RunSuccess" };
-     }
-     const json = (await result.json());
-     if (!json.migrations || json.migrations.length === 0) {
