@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
       .where(eq(pelangganChatbot.no_wa_pelanggan, externalId))
   }
 
+  // Simpan pesan masuk dari Telegram ke database agar muncul di Live Chat
+  try {
+    await db.insert(pesanChat).values({
+      no_wa_pelanggan: externalId,
+      channel: 'telegram',
+      direction: 'in',
+      sumber: 'pelanggan',
+      teks: text,
+      id_external: String(Date.now()),
+      status_kirim: 'sent',
+    })
+  } catch (dbErr) {
+    console.error('[Telegram Webhook] Gagal menyimpan pesan masuk ke db:', dbErr)
+  }
+
   if (pelanggan?.status_handle === 'Manual_Admin') {
     return NextResponse.json({ ok: true })
   }

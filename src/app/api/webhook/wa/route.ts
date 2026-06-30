@@ -40,6 +40,23 @@ export async function POST(req: NextRequest) {
 
     console.log(`WA dari ${incoming.from} (${incoming.name}): "${incoming.text}"`);
 
+    // Simpan pesan masuk dari WhatsApp ke database agar muncul di Live Chat
+    const { db } = await import('@/lib/db');
+    const { pesanChat } = await import('@/lib/schema');
+    try {
+      await db.insert(pesanChat).values({
+        no_wa_pelanggan: incoming.from,
+        channel: 'wa',
+        direction: 'in',
+        sumber: 'pelanggan',
+        teks: incoming.text,
+        id_external: incoming.message_id || String(Date.now()),
+        status_kirim: 'sent',
+      });
+    } catch (dbErr) {
+      console.error('[WA Webhook] Gagal menyimpan pesan masuk ke db:', dbErr);
+    }
+
     const result = await processIncomingMessage(incoming.from, incoming.text);
 
     if (result.response) {

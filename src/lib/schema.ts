@@ -131,9 +131,9 @@ export const pesanChat = sqliteTable(
     channel: text('channel', { enum: ['wa', 'telegram'] })
       .notNull()
       .default('wa'),
-    direction: text('direction', { enum: ['out'] }).notNull(),
+    direction: text('direction', { enum: ['in', 'out'] }).notNull(),
     sumber: text('sumber', {
-      enum: ['bot', 'admin', 'sistem'],
+      enum: ['bot', 'admin', 'sistem', 'pelanggan'],
     }).notNull(),
     teks: text('teks').notNull(),
     id_external: text('id_external'), // WA: msg ID, Telegram: message_id
