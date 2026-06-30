@@ -119,6 +119,7 @@ export async function getRiwayatChat(no_wa: string) {
   try {
     const outMsgs = await db
       .select({
+        channel: pesanChat.channel,
         direction: pesanChat.direction,
         sumber: pesanChat.sumber,
         teks: pesanChat.teks,

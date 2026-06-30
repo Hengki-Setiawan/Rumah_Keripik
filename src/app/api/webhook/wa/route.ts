@@ -61,7 +61,21 @@ export async function POST(req: NextRequest) {
 
     if (result.response) {
       const sent = await sendTextMessage(incoming.from, result.response);
-      if (!sent.success) {
+      if (sent.success) {
+        try {
+          await db.insert(pesanChat).values({
+            no_wa_pelanggan: incoming.from,
+            channel: 'wa',
+            direction: 'out',
+            sumber: 'bot',
+            teks: result.response,
+            id_external: 'bot-' + Date.now(),
+            status_kirim: 'sent',
+          });
+        } catch (dbErr) {
+          console.error('[WA Webhook] Gagal menyimpan pesan keluar bot ke db:', dbErr);
+        }
+      } else {
         console.error('Gagal kirim reply Evolution:', sent.error);
       }
     }

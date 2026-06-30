@@ -9,12 +9,14 @@ import { useToast } from '@/components/ui/toast';
 interface ChatPelanggan {
   no_wa_pelanggan: string;
   nama_pelanggan: string | null;
+  channel: 'wa' | 'telegram';
   status_handle: string;
   diambil_oleh: string | null;
   terakhir_aktif: string;
 }
 
 interface Pesan {
+  channel: 'wa' | 'telegram';
   direction: string;
   sumber: string;
   teks: string;
@@ -226,7 +228,7 @@ export default function LiveChatPage() {
                     {chat.no_wa_pelanggan}
                   </p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-label-md text-[10px] ${
                         chat.status_handle === 'AI_Bot'
                           ? 'bg-bot-indigo text-white'
@@ -234,6 +236,13 @@ export default function LiveChatPage() {
                       }`}>
                         {chat.status_handle === 'AI_Bot' ? <Bot size={12} /> : <User size={12} />}
                         {chat.status_handle === 'AI_Bot' ? 'AI_BOT' : 'MANUAL_ADMIN'}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-label-md text-[10px] font-bold ${
+                        chat.channel === 'telegram'
+                          ? 'bg-sky-100 text-sky-700 border border-sky-300'
+                          : 'bg-green-100 text-green-700 border border-green-300'
+                      }`}>
+                        {chat.channel === 'telegram' ? 'Telegram' : 'WhatsApp'}
                       </span>
                       {chat.diambil_oleh && (
                         <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-md">
@@ -330,12 +339,25 @@ export default function LiveChatPage() {
                           </span>
                         </div>
                       )}
-                      <div className={`flex items-end gap-2 max-w-[80%] ${msg.direction === 'out' ? 'self-end' : ''}`}>
-                        <div className={`p-4 rounded-2xl ${msg.direction === 'out' ? 'rounded-br-none bg-primary text-on-primary shadow-sm shadow-primary/20' : 'rounded-bl-none bg-white border border-outline-variant/10 shadow-sm'}`}>
-                          <p className="font-body-md text-body-md whitespace-pre-wrap">{msg.teks}</p>
-                          <span className={`block text-right font-caption text-[9px] mt-1 ${msg.direction === 'out' ? 'text-primary-fixed-dim' : 'text-on-surface-variant'}`}>
-                            {formatMessageTime(msg.timestamp)}
-                          </span>
+                      <div className={`flex flex-col ${msg.direction === 'out' ? 'items-end' : 'items-start'}`}>
+                        <div className={`flex items-end gap-2 max-w-[85%] ${msg.direction === 'out' ? 'self-end' : ''}`}>
+                          <div className={`p-4 rounded-2xl ${
+                            msg.direction === 'out' 
+                              ? msg.sumber === 'bot'
+                                ? 'rounded-br-none bg-bot-indigo text-white shadow-sm shadow-indigo-200'
+                                : 'rounded-br-none bg-primary text-on-primary shadow-sm shadow-primary/20'
+                              : 'rounded-bl-none bg-white border border-outline-variant/10 shadow-sm'
+                          }`}>
+                            {msg.direction === 'out' && (
+                              <span className="block text-[9px] uppercase font-bold tracking-wider opacity-80 mb-1">
+                                {msg.sumber === 'bot' ? '🤖 AI Chatbot' : '👤 Admin'}
+                              </span>
+                            )}
+                            <p className="font-body-md text-body-md whitespace-pre-wrap">{msg.teks}</p>
+                            <span className={`block text-right font-caption text-[9px] mt-1 ${msg.direction === 'out' ? 'text-white/70' : 'text-on-surface-variant'}`}>
+                              {formatMessageTime(msg.timestamp)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>

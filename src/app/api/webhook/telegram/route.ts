@@ -63,6 +63,19 @@ export async function POST(req: NextRequest) {
 
     if (result.response) {
       await sendTelegramMessage(chatId, result.response)
+      try {
+        await db.insert(pesanChat).values({
+          no_wa_pelanggan: externalId,
+          channel: 'telegram',
+          direction: 'out',
+          sumber: 'bot',
+          teks: result.response,
+          id_external: 'bot-' + Date.now(),
+          status_kirim: 'sent',
+        })
+      } catch (dbErr) {
+        console.error('[Telegram Webhook] Gagal menyimpan pesan keluar bot ke db:', dbErr)
+      }
     }
   } catch (err) {
     console.error('[Telegram Webhook] Error:', err)
