@@ -27,13 +27,13 @@
 | Database ORM | Drizzle ORM | ^0.31 | SQLite dialect via `drizzle-orm/sqlite-core` |
 | Database | Turso (libSQL) | via `@libsql/client` ^0.6 | Serverless, free tier |
 | Auth | NextAuth v5 | beta | Credentials provider, JWT strategy |
-| WA Gateway | WhatsApp Cloud API (Meta) | v22.0 | GRATIS untuk service chat, HTTP webhook |
+| WA Gateway | Evolution API | v2 | WhatsApp gateway langsung ke server Evolution |
 | LLM Primary | Groq | llama-3.3-70b-versatile → llama-3.1-8b-instant | Chain fallback 70b→8b→Gemini |
 | LLM Fallback | Gemini 2.0 Flash | via REST API | Juga untuk embedding: `gemini-embedding-001` (3072d) |
-| WA Sender | WA Cloud API | via Graph API | `wa-cloud.ts` menggantikan Evolution API |
+| WA Sender | Evolution API | via HTTP API | `evolution.ts` dipakai untuk kirim pesan |
 | Date | **TIDAK pakai** date-fns | — | Format manual via `Intl` |
 | Table | **TIDAK pakai** @tanstack/react-table | — | Manual table rendering |
-| EVOLUTION API | **DEPRECATED** | — | `evolution.ts` masih ada untuk kompat n8n, akan dihapus |
+| EVOLUTION API | **ACTIVE** | — | `evolution.ts` dipakai untuk Evolution webhook dan kirim pesan |
 
 **PENTING — Next.js 16.2.9 BREAKING CHANGES:**
 - `"middleware"` file convention deprecated, ganti dengan `"proxy"`
@@ -45,7 +45,7 @@
 ## 3. ARSITEKTUR (SERVERLESS, TANPA VPS)
 
 ```
-User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
+User WA ──→ Evolution API ──→ /api/webhook/wa (Next.js)
                                         │
                                    chatbot-router.ts
                                   ┌───┴───┐
@@ -60,7 +60,7 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
                                   │ LLM Chain │ → Groq → Gemini fallback
                                   └───┬──────┘
                                       │
-                                 wa-cloud.ts ──→ sendTextMessage(to, text)
+                                 evolution.ts ──→ sendTextMessage(number, text)
                                       │
                                  chat_log (log semua interaksi)
 ```
@@ -144,7 +144,7 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
 | `auth.ts` | NextAuth v5, Credentials, JWT |
 | `groq.ts` | LLM chain: 70b→8b→Gemini, 12s timeout, 429 delay |
 | `gemini.ts` | Embedding + query embedding (Gemini) |
-| `wa-cloud.ts` | **NEW** WhatsApp Cloud API: sendText, sendButton, sendList, verify, parse |
+| `evolution.ts` | Evolution API helper: sendText, sendButton, sendList, status, QR, parse |
 | `chatbot-router.ts` | **NEW** Router: rule check → RAG → LLM → log |
 | `chatbot-prompts.ts` | **NEW** System prompts (Indonesian) |
 | `evolution.ts` | **DEPRECATED** — masih dipakai `chat.ts:kirimPesanManual` |
@@ -177,8 +177,7 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
 | `(dashboard)/master-data/transaksi-offline/page.tsx` | Catat transaksi |
 | `(auth)/login/page.tsx` | Login form |
 | `api/auth/[...nextauth]/route.ts` | NextAuth handler |
-| `api/webhook/n8n/route.ts` | **Active** — 10 events untuk n8n (akan diganti WA) |
-| `api/webhook/wa/route.ts` | **NEW** — WA Cloud API webhook GET+POST |
+| `api/webhook/wa/route.ts` | **NEW** — Evolution webhook GET+POST |
 | `proxy.ts` | Auth guard (public: /login, /api/auth, /api/webhook) |
 
 ### `src/scripts/`
@@ -206,7 +205,7 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
 | # | Keputusan | Alasan | Tanggal |
 |---|-----------|--------|---------|
 | 1 | **Tidak pakai VPS/Docker** | Biaya Rp 0, serverless all-in | Sesi awal |
-| 2 | **WhatsApp Cloud API > Evolution API** | Gratis, no WebSocket, HTTP aja | Sesi 2 |
+| 2 | **Evolution API > WhatsApp Cloud API** | Lebih cepat setup, langsung ke server Evolution | Sesi 2 |
 | 3 | **Tidak pakai n8n** | Semua logic di TypeScript | Sesi 2 |
 | 4 | **Groq > Gemini untuk main LLM** | Gratis unlimited, lebih cepat, 70b > 2.0 Flash | Sesi awal |
 | 5 | **Gemini untuk embedding** | Gratis, 3072d, akurat | Sesi awal |
@@ -231,34 +230,32 @@ User WA ──→ WhatsApp Cloud API ──→ /api/webhook/wa (Next.js)
 - CRUD server actions: produk, warung, pelanggan, transaksi, chat, knowledge-base, bot-config
 - LLM chain: Groq (70b→8b→Gemini) dengan 12s timeout + 429 fallback
 - Gemini embedding (3072d) untuk RAG
-- `wa-cloud.ts` — WhatsApp Cloud API helper (send, verify, parse)
+- `evolution.ts` — Evolution API helper (send, parse, status, QR)
 - `chatbot-router.ts` — Intent router (rule → RAG → LLM → log)
 - `chatbot-prompts.ts` — System prompts (Indonesian)
 - `/api/webhook/wa` — WA webhook endpoint
-- Evolution API marked deprecated (`evolution.ts`)
-- `.env.local` updated with WA env vars
+- Evolution API aktif sebagai jalur utama WA
+- `.env.local` updated with Evolution env vars
 - Seed data + migration applied
 
 ### 🔄 IN PROGRESS
 - (none)
 
 ### ⏳ BLOCKED (butuh user action)
-- **WA_ACCESS_TOKEN + WA_PHONE_NUMBER_ID**: User harus daftar Meta Business Account + WhatsApp Cloud API
-- **Webhook URL setup**: Meta Developer Console → isi URL `https://.../api/webhook/wa`
+- **Evolution API**: server Evolution aktif + `EVOLUTION_API_KEY`
+- **Webhook URL setup**: set webhook Evolution ke `https://.../api/webhook/wa`
 - **Vercel deploy**: Belum deploy
 - **API key rotation**: Live keys masih di `.env.local`
 - **Desain UI**: User akan desain di Google Stitch dulu
 
 ### 📋 NEXT STEPS (prioritas)
-1. **[USER] Daftar Meta Business + WA Cloud API** → dapat WA_ACCESS_TOKEN
-2. **[USER] Isi .env.local**: WA_ACCESS_TOKEN, WA_PHONE_NUMBER_ID
-3. **[USER] Setup webhook di Meta Developer Console** → arahkan ke `/api/webhook/wa`
-4. **[CODE] Implement context_sesi** — rolling window 5 chat di pelanggan_chatbot.context_sesi
-5. **[CODE] Ganti evolution.ts di `chat.ts:kirimPesanManual`** ke wa-cloud.ts
-6. **[USER] Desain UI di Google Stitch**
-7. **[CODE] Implement UI redesign sesuai desain**
-8. **[CODE] Deploy ke Vercel**
-9. **[CODE] Rotasi API keys + strong passwords + `.gitignore` validasi**
+1. **[USER] Isi .env.local / Vercel**: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE_NAME`
+2. **[USER] Set webhook Evolution** ke `/api/webhook/wa`
+3. **[CODE] Implement context_sesi** — rolling window 5 chat di pelanggan_chatbot.context_sesi
+4. **[USER] Desain UI di Google Stitch**
+5. **[CODE] Implement UI redesign sesuai desain**
+6. **[CODE] Deploy ke Vercel**
+7. **[CODE] Rotasi API keys + strong passwords + `.gitignore` validasi**
 
 ---
 
@@ -271,18 +268,15 @@ TURSO_AUTH_TOKEN=eyJ...          # Turso token (LIVE — rotate before deploy)
 GROQ_API_KEY=gsk_...              # GROQ (LIVE — rotate before deploy)
 GEMINI_API_KEY=AQ...              # Gemini (LIVE — rotate before deploy)
 
-WA_ACCESS_TOKEN=                   # [KOSONG — isi setelah registrasi Meta]
-WA_PHONE_NUMBER_ID=               # [KOSONG — isi setelah registrasi Meta]
-WA_VERIFY_TOKEN=rumah-kripik-verify-2026
-WA_API_VERSION=v22.0
-
 NEXTAUTH_SECRET=dev-secret-key-not-for-production
 NEXTAUTH_URL=http://localhost:3000
+AUTH_URL=http://localhost:3000
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123           # GANTI sebelum deploy!
 
-EVOLUTION_API_URL=https://wa.rumahkripik.com   # DEPRECATED
-N8N_WEBHOOK_SECRET=dev-webhook-secret          # Masih dipakai
+EVOLUTION_API_URL=https://wa.rumahkripik.com
+EVOLUTION_API_KEY=
+EVOLUTION_INSTANCE_NAME=rumah-kripik-bot
 ```
 
 ---
@@ -294,10 +288,10 @@ N8N_WEBHOOK_SECRET=dev-webhook-secret          # Masih dipakai
 - **Middleware → Proxy:** sudah dimigrasikan ke `src/proxy.ts`.
 - **@libsql/client patch:** Jangan lupa `npm run postinstall` atau `npx patch-package` jika node_modules dihapus.
 - **Vector search di Turso:** Belum terverifikasi. Untuk sekarang RAG pake LIKE search aja. Vector search bisa diaktifkan nanti via `vector_distance_cos` jika extension libsql_vector tersedia.
-- **WA rate limits:** WhatsApp Cloud API punya rate limits (~250 msg/day tier gratis). Untuk MVP aman.
-- **Template messages:** WA Cloud API untuk service chat harus mulai dari template message disetujui Meta, atau reply dalam 24 jam dari pesan terakhir user. Setelah 24 jam, harus pakai template lagi.
+- **Evolution API:** jalur utama WhatsApp sekarang lewat Evolution API, jadi tidak wajib Meta Cloud API.
+- **Webhook Evolution:** set webhook ke `/api/webhook/wa` di server Evolution.
 - **Chat history context:** `pelanggan_chatbot.context_sesi` belum diimplement — masih null/empty. Rencana: rolling window 5 chat (user + bot) sebagai JSON array, dikirim ke LLM sebagai history messages.
-- **`kirimPesanManual` di `chat.ts`:** Masih pake Evolution API. Harus migrasi ke `wa-cloud.ts` setelah WA_ACCESS_TOKEN tersedia.
+- **`kirimPesanManual` di `chat.ts`**: sudah memakai Evolution API.
 
 ---
 
@@ -311,7 +305,7 @@ N8N_WEBHOOK_SECRET=dev-webhook-secret          # Masih dipakai
 | 4 | Sesi 3 | ✅ 0 error | Patch `@libsql/client` — CJS dulu |
 | 5 | Sesi 4 | ❌ Gagal | ESM `migrations.js` masih error 400 |
 | 6 | Sesi 4 | ✅ 0 error | Patch ESM `migrations.js` juga, `patch-package` persist via `postinstall` |
-| 7 | Sesi 5 | ✅ 0 error | + wa-cloud.ts, chatbot-router.ts, chatbot-prompts.ts, /api/webhook/wa |
+| 7 | Sesi 5 | ✅ 0 error | + evolution.ts, chatbot-router.ts, chatbot-prompts.ts, /api/webhook/wa |
 
 **Command:** `npm run build` — Next.js 16.2.9 Turbopack, TypeScript strict.
 
@@ -320,3 +314,4 @@ N8N_WEBHOOK_SECRET=dev-webhook-secret          # Masih dipakai
 ## 11. GIT STATUS
 
 Bukan git repo. Semua file lokal di `D:\Vibe coding (Semester 7)\Rumah Keripik\`. Belum ada version control. Disarankan inisialisasi git sebelum deploy ke Vercel.
+

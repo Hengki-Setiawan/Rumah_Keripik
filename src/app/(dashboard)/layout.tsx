@@ -20,6 +20,7 @@ import {
   ChevronDown,
   AlertTriangle,
   Send,
+  ShoppingCart,
 } from 'lucide-react';
 import { ToastProvider } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/modal';
@@ -28,13 +29,10 @@ const menuItems = [
   { href: '/', label: 'Beranda', icon: Home },
   { href: '/analitik', label: 'Analitik', icon: BarChart3 },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
-  { href: '/master-data/pelanggan', label: 'Pelanggan', icon: Users },
-  { href: '/master-data/warung', label: 'Warung Retail', icon: Store },
-  { href: '/master-data/transaksi-offline', label: 'Transaksi Offline', icon: BarChart3 },
-  { href: '/livechat', label: 'Live Chat', icon: MessageSquare },
-  { href: '/broadcast', label: 'Broadcast', icon: Send },
-  { href: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
-  { href: '/bot-config', label: 'Bot Config', icon: Bot },
+  { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
+  { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
+  { href: '/livechat', label: 'Hub Komunikasi', icon: MessageSquare },
+  { href: '/bot-config', label: 'Pengaturan Bot AI', icon: Bot },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -183,10 +181,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-outline-variant/20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around items-center h-16 px-2 pb-safe">
           {[
             { href: '/', label: 'Home', icon: Home },
-            { href: '/master-data/produk', label: 'Master', icon: Package },
-            { href: '/livechat', label: 'Chat', icon: MessageSquare },
-            { href: '/knowledge-base', label: 'AI', icon: BookOpen },
-            { href: '/bot-config', label: 'Rules', icon: Bot },
+            { href: '/master-data/pelanggan', label: 'Mitra', icon: Users },
+            { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
+            { href: '/livechat', label: 'Chat Hub', icon: MessageSquare },
+            { href: '/bot-config', label: 'Seting AI', icon: Bot },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
