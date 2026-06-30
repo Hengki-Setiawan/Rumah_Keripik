@@ -12,7 +12,7 @@
     "db:seed": "tsx src/scripts/seed.ts",
     "db:reembed": "tsx src/scripts/reembed-kb.ts",
     "db:studio": "drizzle-kit studio",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package; node scripts/fix-libsql.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
