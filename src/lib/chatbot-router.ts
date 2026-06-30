@@ -302,10 +302,12 @@ async function ensurePelangganExists(no_wa: string) {
       .limit(1);
 
     if (existing.length === 0) {
+      const channel = no_wa.startsWith('tg_') ? 'telegram' : 'wa';
       await db.insert(pelangganChatbot).values({
         no_wa_pelanggan: no_wa,
         status_handle: 'AI_Bot',
         context_sesi: '{}',
+        channel,
       });
     }
   } catch (error) {
