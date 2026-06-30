@@ -1,5 +1,5 @@
 import { db } from '../lib/db';
-import { produk, warungRetail, pelangganChatbot, aiKnowledgeBase } from '../lib/schema';
+import { produk, warungRetail, pelangganChatbot, aiKnowledgeBase, botAutoReply } from '../lib/schema';
 
 async function seed() {
   console.log('🌱 Memulai seed data...');
@@ -147,9 +147,22 @@ async function seed() {
 
     console.log('✓ Knowledge base berhasil di-seed (5 entri)');
     console.log(
-      '\n💡 CATATAN: Vector embedding masih kosong. Jalankan script reembed untuk mengisi embedding data KB.'
+      '\n📝 CATATAN: Vector embedding masih kosong. Jalankan script reembed untuk mengisi embedding data KB.'
     );
     console.log('   Perintah: npm run db:seed:embed\n');
+
+    console.log('🌱 Menambah auto-reply rules...');
+    await db.insert(botAutoReply).values([
+      { keyword: 'halo,hai,hi,hey,pagi,siang,malam', response: 'Halo! Ada yang bisa kami bantu? 😊 Ketik *MENU* untuk lihat produk kami.', is_active: 1 },
+      { keyword: 'menu,katalog,produk,mau beli,beli,pesan', response: '📋 *Menu:* 1. Original Rp8rb 2. Pedas Rp9rb 3. Balado Rp9rb 4. BBQ Rp10rb\n\nKetik nama varian untuk pesan!', is_active: 1 },
+      { keyword: 'harga,berapa,price', response: '💸 *Harga:* Original Rp8.000, Pedas Rp9.000, Balado Rp9.000, BBQ Rp10.000', is_active: 1 },
+      { keyword: 'ongkir,pengiriman,sampai,kirim,delivery', response: '🚚 Dalam kota Makassar Rp5-10rb (1-3 jam). Luar kota via JNE/J&T. Min 5 pcs.', is_active: 1 },
+      { keyword: 'bayar,pembayaran,transfer,bank,rekening', response: '💳 BCA: 1234567890 a.n. Rumah Kripik\nBRI: 9876543210 a.n. Rumah Kripik\nCOD Makassar +Rp2.000', is_active: 1 },
+      { keyword: 'batal,cancel,refund', response: '❌ Hubungi admin untuk pembatalan. Kami proses secepatnya! 🙏', is_active: 1 },
+      { keyword: 'jam,operasional,buka,tutup', response: '⏰ Senin-Sabtu: 08.00-17.00 WITA. Minggu/libur tutup.', is_active: 1 },
+      { keyword: 'terima kasih,makasih,thanks,thx', response: 'Sama-sama kak! 😊 Senang bisa membantu! 🍟', is_active: 1 },
+    ]).onConflictDoNothing();
+    console.log('✓ Auto-reply rules di-seed (8 rules)');
 
     console.log('🎉 Seed selesai!');
     process.exit(0);

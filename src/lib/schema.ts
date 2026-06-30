@@ -84,13 +84,26 @@ export const transaksi = sqliteTable(
       .default('Online_WA'),
     total_bayar: integer('total_bayar').notNull(),
     status_pembayaran: text('status_pembayaran', {
-      enum: ['Lunas', 'Piutang', 'Tidak_Lunas'],
+      enum: ['Lunas', 'Piutang', 'Tidak_Lunas', 'Menunggu_Verifikasi', 'Menunggu_Bayar', 'Dibatalkan'],
     })
       .notNull()
       .default('Lunas'),
     tanggal_jatuh_tempo: text('tanggal_jatuh_tempo'), // Untuk piutang
     kode_pesanan: text('kode_pesanan').unique(), // PESANAN-XXXXXX
     catatan: text('catatan'),
+    
+    // NEW: Delivery & Location details
+    nama_penerima: text('nama_penerima'),
+    alamat_penerima: text('alamat_penerima'),
+    no_hp_penerima: text('no_hp_penerima'),
+    bukti_transfer_url: text('bukti_transfer_url'),
+    sumber_order: text('sumber_order', {
+      enum: ['WA', 'Telegram', 'Offline'],
+    }).default('Offline'),
+    lat_pengiriman: text('lat_pengiriman'),
+    lng_pengiriman: text('lng_pengiriman'),
+    jarak_km_dari_gudang: text('jarak_km_dari_gudang'), // As real/string number
+    
     waktu_simpan: text('waktu_simpan')
       .notNull()
       .default(sql`(datetime('now', 'utc'))`),
@@ -217,6 +230,126 @@ export const chatLog = sqliteTable('chat_log', {
     .default(sql`(datetime('now', 'utc'))`),
 });
 
+// ─── MEMORY PELANGGAN ─────────────────────────────────────────────────────────
+export const memoryPelanggan = sqliteTable('memory_pelanggan', {
+  no_wa_pelanggan: text('no_wa_pelanggan')
+    .primaryKey()
+    .references(() => pelangganChatbot.no_wa_pelanggan),
+  produk_favorit: text('produk_favorit').default('[]'),   // JSON: ["KRP-001", "KRP-003"]
+  alamat_tersimpan: text('alamat_tersimpan').default('[]'), // JSON: [{ label, alamat }]
+  avg_order_value: integer('avg_order_value').default(0),
+  total_order: integer('total_order').default(0),
+  avg_rating: integer('avg_rating').default(0),          // × 10, jadi 45 = 4.5 bintang
+  tags_preferensi: text('tags_preferensi').default('[]'), // JSON: ["pedas","original"]
+  last_order_id: text('last_order_id'),
+  last_order_date: text('last_order_date'),
+  waitlist_produk: text('waitlist_produk').default('[]'), // JSON: ["KRP-005"] stok habis
+  updated_at: text('updated_at')
+    .notNull()
+    .default(sql`(datetime('now', 'utc'))`),
+});
+
+// ─── BUKTI PEMBAYARAN ─────────────────────────────────────────────────────────
+export const buktiPembayaran = sqliteTable('bukti_pembayaran', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  id_transaksi: text('id_transaksi')
+    .notNull()
+    .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+  no_wa_pelanggan: text('no_wa_pelanggan').notNull(),
+  url_gambar: text('url_gambar').notNull(),          // '/uploads/bukti/TX-xxx.jpg'
+  base64_data: text('base64_data'),                  // Opsional: simpan base64 jika < 500KB
+  mimetype: text('mimetype').default('image/jpeg'),
+  caption: text('caption'),                          // Caption dari WA
+  status_verifikasi: text('status_verifikasi', {
+    enum: ['Menunggu', 'Diterima', 'Ditolak'],
+  }).notNull().default('Menunggu'),
+  diverifikasi_oleh: text('diverifikasi_oleh'),     // Admin username
+  catatan_admin: text('catatan_admin'),
+  waktu_upload: text('waktu_upload')
+    .notNull()
+    .default(sql`(datetime('now', 'utc'))`),
+  waktu_verifikasi: text('waktu_verifikasi'),
+});
+
+// ─── WAITLIST PRODUK ─────────────────────────────────────────────────────────
+export const waitlistProduk = sqliteTable('waitlist_produk', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  no_wa_pelanggan: text('no_wa_pelanggan')
+    .notNull()
+    .references(() => pelangganChatbot.no_wa_pelanggan),
+  id_produk: text('id_produk')
+    .notNull()
+    .references(() => produk.id_produk),
+  channel: text('channel', { enum: ['wa', 'telegram'] }).notNull().default('wa'),
+  sudah_dinotif: integer('sudah_dinotif').notNull().default(0), // 0=belum, 1=sudah
+  waktu_daftar: text('waktu_daftar')
+    .notNull()
+    .default(sql`(datetime('now', 'utc'))`),
+});
+
+// ─── RATING PELANGGAN ─────────────────────────────────────────────────────────
+export const ratingPelanggan = sqliteTable('rating_pelanggan', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  no_wa_pelanggan: text('no_wa_pelanggan').notNull(),
+  id_transaksi: text('id_transaksi'),
+  rating: integer('rating').notNull(),              // 1-5
+  feedback_text: text('feedback_text'),
+  timestamp: text('timestamp')
+    .notNull()
+    .default(sql`(datetime('now', 'utc'))`),
+});
+
+// ─── SKILL LIBRARY ────────────────────────────────────────────
+export const skillLibrary = sqliteTable('skill_library', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  judul: text('judul').notNull(),
+  trigger_pattern: text('trigger_pattern').notNull(),   // Pattern pesan user
+  response_template: text('response_template').notNull(), // Pola balasan terbaik
+  success_count: integer('success_count').notNull().default(1),
+  avg_rating: integer('avg_rating').default(0),
+  is_active: integer('is_active').notNull().default(1),
+  created_at: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now', 'utc'))`),
+  updated_at: text('updated_at')
+    .notNull()
+    .default(sql`(datetime('now', 'utc'))`),
+});
+
+// ─── LOKASI PELANGGAN (HISTORY KOORDINAT) ─────────────────────────────────────
+export const lokasiPelanggan = sqliteTable('lokasi_pelanggan', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  no_wa_pelanggan: text('no_wa_pelanggan')
+    .notNull()
+    .references(() => pelangganChatbot.no_wa_pelanggan),
+  lat: text('lat').notNull(),
+  lng: text('lng').notNull(),
+  alamat_teks: text('alamat_teks'),
+  source: text('source', {
+    enum: ['wa_native', 'wa_live', 'maps_link', 'maps_short', 'geocoded', 'manual'],
+  }).notNull(),
+  accuracy_meter: integer('accuracy_meter'),
+  is_verified: integer('is_verified').notNull().default(0),
+  id_transaksi: text('id_transaksi'),
+  catatan: text('catatan'),
+  timestamp: text('timestamp')
+    .notNull()
+    .default(sql`(datetime('now', 'utc'))`),
+});
+
+// ─── ZONA PENGIRIMAN ─────────────────────────────────────────────────────────
+export const zonaPengiriman = sqliteTable('zona_pengiriman', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  nama_zona: text('nama_zona').notNull(),
+  lat_pusat: text('lat_pusat').notNull(),
+  lng_pusat: text('lng_pusat').notNull(),
+  radius_km: integer('radius_km').notNull().default(5),
+  ongkir_min: integer('ongkir_min').notNull().default(0),
+  ongkir_max: integer('ongkir_max').notNull().default(0),
+  total_order_bulan_ini: integer('total_order_bulan_ini').default(0),
+  is_active: integer('is_active').notNull().default(1),
+});
+
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 export type PelangganChatbot = typeof pelangganChatbot.$inferSelect;
 export type InsertPelangganChatbot = typeof pelangganChatbot.$inferInsert;
@@ -244,3 +377,24 @@ export type InsertBotAutoReply = typeof botAutoReply.$inferInsert;
 
 export type ChatLog = typeof chatLog.$inferSelect;
 export type InsertChatLog = typeof chatLog.$inferInsert;
+
+export type MemoryPelanggan = typeof memoryPelanggan.$inferSelect;
+export type InsertMemoryPelanggan = typeof memoryPelanggan.$inferInsert;
+
+export type BuktiPembayaran = typeof buktiPembayaran.$inferSelect;
+export type InsertBuktiPembayaran = typeof buktiPembayaran.$inferInsert;
+
+export type WaitlistProduk = typeof waitlistProduk.$inferSelect;
+export type InsertWaitlistProduk = typeof waitlistProduk.$inferInsert;
+
+export type RatingPelanggan = typeof ratingPelanggan.$inferSelect;
+export type InsertRatingPelanggan = typeof ratingPelanggan.$inferInsert;
+
+export type SkillLibrary = typeof skillLibrary.$inferSelect;
+export type InsertSkillLibrary = typeof skillLibrary.$inferInsert;
+
+export type ZonaPengiriman = typeof zonaPengiriman.$inferSelect;
+export type InsertZonaPengiriman = typeof zonaPengiriman.$inferInsert;
+
+export type LokasiPelanggan = typeof lokasiPelanggan.$inferSelect;
+export type InsertLokasiPelanggan = typeof lokasiPelanggan.$inferInsert;

@@ -6,7 +6,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { sendTelegramMessage } from '@/lib/telegram-bot';
 import { detectChannel, parseTelegramChatId } from '@/lib/utils';
-import { sendTextMessage as sendEvolutionMessage } from '@/lib/evolution';
+import { sendTextMessage as sendEvolutionMessage, getInboundMessageHistory } from '@/lib/evolution';
 
 export async function getDaftarChat() {
   try {
@@ -130,7 +130,33 @@ export async function getRiwayatChat(no_wa: string) {
       .orderBy(desc(pesanChat.timestamp))
       .limit(100);
 
-    return outMsgs.reverse();
+    const outMessages = outMsgs.reverse();
+
+    let inMessages: {
+      channel: string;
+      direction: 'in';
+      sumber: 'konsumen';
+      teks: string;
+      timestamp: string;
+    }[] = [];
+
+    try {
+      const rawIn = await getInboundMessageHistory(no_wa, 100);
+      inMessages = rawIn.map((m) => ({
+        channel: 'wa',
+        direction: 'in' as const,
+        sumber: 'konsumen' as const,
+        teks: m.teks,
+        timestamp: m.timestamp,
+      }));
+    } catch (err) {
+      console.warn('[Live Chat] Evolution inbound gagal, tampilkan pesan keluar saja:', err);
+    }
+
+    const merged = [...outMessages, ...inMessages]
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    return merged;
   } catch (error) {
     console.error('Error fetch riwayat chat:', error);
     return [];

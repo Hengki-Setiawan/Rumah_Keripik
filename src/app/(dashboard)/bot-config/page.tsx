@@ -32,9 +32,11 @@ import {
   Clock,
   Truck,
   Lightbulb,
-  Zap
+  Zap,
+  BarChart3,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { BotPerformancePanel } from '@/components/analytics/BotPerformancePanel';
 
 interface KBEntry {
   id: number;
@@ -48,7 +50,7 @@ interface KBEntry {
 
 export default function BotConfigPage() {
   const { addToast } = useToast();
-  const [tab, setTab] = useState<'rules' | 'kb' | 'logs'>('rules');
+  const [tab, setTab] = useState<'rules' | 'kb' | 'logs' | 'analytics'>('rules');
 
   // --- AUTO REPLY RULES & STATS ---
   const [rules, setRules] = useState<any[]>([]);
@@ -229,6 +231,7 @@ export default function BotConfigPage() {
           { key: 'rules' as const, label: 'Auto Reply Rules', icon: Bot, count: rules.length },
           { key: 'kb' as const, label: 'AI Knowledge Base', icon: BookOpen, count: kbEntries.length },
           { key: 'logs' as const, label: 'Conversation Log', icon: MessageSquare },
+          { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
         ].map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.key;
@@ -593,6 +596,16 @@ export default function BotConfigPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* --- TAB 4: ANALYTICS --- */}
+      {tab === 'analytics' && (
+        <div className="space-y-4">
+          <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl p-4">
+            <p className="text-sm text-on-surface-variant font-body-md">Performa chatbot harian — sumber respon, top pertanyaan, dan efektivitas AI</p>
+          </div>
+          <BotPerformancePanel />
         </div>
       )}
     </div>

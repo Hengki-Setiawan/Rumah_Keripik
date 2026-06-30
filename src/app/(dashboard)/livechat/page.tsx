@@ -20,6 +20,7 @@ import {
 } from '@/actions/broadcast';
 import { useToast } from '@/components/ui/toast';
 import { Modal, ConfirmModal } from '@/components/ui/modal';
+import { QuickReplyBar } from '@/components/livechat/QuickReplyBar';
 import {
   MessageSquare,
   Send,
@@ -509,7 +510,8 @@ export default function CommunicationHubPage() {
 
                 {/* Input Panel */}
                 <div className="p-4 bg-white border-t border-outline-variant/20">
-                  <form onSubmit={handleKirim} className="flex items-center gap-3 bg-surface-container px-4 py-1.5 rounded-2xl">
+                  <QuickReplyBar onSelect={(text) => setMessageInput(text)} />
+                  <form onSubmit={handleKirim} className="flex items-center gap-3 bg-surface-container px-4 py-1.5 rounded-2xl mt-2">
                     <input
                       type="text"
                       value={messageInput}

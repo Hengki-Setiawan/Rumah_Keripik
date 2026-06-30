@@ -1,36 +1,44 @@
 /**
- * Chatbot Router
- * Intent routing untuk chatbot WhatsApp
- * Priority: Auto Reply Rule → RAG + LLM → LLM saja → not_found
+ * Chatbot Router v2.0 — Super AI Edition
+ * Priority: Active Order Flow → Auto Reply Rules → Intent Detection → RAG + LLM
  *
  * Alur:
- *   1. Get/create pelanggan di pelanggan_chatbot
- *   2. Skip jika status_handle = Manual_Admin
- *   3. Cek keyword di auto_reply_rules (case-insensitive)
- *   4. Jika cocok → balas pakai rule, log sebagai 'rule'
- *   5. Jika tidak → cari di knowledge base (LIKE search)
- *   6. Jika ada relevan → kirim ke LLM dengan RAG context
- *   7. Jika tidak → kirim ke LLM tanpa context
- *   8. Log hasil ke chat_log
+ *   1. Load context_sesi dari pelanggan_chatbot
+ *   2. Jika sedang dalam flow order aktif (step != IDLE/QA_MODE)
+ *      → route ke Order State Machine
+ *   3. Jika tidak, deteksi intent dari pesan baru:
+ *      a. Auto Reply Rules (keyword match)
+ *      b. Order Tracking / Product Recommendations
+ *      c. Intent: START_ORDER, SHOW_CATALOG, CANCEL_ORDER
+ *      d. Fallback: RAG + LLM
  */
 
 import { db } from '@/lib/db';
-import { pelangganChatbot, botAutoReply, chatLog, aiKnowledgeBase, transaksi, detailTransaksi, produk, pesanChat } from '@/lib/schema';
+import { pelangganChatbot, botAutoReply, chatLog, aiKnowledgeBase, transaksi, detailTransaksi, produk } from '@/lib/schema';
 import { eq, like, or, and, inArray, sql, desc } from 'drizzle-orm';
 import { callGroqLLM } from '@/lib/groq';
 import { getSystemPrompt, getRAGSystemPrompt } from '@/lib/chatbot-prompts';
+import { processOrderState, handleGreeting, getMenuText } from './order-state-machine';
+import type { OrderContext } from './order-types';
 
 export interface RouterResult {
   response: string;
-  source: 'rule' | 'groq' | 'gemini' | 'not_found';
+  source: 'rule' | 'order_flow' | 'groq' | 'gemini' | 'not_found';
   modelUsed?: string;
   tokensUsed?: number;
 }
 
 /**
  * Entry point — proses pesan masuk dari WhatsApp
+ * Support: text, image, location
  */
-export async function processIncomingMessage(no_wa: string, message: string): Promise<RouterResult> {
+export async function processIncomingMessage(
+  no_wa: string,
+  message: string,
+  isImage?: boolean,
+  imageMessageId?: string,
+  locationData?: { lat: number; lng: number; address?: string },
+): Promise<RouterResult> {
   const lowerMessage = message.trim().toLowerCase();
 
   await ensurePelangganExists(no_wa);
@@ -47,6 +55,54 @@ export async function processIncomingMessage(no_wa: string, message: string): Pr
     return { response: '', source: 'not_found' };
   }
 
+  // Load context sesi dari DB
+  let ctx: OrderContext = { step: 'IDLE' };
+  try {
+    ctx = pelanggan?.context_sesi
+      ? JSON.parse(pelanggan.context_sesi)
+      : { step: 'IDLE' };
+  } catch {
+    ctx = { step: 'IDLE' };
+  }
+
+  // ─── ORDER FLOW AKTIF? ──────────────────────────────────────────
+  const isOrderFlowActive = ctx.step && ctx.step !== 'IDLE' && ctx.step !== 'QA_MODE';
+
+  if (isOrderFlowActive) {
+    // Jika gambar masuk saat DRAFT_TERSIMPAN → proses bukti bayar
+    if (isImage && ctx.step === 'DRAFT_TERSIMPAN' && imageMessageId) {
+      const { processPaymentProof } = await import('./media-handler');
+      const result = await processPaymentProof(no_wa, imageMessageId, ctx);
+      await updateContext(no_wa, result.newContext);
+      await logChat(no_wa, `[Gambar: bukti bayar]`, result.response, 'rule');
+      return { response: result.response, source: 'order_flow' };
+    }
+
+    // Jika lokasi masuk saat FORM_ALAMAT → proses lokasi
+    if (locationData && ctx.step === 'FORM_ALAMAT') {
+      const { processLocationMessage } = await import('./location-flow');
+      const result = await processLocationMessage(no_wa, locationData, ctx);
+      await updateContext(no_wa, result.newContext);
+      await logChat(no_wa, `[Lokasi: ${locationData.lat},${locationData.lng}]`, result.response, 'rule');
+      return { response: result.response, source: 'order_flow' };
+    }
+
+    // Delegasikan ke Order State Machine
+    const result = await processOrderState(no_wa, message, ctx, pelanggan);
+
+    // Simpan context baru
+    if (result.newContext) {
+      await updateContext(no_wa, result.newContext);
+    }
+
+    // Log ke chat_log
+    await logChat(no_wa, message, result.response, 'rule');
+
+    return { response: result.response, source: 'order_flow' };
+  }
+
+  // ─── TIDAK ADA ORDER AKTIF — DETEKSI INTENT ──────────────────────
+
   // Step 1 — Auto Reply Rules
   const ruleMatch = await matchAutoReply(lowerMessage);
   if (ruleMatch) {
@@ -55,7 +111,7 @@ export async function processIncomingMessage(no_wa: string, message: string): Pr
     return { response: ruleMatch, source: 'rule' };
   }
 
-  // Step 1.5 — Order Tracking
+  // Step 2 — Order Tracking
   const orderResult = await checkOrderTracking(no_wa, lowerMessage);
   if (orderResult) {
     await logChat(no_wa, message, orderResult, 'rule');
@@ -63,7 +119,7 @@ export async function processIncomingMessage(no_wa: string, message: string): Pr
     return { response: orderResult, source: 'rule' };
   }
 
-  // Step 1.6 — Product Recommendations
+  // Step 3 — Product Recommendations
   const recomResult = await checkProductRecommendation(lowerMessage);
   if (recomResult) {
     await logChat(no_wa, message, recomResult, 'rule');
@@ -71,7 +127,39 @@ export async function processIncomingMessage(no_wa: string, message: string): Pr
     return { response: recomResult, source: 'rule' };
   }
 
-  // Step 2 — RAG dari knowledge base (vector search, fallback text search)
+  // Step 4 — Intent detection: order / katalog / batal
+  const orderKeywords = ['pesan', 'beli', 'order', 'mau beli', 'mau pesan', 'saya mau'];
+  const catalogKeywords = ['katalog', 'menu', 'daftar produk', 'produk', 'list'];
+  const cancelKeywords = ['batal', 'cancel', 'reset'];
+
+  if (cancelKeywords.some((k) => lowerMessage.includes(k))) {
+    await resetContext(no_wa);
+    const resp = 'Sesi dibatalkan. Ada yang bisa kami bantu lagi? Ketik *pesan* untuk mulai pesan baru.';
+    await logChat(no_wa, message, resp, 'rule');
+    return { response: resp, source: 'rule' };
+  }
+
+  if (catalogKeywords.some((k) => lowerMessage.includes(k))) {
+    const menuText = await getMenuText();
+    await logChat(no_wa, message, menuText, 'rule');
+    await touchPelanggan(no_wa);
+    return { response: menuText, source: 'rule' };
+  }
+
+  if (orderKeywords.some((k) => lowerMessage.includes(k)) || isGreeting(lowerMessage)) {
+    try {
+      const result = await handleGreeting(no_wa, message, pelanggan);
+      if (result.newContext) {
+        await updateContext(no_wa, result.newContext);
+      }
+      await logChat(no_wa, message, result.response, 'rule');
+      return { response: result.response, source: 'order_flow' };
+    } catch (err) {
+      console.error('[Router] handleGreeting error:', err);
+    }
+  }
+
+  // Step 5 — RAG dari knowledge base
   const knowledgeContext = await searchKnowledgeBase(lowerMessage);
 
   const messages = [{ role: 'user' as const, content: message }];
@@ -79,7 +167,7 @@ export async function processIncomingMessage(no_wa: string, message: string): Pr
     ? getRAGSystemPrompt(knowledgeContext)
     : getSystemPrompt();
 
-  // Step 3 — LLM Chain
+  // Step 6 — LLM Chain
   try {
     const llmResult = await callGroqLLM(messages, 512, 0.7, systemPrompt);
     const source = llmResult.provider === 'gemini' ? 'gemini' : 'groq';
@@ -336,22 +424,60 @@ async function logChat(
   no_wa: string,
   userMessage: string,
   botResponse: string,
-  sumber: 'rule' | 'groq' | 'gemini' | 'not_found',
+  sumber: 'rule' | 'groq' | 'gemini' | 'not_found' | 'order_flow',
   modelUsed?: string,
   tokensUsed?: number
 ) {
   try {
     const channel = no_wa.startsWith('tg_') ? 'telegram' : 'wa';
+    const s = sumber === 'order_flow' ? 'rule' : sumber;
     await db.insert(chatLog).values({
       no_wa_pelanggan: no_wa,
       channel,
       user_message: userMessage,
       bot_response: botResponse,
-      sumber,
+      sumber: s,
       model_used: modelUsed || null,
       tokens_used: tokensUsed ?? 0,
     });
   } catch (error) {
     console.error('logChat error:', error);
   }
+}
+
+/**
+ * Update context_sesi pelanggan di database
+ */
+async function updateContext(no_wa: string, ctx: OrderContext) {
+  try {
+    ctx.last_updated = new Date().toISOString();
+    await db
+      .update(pelangganChatbot)
+      .set({ context_sesi: JSON.stringify(ctx) })
+      .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
+  } catch (error) {
+    console.error('updateContext error:', error);
+  }
+}
+
+/**
+ * Reset context_sesi ke IDLE
+ */
+async function resetContext(no_wa: string) {
+  try {
+    await db
+      .update(pelangganChatbot)
+      .set({ context_sesi: JSON.stringify({ step: 'IDLE' }) })
+      .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
+  } catch (error) {
+    console.error('resetContext error:', error);
+  }
+}
+
+/**
+ * Deteksi apakah pesan adalah sapaan
+ */
+function isGreeting(lowerMessage: string): boolean {
+  const greetings = ['halo', 'hai', 'hi', 'hey', 'siang', 'pagi', 'sore', 'malam', 'assalamualaikum', 'assalamu\'alaikum', 'test'];
+  return greetings.some((g) => lowerMessage.includes(g)) || lowerMessage.length < 5;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -17,28 +17,68 @@ import {
   Bell,
   Menu,
   X,
-  ChevronDown,
-  AlertTriangle,
-  Send,
   ShoppingCart,
+  MapPin,
+  ShieldAlert,
+  Plus,
 } from 'lucide-react';
-import { ToastProvider } from '@/components/ui/toast';
+import { ToastProvider, useToast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/modal';
+
+interface NotifCounts {
+  pending_verifikasi: number;
+  unread_chats: number;
+}
 
 const menuItems = [
   { href: '/', label: 'Beranda', icon: Home },
   { href: '/analitik', label: 'Analitik', icon: BarChart3 },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
+  { href: '/master-data/warung', label: 'Warung Retail', icon: Store },
+  { href: '/master-data/zona-pengiriman', label: 'Zona Pengiriman', icon: MapPin },
   { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
   { href: '/livechat', label: 'Hub Komunikasi', icon: MessageSquare },
+  { href: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
   { href: '/bot-config', label: 'Pengaturan Bot AI', icon: Bot },
 ];
+
+function NotificationPoller() {
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    let prev = { pending_verifikasi: 0, unread_chats: 0 };
+
+    async function poll() {
+      try {
+        const res = await fetch('/api/admin/notification-counts');
+        if (!res.ok) return;
+        const data: NotifCounts = await res.json();
+
+        if (prev.pending_verifikasi > 0 && data.pending_verifikasi > prev.pending_verifikasi) {
+          addToast('success', `🔔 ${data.pending_verifikasi - prev.pending_verifikasi} pembayaran baru perlu diverifikasi`);
+        }
+        if (prev.unread_chats > 0 && data.unread_chats > prev.unread_chats) {
+          addToast('info', `💬 ${data.unread_chats - prev.unread_chats} chat baru masuk`);
+        }
+        prev = data;
+      } catch { /* ignore */ }
+    }
+
+    poll();
+    const interval = setInterval(poll, 30000);
+    return () => clearInterval(interval);
+  }, [addToast]);
+
+  return null;
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifs, setNotifs] = useState<NotifCounts>({ pending_verifikasi: 0, unread_chats: 0 });
   const pathname = usePathname();
   const [dateStr, setDateStr] = useState('');
 
@@ -52,6 +92,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       })
     );
   }, []);
+
+  const prevCountsRef = useRef({ pending_verifikasi: 0, unread_chats: 0 });
+
+  useEffect(() => {
+    async function fetchNotifs() {
+      try {
+        const res = await fetch('/api/admin/notification-counts');
+        if (!res.ok) return;
+        const data: NotifCounts = await res.json();
+        prevCountsRef.current = data;
+        setNotifs(data);
+      } catch { /* ignore */ }
+    }
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const totalNotif = notifs.pending_verifikasi + notifs.unread_chats;
 
   const currentLabel = menuItems.find(
     (item) => item.href === pathname || pathname.startsWith(item.href + '/')
@@ -68,18 +127,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => { setSidebarOpen(false); if (navigator.vibrate) navigator.vibrate(10); }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                 isActive
                   ? 'bg-secondary-container text-on-secondary-container'
                   : 'text-on-surface-variant hover:bg-surface-container-high'
               }`}
             >
               <Icon size={20} />
-              <span className="font-label-md text-label-md">{item.label}</span>
+              <span className="font-label-md text-label-md flex-1">{item.label}</span>
+              {item.href === '/transaksi' && notifs.pending_verifikasi > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-error text-on-error text-[10px] font-bold">
+                  {notifs.pending_verifikasi}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -104,6 +168,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ToastProvider>
+    <NotificationPoller />
     <div className="flex h-screen overflow-hidden bg-surface-cream">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-sidebar-width flex-col bg-surface-container-low border-r border-outline-variant/30">
@@ -112,20 +177,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar - Mobile Drawer */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        >
+        <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setSidebarOpen(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <aside
             className="relative w-72 h-full bg-surface-container-low border-r border-outline-variant/30 shadow-xl animate-in slide-in-from-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-end p-4">
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant"
-              >
+              <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant">
                 <X size={20} />
               </button>
             </div>
@@ -146,26 +205,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Menu size={20} />
             </button>
             <div>
-              <h2 className="font-headline-sm text-headline-sm text-on-surface leading-tight">
-                {currentLabel}
-              </h2>
-              <p className="font-caption text-caption text-on-surface-variant hidden md:block">
-                {dateStr}
-              </p>
+              <h2 className="font-headline-sm text-headline-sm text-on-surface leading-tight">{currentLabel}</h2>
+              <p className="font-caption text-caption text-on-surface-variant hidden md:block">{dateStr}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            {pathname === '/knowledge-base' && (
-              <div className="hidden md:flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">
-                <Bot size={16} className="text-bot-indigo" />
-                <span className="font-label-md text-label-md text-on-surface">Bot Engine 2.4</span>
-              </div>
-            )}
-            <button className="relative p-2 hover:bg-surface-container rounded-full text-primary transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />
-            </button>
+            <div className="relative">
+              <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2 hover:bg-surface-container rounded-full text-primary transition-colors">
+                <Bell size={20} />
+                {totalNotif > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 px-1.5 py-0.5 rounded-full bg-error text-on-error text-[10px] font-bold leading-none">
+                    {totalNotif > 99 ? '99+' : totalNotif}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-surface-container-lowest border border-neutral-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="p-3 border-b border-outline-variant/20">
+                    <p className="font-label-md text-label-md text-on-surface">Notifikasi</p>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    {notifs.pending_verifikasi > 0 ? (
+                      <Link href="/transaksi" onClick={() => setNotifOpen(false)}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container transition-colors">
+                        <ShieldAlert size={18} className="text-warning shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">{notifs.pending_verifikasi} pembayaran perlu diverifikasi</p>
+                          <p className="text-xs text-on-surface-variant">Klik untuk memverifikasi</p>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="p-3 text-sm text-on-surface-variant text-center">Tidak ada notifikasi baru</div>
+                    )}
+                    {notifs.unread_chats > 0 && (
+                      <Link href="/livechat" onClick={() => setNotifOpen(false)}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container transition-colors">
+                        <MessageSquare size={18} className="text-primary shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">{notifs.unread_chats} pesan belum dibaca</p>
+                          <p className="text-xs text-on-surface-variant">Klik untuk buka Live Chat</p>
+                        </div>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-sm border-2 border-surface-container-highest overflow-hidden">
               <span>AP</span>
             </div>
@@ -202,6 +288,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
+
+        {/* FAB — Tambah Transaksi (Mobile) */}
+        <Link
+          href="/transaksi?action=baru"
+          className="lg:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full bg-primary text-on-primary shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95"
+        >
+          <Plus size={22} />
+        </Link>
       </div>
     </div>
       <ConfirmModal

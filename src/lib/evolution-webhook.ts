@@ -5,6 +5,16 @@ export interface EvolutionIncomingMessage {
   timestamp: string;
   name: string;
   fromMe: boolean;
+  isImage?: boolean;
+  isLocation?: boolean;
+  imageCaption?: string;
+  locationData?: {
+    latitude: number;
+    longitude: number;
+    name?: string;
+    address?: string;
+  };
+  messageRaw?: any;
 }
 
 function getRecordValue(record: unknown, path: string[]): unknown {
@@ -113,14 +123,39 @@ export function parseEvolutionWebhook(body: unknown): EvolutionIncomingMessage |
       )
     );
 
+    const from = extractFrom(candidate) || extractFrom(payload);
+    if (!from || fromMe) return null;
+
+    const rawMsg = candidate.message || payload.message || candidate;
+    const msgRecord = rawMsg as any;
+    
+    const isImage = !!(msgRecord?.imageMessage);
+    const imageCaption = msgRecord?.imageMessage?.caption || '';
+
+    const isLocation = !!(msgRecord?.locationMessage || msgRecord?.liveLocationMessage);
+    let locationData: any = undefined;
+    
+    if (msgRecord?.locationMessage) {
+      locationData = {
+        latitude: Number(msgRecord.locationMessage.degreesLatitude),
+        longitude: Number(msgRecord.locationMessage.degreesLongitude),
+        name: msgRecord.locationMessage.name || undefined,
+        address: msgRecord.locationMessage.address || undefined,
+      };
+    } else if (msgRecord?.liveLocationMessage) {
+      locationData = {
+        latitude: Number(msgRecord.liveLocationMessage.degreesLatitude),
+        longitude: Number(msgRecord.liveLocationMessage.degreesLongitude),
+      };
+    }
+
     const text =
-      extractText(candidate.message) ||
+      extractText(msgRecord) ||
       extractText(candidate) ||
       extractText(payload.message) ||
-      extractText(payload.body);
-
-    const from = extractFrom(candidate) || extractFrom(payload);
-    if (!from || !text || fromMe) return null;
+      extractText(payload.body) ||
+      (isImage ? '[image]' : '') ||
+      (isLocation ? '[location]' : '');
 
     const messageId = String(
       firstDefined(
@@ -139,6 +174,11 @@ export function parseEvolutionWebhook(body: unknown): EvolutionIncomingMessage |
       timestamp: extractTimestamp(candidate),
       name: extractName(candidate),
       fromMe,
+      isImage,
+      isLocation,
+      imageCaption,
+      locationData,
+      messageRaw: msgRecord,
     };
   } catch (error) {
     console.error('Error parsing Evolution webhook:', error);

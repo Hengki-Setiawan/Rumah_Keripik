@@ -1,39 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getAnalitikKPI, getRankingProduk, getAllTransaksi, getOmzetHarian } from '@/actions/transaksi';
+import { getAnalitikKPI, getRankingProduk, getAllTransaksi } from '@/actions/transaksi';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
-import {
-  DollarSign, ShoppingCart, Package, Bot, TrendingUp, TrendingDown, Download, ArrowRight,
+  DollarSign, ShoppingCart, Package, Bot, TrendingUp, TrendingDown, ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { KpiCardSkeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
 import { exportTransaksiCSV, getChatLogAnalytics } from '@/actions/export';
+import { RevenueChart } from '@/components/analytics/RevenueChart';
 
 export default function AnalitikPage() {
   const [kpi, setKpi] = useState({ totalOmzet: 0, totalTransaksi: 0, totalStok: 0, totalPelanggan: 0 });
   const [ranking, setRanking] = useState<{ id_produk: string; qty_total: number; nama_produk: string }[]>([]);
   const [transaksi, setTransaksi] = useState<any[]>([]);
-  const [omzetHarian, setOmzetHarian] = useState<{ tanggal: string; omzet: number; jumlah_transaksi: number }[]>([]);
   const [chatAnalytics, setChatAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
-      const [kpiData, rankingData, txData, omzetData, chatData] = await Promise.all([
+      const [kpiData, rankingData, txData, chatData] = await Promise.all([
         getAnalitikKPI(),
         getRankingProduk(),
         getAllTransaksi(1, 50),
-        getOmzetHarian(),
         getChatLogAnalytics(),
       ]);
       setKpi(kpiData);
       setRanking(rankingData);
       setTransaksi(txData.data || []);
-      setOmzetHarian(omzetData);
       if (chatData.success) setChatAnalytics(chatData.data);
       setLoading(false);
     }
@@ -43,12 +38,6 @@ export default function AnalitikPage() {
   function formatRupiah(n: number) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
   }
-
-  const chartData = omzetHarian.map((d) => {
-    const date = new Date(d.tanggal + 'T00:00:00');
-    const hari = date.toLocaleDateString('id-ID', { weekday: 'short' });
-    return { hari, omzet: d.omzet, transaksi: d.jumlah_transaksi };
-  });
 
   const hour = new Date().getHours();
   let greeting = 'Ikhtisar performa bisnis Rumah Kripik hari ini.';
@@ -155,42 +144,8 @@ export default function AnalitikPage() {
       {/* Chart + Top Products */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter mb-gutter">
         {/* Chart */}
-        <div className="lg:col-span-8 bg-surface-container-lowest p-6 rounded-xl border border-outline-variant">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-headline-sm text-headline-sm text-on-surface">Omzet Harian (7 Hari Terakhir)</h3>
-            <button className="flex items-center gap-2 text-primary font-label-md px-3 py-1 border border-primary-fixed rounded-full hover:bg-primary-fixed transition-colors">
-              <Download size={14} />
-              Export PDF
-            </button>
-          </div>
-          {chartData.length === 0 ? (
-            <div className="flex items-center justify-center h-64 text-on-surface-variant">
-              <div className="text-center">
-                <DollarSign size={48} className="mx-auto mb-2 text-outline-variant" />
-                <p className="font-body-md">Belum ada data transaksi</p>
-              </div>
-            </div>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#dbc2b0" strokeOpacity={0.3} />
-                  <XAxis dataKey="hari" tick={{ fontFamily: 'Inter', fontSize: 12 }} />
-                  <YAxis tick={{ fontFamily: 'Inter', fontSize: 12 }} />
-                  <Tooltip
-                    formatter={(value: number) => formatRupiah(value)}
-                    contentStyle={{
-                      background: 'rgba(255,255,255,0.95)',
-                      border: '1px solid #dbc2b0',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    }}
-                  />
-                  <Line type="monotone" dataKey="omzet" stroke="#8d4b00" strokeWidth={3} name="Omzet" dot={{ fill: '#8d4b00', r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+        <div className="lg:col-span-8">
+          <RevenueChart />
         </div>
 
         {/* Top Products */}

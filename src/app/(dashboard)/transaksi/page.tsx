@@ -6,6 +6,8 @@ import { getAllProdukAktif } from '@/actions/produk';
 import { getAllWarungAktif } from '@/actions/warung';
 import { useToast } from '@/components/ui/toast';
 import { formatRupiah } from '@/lib/utils';
+import { VerifikasiAntrian } from '@/components/transaksi/VerifikasiAntrian';
+import dynamic from 'next/dynamic';
 import {
   TrendingUp,
   Plus,
@@ -21,12 +23,16 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  Store
+  Store,
+  Shield,
+  MapPin,
 } from 'lucide-react';
+
+const MiniMap = dynamic(() => import('@/components/maps/MiniDeliveryMap').then((m) => ({ default: m.MiniDeliveryMap })), { ssr: false });
 
 export default function TransaksiHubPage() {
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang'>('riwayat');
+  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang' | 'verifikasi'>('riwayat');
 
   // Unified Lists
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -56,6 +62,9 @@ export default function TransaksiHubPage() {
   });
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Delivery Tracking
+  const [trackingTx, setTrackingTx] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMainData().catch(console.error);
@@ -241,6 +250,7 @@ export default function TransaksiHubPage() {
       <div className="flex gap-1 bg-surface-container-lowest border border-neutral-200 rounded-xl p-1 w-full md:w-fit">
         {[
           { key: 'riwayat' as const, label: 'Semua Transaksi', icon: ShoppingCart },
+          { key: 'verifikasi' as const, label: 'Verifikasi', icon: Shield },
           { key: 'catat' as const, label: 'Catat Penjualan (Offline)', icon: Plus },
           { key: 'piutang' as const, label: 'Daftar Piutang', icon: DollarSign, count: piutang.length },
         ].map((t) => {
@@ -319,10 +329,12 @@ export default function TransaksiHubPage() {
                       <th className="px-4 py-3 text-right">Total Bayar</th>
                       <th className="px-4 py-3 text-center">Status</th>
                       <th className="px-4 py-3 text-center">Tipe</th>
+                      <th className="px-4 py-3 text-center"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10 font-body-md">
                     {filteredTransactions.map((tx) => (
+                      <>
                       <tr key={tx.id_transaksi} className="hover:bg-surface-cream transition-colors">
                         <td className="px-4 py-3">
                           <p className="font-mono text-xs font-semibold text-primary">#{tx.id_transaksi}</p>
@@ -364,7 +376,30 @@ export default function TransaksiHubPage() {
                             {tx.tipe_penjualan === 'Online_WA' ? 'ONLINE' : 'OFFLINE'}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => setTrackingTx(trackingTx === tx.id_transaksi ? null : tx.id_transaksi)}
+                            className={`p-1.5 rounded-lg transition-colors ${trackingTx === tx.id_transaksi ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'}`}
+                            title={trackingTx === tx.id_transaksi ? 'Tutup' : 'Lihat Lokasi'}
+                          >
+                            <MapPin size={16} />
+                          </button>
+                        </td>
                       </tr>
+                      {trackingTx === tx.id_transaksi && (
+                        <tr key={`${tx.id_transaksi}-map`}>
+                          <td colSpan={7} className="px-4 py-3 bg-surface-cream">
+                            <div className="h-48 rounded-xl overflow-hidden border border-outline-variant/30">
+                              <MiniMap
+                                lat={tx.lat_pengiriman || -0.5022}
+                                lng={tx.lng_pengiriman || 117.1536}
+                                height={192}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </>
                     ))}
                   </tbody>
                 </table>
@@ -395,7 +430,12 @@ export default function TransaksiHubPage() {
         </div>
       )}
 
-      {/* --- TAB 2: CATAT PENJUALAN OFFLINE --- */}
+      {/* --- TAB 2: VERIFIKASI PEMBAYARAN --- */}
+      {activeTab === 'verifikasi' && (
+        <VerifikasiAntrian />
+      )}
+
+      {/* --- TAB 3: CATAT PENJUALAN OFFLINE --- */}
       {activeTab === 'catat' && (
         <div className="bg-surface-container-lowest border border-neutral-200 p-6 rounded-xl shadow-sm max-w-2xl">
           <div className="mb-4">
