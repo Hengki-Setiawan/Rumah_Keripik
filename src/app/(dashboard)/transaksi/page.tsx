@@ -377,13 +377,26 @@ export default function TransaksiHubPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => setTrackingTx(trackingTx === tx.id_transaksi ? null : tx.id_transaksi)}
-                            className={`p-1.5 rounded-lg transition-colors ${trackingTx === tx.id_transaksi ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'}`}
-                            title={trackingTx === tx.id_transaksi ? 'Tutup' : 'Lihat Lokasi'}
-                          >
-                            <MapPin size={16} />
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            {tx.invoice_url && (
+                              <a
+                                href={tx.invoice_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
+                                title="Download Invoice PDF"
+                              >
+                                <FileText size={16} />
+                              </a>
+                            )}
+                            <button
+                              onClick={() => setTrackingTx(trackingTx === tx.id_transaksi ? null : tx.id_transaksi)}
+                              className={`p-1.5 rounded-lg transition-colors ${trackingTx === tx.id_transaksi ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'}`}
+                              title={trackingTx === tx.id_transaksi ? 'Tutup' : 'Lihat Lokasi'}
+                            >
+                              <MapPin size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {trackingTx === tx.id_transaksi && (

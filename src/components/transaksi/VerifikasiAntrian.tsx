@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, EyeOff, MapPin, Loader } from 'lucide-react';
+import { BuktiPembayaran } from './BuktiPembayaran';
 
 interface PesananMenunggu {
   id_transaksi: string;
@@ -145,12 +146,12 @@ export function VerifikasiAntrian() {
           )}
 
           {showBukti === p.id_transaksi && p.bukti_url && (
-            <div className="mb-3 rounded-lg overflow-hidden border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.bukti_url}
-                alt="Bukti Pembayaran"
-                className="w-full max-h-80 object-contain bg-black/5"
+            <div className="mb-3 p-4 rounded-lg bg-surface-container border">
+              <BuktiPembayaran 
+                url={p.bukti_url} 
+                kode_pesanan={p.kode_pesanan} 
+                nama={p.nama_penerima || p.nama_pelanggan || undefined} 
+                onClose={() => setShowBukti(null)}
               />
             </div>
           )}
@@ -162,7 +163,7 @@ export function VerifikasiAntrian() {
                 className="flex items-center gap-1 text-sm px-3 py-2 rounded-lg border hover:bg-surface-container transition-colors"
               >
                 {showBukti === p.id_transaksi ? <EyeOff size={16} /> : <Eye size={16} />}
-                {showBukti === p.id_transaksi ? 'Tutup' : 'Lihat Bukti'}
+                {showBukti === p.id_transaksi ? 'Tutup Preview' : 'Lihat Bukti'}
               </button>
             )}
 

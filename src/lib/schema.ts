@@ -103,6 +103,7 @@ export const transaksi = sqliteTable(
     lat_pengiriman: text('lat_pengiriman'),
     lng_pengiriman: text('lng_pengiriman'),
     jarak_km_dari_gudang: text('jarak_km_dari_gudang'), // As real/string number
+    invoice_url: text('invoice_url'), // Link invoice Cloudinary
     
     waktu_simpan: text('waktu_simpan')
       .notNull()

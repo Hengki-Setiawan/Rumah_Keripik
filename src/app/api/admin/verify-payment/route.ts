@@ -64,18 +64,33 @@ export async function POST(req: NextRequest) {
         }
       });
 
+      // ─── GENERATE INVOICE PDF & UPLOAD TO CLOUDINARY ────────────────────────
+      let invoiceUrl = '';
+      try {
+        const { generateAndSaveInvoice } = await import('@/lib/invoice-generator');
+        invoiceUrl = await generateAndSaveInvoice(id_transaksi);
+      } catch (invoiceErr) {
+        console.error('[VerifyPayment] Gagal generate invoice:', invoiceErr);
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
       if (tx.no_wa_pelanggan) {
-        const msg =
+        let msg =
           `🎉 *Pembayaran Terverifikasi!* 🎉\n\n` +
           `Halo kak! Pembayaran untuk pesanan *${tx.kode_pesanan || tx.id_transaksi}* sudah kami terima dan verifikasi ✅\n\n` +
           `Pesanan Kakak akan segera kami proses.\n` +
-          `Estimasi pengiriman: 1-2 hari kerja 📦\n\n` +
-          `Ketik *rating* 1-5 untuk penilaian pelayanan kami ya kak ⭐🙏`;
+          `Estimasi pengiriman: 1-2 hari kerja 📦\n\n`;
+
+        if (invoiceUrl) {
+          msg += `📄 *Download Invoice PDF:* ${invoiceUrl}\n\n`;
+        }
+
+        msg += `Ketik *rating* 1-5 untuk penilaian pelayanan kami ya kak ⭐🙏`;
 
         sendTextMessage(tx.no_wa_pelanggan, msg).catch(console.warn);
       }
 
-      return NextResponse.json({ success: true, status: 'Lunas' });
+      return NextResponse.json({ success: true, status: 'Lunas', invoice_url: invoiceUrl });
     }
 
     if (action === 'reject') {

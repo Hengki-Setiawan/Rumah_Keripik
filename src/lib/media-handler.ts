@@ -3,8 +3,7 @@ import { transaksi, buktiPembayaran } from './schema';
 import { eq } from 'drizzle-orm';
 import { sendTextMessage } from './evolution';
 import type { OrderContext } from './order-types';
-import fs from 'fs';
-import path from 'path';
+import { uploadBuktiBayar } from './cloudinary';
 
 /**
  * Downloads media from Evolution API as base64
@@ -63,28 +62,6 @@ async function downloadMediaFromEvolution(messageId: string): Promise<{
   }
 }
 
-/**
- * Saves base64 string to a file under /public/uploads/bukti/
- */
-async function saveBase64ToFile(
-  base64: string,
-  id_transaksi: string,
-  mimetype: string,
-): Promise<string> {
-  const ext = mimetype.includes('png') ? 'png' : 'jpg';
-  const filename = `${id_transaksi}_${Date.now()}.${ext}`;
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'bukti');
-  
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-  
-  const filepath = path.join(uploadDir, filename);
-  const buffer = Buffer.from(base64, 'base64');
-  fs.writeFileSync(filepath, buffer);
-  
-  return `/uploads/bukti/${filename}`;
-}
 
 /**
  * Main function: downloads image, saves to local folder, inserts db row, and updates transaction state
@@ -115,9 +92,10 @@ export async function processPaymentProof(
       };
     }
     
-    // Save to filesystem
-    const fileUrl = await saveBase64ToFile(media.base64, ctx.id_transaksi, media.mimetype);
-    console.log(`[MediaHandler] Saved file to public path: ${fileUrl}`);
+    // Upload ke Cloudinary
+    const uploadResult = await uploadBuktiBayar(media.base64, ctx.id_transaksi, media.mimetype);
+    const fileUrl = uploadResult.secure_url;
+    console.log(`[MediaHandler] Saved file to Cloudinary: ${fileUrl}`);
 
     // Insert to bukti_pembayaran table
     await db.insert(buktiPembayaran).values({
