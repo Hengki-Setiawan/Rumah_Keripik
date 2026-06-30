@@ -8,6 +8,7 @@ import { callGroqLLM } from '@/lib/groq'
 import { generateQueryEmbedding, toTursoVectorString } from '@/lib/gemini'
 import { createClient } from '@libsql/client'
 import { getSystemPrompt } from '@/lib/chatbot-prompts'
+import { resolvePublicBaseUrl } from '@/lib/public-url'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -118,9 +119,7 @@ export async function GET(req: NextRequest) {
   const setup = url.searchParams.get('setup')
 
   if (setup === 'webhook') {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : `${url.protocol}//${url.host}`
+    const baseUrl = resolvePublicBaseUrl(`${url.protocol}//${url.host}`)
     const webhookUrl = `${baseUrl}/api/webhook/telegram`
     const ok = await setTelegramWebhook(webhookUrl)
     const info = await getTelegramWebhookInfo()

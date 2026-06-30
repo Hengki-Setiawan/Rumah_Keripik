@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parseEvolutionWebhook } from '@/lib/evolution-webhook';
 import { sendTextMessage } from '@/lib/evolution';
 import { processIncomingMessage } from '@/lib/chatbot-router';
+import { resolvePublicBaseUrl } from '@/lib/public-url';
 
 /**
  * Webhook Evolution API.
@@ -12,9 +13,7 @@ export async function GET(req: NextRequest) {
   const setup = searchParams.get('setup');
 
   if (setup === 'webhook') {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+    const baseUrl = resolvePublicBaseUrl(`${req.nextUrl.protocol}//${req.nextUrl.host}`);
     const webhookUrl = `${baseUrl}/api/webhook/wa`;
 
     return NextResponse.json({
