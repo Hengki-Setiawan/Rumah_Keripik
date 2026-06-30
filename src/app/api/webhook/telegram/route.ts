@@ -42,70 +42,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  await sendTelegramTyping(chatId)
-
-  const lower = text.toLowerCase()
-  const autoRules = await db
-    .select()
-    .from(chatLog)
-    .where(sql`keyword IS NOT NULL`)
-    .limit(0)
-
   try {
-    const client = createClient({
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN!,
-    })
+    const { processIncomingMessage } = await import('@/lib/chatbot-router')
+    const result = await processIncomingMessage(externalId, text)
 
-    const { embedding } = await generateQueryEmbedding(text)
-    const vectorStr = toTursoVectorString(embedding)
-
-    const searchResult = await client.execute({
-      sql: `
-        SELECT potongan_teks FROM ai_knowledge_base
-        WHERE is_active = 1
-        ORDER BY vector_distance_cos(vector_embedding, vector(?))
-        LIMIT 3
-      `,
-      args: [vectorStr],
-    })
-
-    const chunks = searchResult.rows
-      .filter((r: any) => Number((r as any).vector_distance_cos ?? 1) < 0.4)
-      .map((r: any) => (r as any).potongan_teks as string)
-
-    const context = chunks.length > 0
-      ? `Gunakan informasi berikut untuk menjawab:\n${chunks.join('\n\n')}`
-      : ''
-
-    const llmResult = await callGroqLLM(
-      [{ role: 'user', content: text }],
-      1024,
-      0.7,
-      `${getSystemPrompt()}\n${context}`,
-    )
-
-    await sendTelegramMessage(chatId, llmResult.text)
-
-    await db.insert(chatLog).values({
-      no_wa_pelanggan: externalId,
-      channel: 'telegram',
-      user_message: text,
-      bot_response: llmResult.text,
-      sumber: llmResult.provider.startsWith('groq') ? 'groq' : 'gemini',
-      model_used: llmResult.provider,
-      tokens_used: 0,
-    })
-
-    await db.insert(pesanChat).values({
-      no_wa_pelanggan: externalId,
-      channel: 'telegram',
-      direction: 'out',
-      sumber: 'bot',
-      teks: llmResult.text,
-      id_external: String(Date.now()),
-      status_kirim: 'sent',
-    })
+    if (result.response) {
+      await sendTelegramMessage(chatId, result.response)
+    }
   } catch (err) {
     console.error('[Telegram Webhook] Error:', err)
     await sendTelegramMessage(chatId, 'Maaf, terjadi gangguan. Coba lagi nanti ya.')

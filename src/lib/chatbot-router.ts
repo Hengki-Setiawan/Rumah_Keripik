@@ -339,8 +339,10 @@ async function logChat(
   tokensUsed?: number
 ) {
   try {
+    const channel = no_wa.startsWith('tg_') ? 'telegram' : 'wa';
     await db.insert(chatLog).values({
       no_wa_pelanggan: no_wa,
+      channel,
       user_message: userMessage,
       bot_response: botResponse,
       sumber,
