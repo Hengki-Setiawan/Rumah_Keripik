@@ -351,6 +351,174 @@ export const zonaPengiriman = sqliteTable('zona_pengiriman', {
   is_active: integer('is_active').notNull().default(1),
 });
 
+// Queue draft pemesanan sebelum menjadi transaksi final.
+export const orderDraft = sqliteTable(
+  'order_draft',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    no_wa_pelanggan: text('no_wa_pelanggan')
+      .notNull()
+      .references(() => pelangganChatbot.no_wa_pelanggan),
+    channel: text('channel', { enum: ['wa', 'telegram'] }).notNull().default('wa'),
+    status: text('status', {
+      enum: ['Profil_Pending', 'Cart_Pending', 'Menunggu_Bayar', 'Menunggu_Verifikasi', 'Completed', 'Cancelled'],
+    }).notNull().default('Profil_Pending'),
+    id_transaksi: text('id_transaksi'),
+    context_json: text('context_json').notNull(),
+    expires_at: text('expires_at'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    customerIdx: index('idx_order_draft_customer').on(table.no_wa_pelanggan),
+    statusIdx: index('idx_order_draft_status').on(table.status),
+  })
+);
+
+export const orderEvents = sqliteTable(
+  'order_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    id_transaksi: text('id_transaksi'),
+    no_wa_pelanggan: text('no_wa_pelanggan').notNull(),
+    event_type: text('event_type').notNull(),
+    event_payload: text('event_payload'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    txIdx: index('idx_order_events_tx').on(table.id_transaksi),
+    customerIdx: index('idx_order_events_customer').on(table.no_wa_pelanggan),
+  })
+);
+
+export const workerJob = sqliteTable(
+  'worker_job',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    type: text('type').notNull(),
+    payload_json: text('payload_json').notNull(),
+    status: text('status', { enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'] })
+      .notNull()
+      .default('pending'),
+    priority: integer('priority').notNull().default(5),
+    attempts: integer('attempts').notNull().default(0),
+    max_attempts: integer('max_attempts').notNull().default(3),
+    locked_by: text('locked_by'),
+    locked_until: text('locked_until'),
+    result_json: text('result_json'),
+    error_message: text('error_message'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    statusIdx: index('idx_worker_job_status').on(table.status, table.priority, table.created_at),
+    lockIdx: index('idx_worker_job_lock').on(table.locked_until),
+  })
+);
+
+export const workerHeartbeat = sqliteTable('worker_heartbeat', {
+  worker_id: text('worker_id').primaryKey(),
+  worker_name: text('worker_name'),
+  status: text('status', { enum: ['online', 'idle', 'offline'] }).notNull().default('online'),
+  last_seen_at: text('last_seen_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  meta_json: text('meta_json'),
+});
+
+export const outboundMessageQueue = sqliteTable(
+  'outbound_message_queue',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    channel: text('channel', { enum: ['wa', 'telegram'] }).notNull(),
+    recipient_id: text('recipient_id').notNull(),
+    message_text: text('message_text').notNull(),
+    status: text('status', { enum: ['pending', 'sent', 'failed', 'cancelled'] }).notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    provider_message_id: text('provider_message_id'),
+    error_message: text('error_message'),
+    scheduled_at: text('scheduled_at'),
+    sent_at: text('sent_at'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    statusIdx: index('idx_outbound_queue_status').on(table.status, table.scheduled_at),
+  })
+);
+
+export const geocodeCache = sqliteTable('geocode_cache', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  query: text('query').notNull().unique(),
+  lat: text('lat'),
+  lng: text('lng'),
+  formatted_address: text('formatted_address'),
+  provider: text('provider').notNull().default('nominatim'),
+  confidence: integer('confidence'),
+  raw_json: text('raw_json'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export const aiResponseCache = sqliteTable('ai_response_cache', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  cache_key: text('cache_key').notNull().unique(),
+  prompt_hash: text('prompt_hash').notNull(),
+  response_text: text('response_text').notNull(),
+  model_used: text('model_used'),
+  tokens_used: integer('tokens_used').default(0),
+  expires_at: text('expires_at'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export const aiLearningReview = sqliteTable('ai_learning_review', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  trigger_pattern: text('trigger_pattern').notNull(),
+  suggested_response: text('suggested_response').notNull(),
+  source_chat_id: integer('source_chat_id'),
+  status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
+  reviewed_by: text('reviewed_by'),
+  reviewed_at: text('reviewed_at'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export const deliveryAssignment = sqliteTable(
+  'delivery_assignment',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    id_transaksi: text('id_transaksi')
+      .notNull()
+      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+    kurir_name: text('kurir_name'),
+    status: text('status', {
+      enum: ['Siap_Dikirim', 'Dalam_Pengiriman', 'Terkirim', 'Gagal'],
+    }).notNull().default('Siap_Dikirim'),
+    pickup_at: text('pickup_at'),
+    delivered_at: text('delivered_at'),
+    proof_url: text('proof_url'),
+    notes: text('notes'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    txIdx: index('idx_delivery_assignment_tx').on(table.id_transaksi),
+    statusIdx: index('idx_delivery_assignment_status').on(table.status),
+  })
+);
+
+export const deliveryRoutePoint = sqliteTable(
+  'delivery_route_point',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    route_date: text('route_date').notNull(),
+    id_transaksi: text('id_transaksi').notNull(),
+    sequence_no: integer('sequence_no').notNull(),
+    lat: text('lat').notNull(),
+    lng: text('lng').notNull(),
+    address: text('address'),
+    status: text('status', { enum: ['pending', 'visited', 'skipped'] }).notNull().default('pending'),
+  },
+  (table) => ({
+    routeIdx: index('idx_delivery_route_date').on(table.route_date, table.sequence_no),
+  })
+);
+
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 export type PelangganChatbot = typeof pelangganChatbot.$inferSelect;
 export type InsertPelangganChatbot = typeof pelangganChatbot.$inferInsert;
@@ -399,3 +567,24 @@ export type InsertZonaPengiriman = typeof zonaPengiriman.$inferInsert;
 
 export type LokasiPelanggan = typeof lokasiPelanggan.$inferSelect;
 export type InsertLokasiPelanggan = typeof lokasiPelanggan.$inferInsert;
+
+export type OrderDraft = typeof orderDraft.$inferSelect;
+export type InsertOrderDraft = typeof orderDraft.$inferInsert;
+export type OrderEvents = typeof orderEvents.$inferSelect;
+export type InsertOrderEvents = typeof orderEvents.$inferInsert;
+export type WorkerJob = typeof workerJob.$inferSelect;
+export type InsertWorkerJob = typeof workerJob.$inferInsert;
+export type WorkerHeartbeat = typeof workerHeartbeat.$inferSelect;
+export type InsertWorkerHeartbeat = typeof workerHeartbeat.$inferInsert;
+export type OutboundMessageQueue = typeof outboundMessageQueue.$inferSelect;
+export type InsertOutboundMessageQueue = typeof outboundMessageQueue.$inferInsert;
+export type GeocodeCache = typeof geocodeCache.$inferSelect;
+export type InsertGeocodeCache = typeof geocodeCache.$inferInsert;
+export type AiResponseCache = typeof aiResponseCache.$inferSelect;
+export type InsertAiResponseCache = typeof aiResponseCache.$inferInsert;
+export type AiLearningReview = typeof aiLearningReview.$inferSelect;
+export type InsertAiLearningReview = typeof aiLearningReview.$inferInsert;
+export type DeliveryAssignment = typeof deliveryAssignment.$inferSelect;
+export type InsertDeliveryAssignment = typeof deliveryAssignment.$inferInsert;
+export type DeliveryRoutePoint = typeof deliveryRoutePoint.$inferSelect;
+export type InsertDeliveryRoutePoint = typeof deliveryRoutePoint.$inferInsert;

@@ -13,6 +13,7 @@ import {
   Users,
   ShieldCheck,
   Bell,
+  Cpu,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
@@ -26,6 +27,12 @@ interface KPIData {
   order_kemarin: number;
   chat_bot_hari_ini: number;
   pending_verifikasi: number;
+}
+
+interface WorkerStatus {
+  online: boolean;
+  counts: { pending: number; processing: number; failed: number };
+  workers: { worker_id: string; worker_name: string | null; seconds_ago: number | null; online: boolean }[];
 }
 
 function useKPI() {
@@ -47,6 +54,23 @@ function useKPI() {
   }, []);
 
   return { data, loading };
+}
+
+function useWorkerStatus() {
+  const [data, setData] = useState<WorkerStatus | null>(null);
+
+  useEffect(() => {
+    async function fetchStatus() {
+      const res = await fetch('/api/worker/status');
+      if (res.ok) setData(await res.json());
+    }
+
+    fetchStatus().catch(() => {});
+    const interval = setInterval(() => fetchStatus().catch(() => {}), 15_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return data;
 }
 
 function formatRupiah(n: number) {
@@ -150,6 +174,7 @@ const modules = [
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const { data, loading } = useKPI();
+  const worker = useWorkerStatus();
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
 
   useEffect(() => {
@@ -228,6 +253,38 @@ export default function DashboardPage() {
                 href="/transaksi?tab=verifikasi"
                 loading={loading}
               />
+            </div>
+          </div>
+
+          <div className={`rounded-xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
+            worker?.online ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className={`p-2.5 rounded-lg ${worker?.online ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                <Cpu size={20} />
+              </div>
+              <div>
+                <p className="font-bold text-on-surface">Local AI Worker</p>
+                <p className="text-sm text-on-surface-variant mt-0.5">
+                  {worker?.online
+                    ? 'Online. Job berat diproses dari komputer lokal.'
+                    : 'Offline. Job tetap aman tersimpan di Turso dan akan diproses saat worker hidup.'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-lg font-bold text-on-surface">{worker?.counts.pending ?? '-'}</p>
+                <p className="text-[11px] text-on-surface-variant">Pending</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-on-surface">{worker?.counts.processing ?? '-'}</p>
+                <p className="text-[11px] text-on-surface-variant">Proses</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-on-surface">{worker?.counts.failed ?? '-'}</p>
+                <p className="text-[11px] text-on-surface-variant">Gagal</p>
+              </div>
             </div>
           </div>
 

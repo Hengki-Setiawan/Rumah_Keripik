@@ -11,7 +11,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:reembed": "tsx src/scripts/reembed-kb.ts",
+    "db:migrate:v3": "tsx src/scripts/migrate-v3-worker-blueprint.ts",
     "db:studio": "drizzle-kit studio",
+    "worker": "tsx src/scripts/local-worker.ts",
     "postinstall": "patch-package; node scripts/fix-libsql.js"
   },
   "dependencies": {

@@ -20,7 +20,7 @@ export async function GET() {
     adminUsername: Boolean(process.env.ADMIN_USERNAME),
     adminPassword: Boolean(process.env.ADMIN_PASSWORD),
     nextauthSecret: Boolean(process.env.NEXTAUTH_SECRET),
-    n8nWebhookSecret: Boolean(process.env.N8N_WEBHOOK_SECRET),
+    workerName: process.env.WORKER_NAME ?? null,
   };
 
   const checks: Record<string, unknown> = {};

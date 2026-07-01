@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { sendTextMessage } from './evolution';
 import type { OrderContext } from './order-types';
 import { uploadBuktiBayar } from './cloudinary';
+import { logOrderEvent } from './order-events';
 
 /**
  * Downloads media from Evolution API as base64
@@ -114,6 +115,13 @@ export async function processPaymentProof(
         bukti_transfer_url: fileUrl,
       })
       .where(eq(transaksi.id_transaksi, ctx.id_transaksi));
+
+    await logOrderEvent({
+      no_wa,
+      id_transaksi: ctx.id_transaksi,
+      event: 'payment_proof_received',
+      payload: { url: fileUrl },
+    });
     
     const newCtx: OrderContext = {
       ...ctx,

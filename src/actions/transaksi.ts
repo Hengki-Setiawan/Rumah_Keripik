@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { transaksi, detailTransaksi, produk, pelangganChatbot, warungRetail } from '@/lib/schema';
+import { transaksi, detailTransaksi, produk, pelangganChatbot, warungRetail, orderDraft } from '@/lib/schema';
 import { eq, and, desc, gte, lte, sql, count, sum } from 'drizzle-orm';
 import { z } from 'zod';
 import { generateIdTransaksi, generateKodePesanan } from '@/lib/id-generator';
@@ -338,5 +338,34 @@ export async function getAllTransaksi(page: number = 1, limit: number = 20) {
   } catch (error) {
     console.error('Error fetch transaksi:', error);
     return { data: [], total: 0, page: 1, limit };
+  }
+}
+
+export async function getActiveOrderDrafts() {
+  try {
+    return await db
+      .select({
+        id: orderDraft.id,
+        no_wa_pelanggan: orderDraft.no_wa_pelanggan,
+        channel: orderDraft.channel,
+        status: orderDraft.status,
+        id_transaksi: orderDraft.id_transaksi,
+        context_json: orderDraft.context_json,
+        updated_at: orderDraft.updated_at,
+        nama_pelanggan: pelangganChatbot.nama_pelanggan,
+      })
+      .from(orderDraft)
+      .leftJoin(pelangganChatbot, eq(orderDraft.no_wa_pelanggan, pelangganChatbot.no_wa_pelanggan))
+      .where(
+        and(
+          sql`${orderDraft.status} NOT IN ('Completed', 'Cancelled')`,
+          sql`${orderDraft.expires_at} IS NULL OR ${orderDraft.expires_at} > datetime('now', 'utc')`,
+        ),
+      )
+      .orderBy(desc(orderDraft.updated_at))
+      .limit(20);
+  } catch (error) {
+    console.error('Error fetch active order drafts:', error);
+    return [];
   }
 }

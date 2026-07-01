@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { transaksi, detailTransaksi, produk, buktiPembayaran, pelangganChatbot } from '@/lib/schema';
+import { transaksi, detailTransaksi, produk, buktiPembayaran, pelangganChatbot, deliveryAssignment } from '@/lib/schema';
 import { eq, sql } from 'drizzle-orm';
 import { sendTextMessage } from '@/lib/evolution';
 import { sendTelegramMessage } from '@/lib/telegram-bot';
+import { closeOrderDraft, logOrderEvent } from '@/lib/order-events';
 
 export async function POST(req: NextRequest) {
   try {
@@ -71,7 +72,23 @@ export async function POST(req: NextRequest) {
             .set({ context_sesi: JSON.stringify({ step: 'SELESAI', id_transaksi, kode_pesanan: tx.kode_pesanan }) })
             .where(eq(pelangganChatbot.no_wa_pelanggan, tx.no_wa_pelanggan));
         }
+
+        await trx.insert(deliveryAssignment).values({
+          id_transaksi,
+          status: 'Siap_Dikirim',
+          notes: 'Otomatis dibuat setelah pembayaran diverifikasi',
+        }).onConflictDoNothing();
       });
+
+      if (tx.no_wa_pelanggan) {
+        await closeOrderDraft(tx.no_wa_pelanggan, 'Completed');
+        await logOrderEvent({
+          no_wa: tx.no_wa_pelanggan,
+          id_transaksi,
+          event: 'payment_approved',
+          payload: { admin: body.admin_username || 'admin' },
+        });
+      }
 
       // ─── GENERATE INVOICE PDF & UPLOAD TO CLOUDINARY ────────────────────────
       let invoiceUrl = '';
@@ -138,6 +155,14 @@ export async function POST(req: NextRequest) {
       });
 
       if (tx.no_wa_pelanggan) {
+        await closeOrderDraft(tx.no_wa_pelanggan, 'Cancelled');
+        await logOrderEvent({
+          no_wa: tx.no_wa_pelanggan,
+          id_transaksi,
+          event: 'payment_rejected',
+          payload: { reason: catatan_admin || 'bukti transfer tidak valid atau tidak sesuai' },
+        });
+
         const reason = catatan_admin || 'bukti transfer tidak valid atau tidak sesuai';
         const msg =
           `❌ *Pembayaran Ditolak*\n\n` +

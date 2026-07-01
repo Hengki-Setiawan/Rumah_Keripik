@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { catatPenjualanOffline, getPiutangBelumLunas, tandaiPiutangLunas, getAllTransaksi } from '@/actions/transaksi';
+import { catatPenjualanOffline, getPiutangBelumLunas, tandaiPiutangLunas, getAllTransaksi, getActiveOrderDrafts } from '@/actions/transaksi';
 import { getAllProdukAktif } from '@/actions/produk';
 import { getAllWarungAktif } from '@/actions/warung';
 import { useToast } from '@/components/ui/toast';
@@ -39,6 +39,7 @@ export default function TransaksiHubPage() {
 
   // Unified Lists
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [drafts, setDrafts] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(15);
@@ -100,7 +101,9 @@ export default function TransaksiHubPage() {
   async function fetchMainData(silent = false) {
     if (!silent) setLoading(true);
     const res = await getAllTransaksi(currentPage, limit);
+    const activeDrafts = await getActiveOrderDrafts();
     setTransactions(res.data);
+    setDrafts(activeDrafts);
     setTotalCount(res.total);
     if (!silent) setLoading(false);
   }
@@ -251,7 +254,7 @@ export default function TransaksiHubPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter">
         <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl p-5 shadow-sm">
           <p className="text-sm text-on-surface-variant">Total Tagihan Piutang</p>
           <p className="text-3xl font-bold text-error mt-2">
@@ -268,6 +271,11 @@ export default function TransaksiHubPage() {
           <p className="text-sm text-on-surface-variant">Piutang Aktif</p>
           <p className="text-3xl font-bold text-tertiary mt-2">{piutang.length}</p>
           <p className="text-xs text-on-surface-variant/70 mt-1">Butuh penagihan / follow-up segera</p>
+        </div>
+        <div className="bg-surface-container-lowest border border-orange-200 rounded-xl p-5 shadow-sm">
+          <p className="text-sm text-on-surface-variant">Profil / Order Pending</p>
+          <p className="text-3xl font-bold text-orange-700 mt-2">{drafts.length}</p>
+          <p className="text-xs text-on-surface-variant/70 mt-1">Pelanggan masih di flow chatbot</p>
         </div>
       </div>
 
@@ -305,6 +313,29 @@ export default function TransaksiHubPage() {
       {/* --- TAB 1: ALL TRANSACTIONS --- */}
       {activeTab === 'riwayat' && (
         <div className="space-y-4">
+          {drafts.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock size={16} className="text-orange-700" />
+                <h3 className="font-bold text-orange-900">Antrian Chatbot Belum Selesai</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {drafts.slice(0, 6).map((draft) => (
+                  <div key={draft.id} className="bg-white/80 border border-orange-100 rounded-lg p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-sm text-on-surface">{draft.nama_pelanggan || 'Pelanggan Chatbot'}</p>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold">
+                        {formatStatus(draft.status)}
+                      </span>
+                    </div>
+                    <p className="font-mono text-[11px] text-on-surface-variant mt-1">{draft.no_wa_pelanggan}</p>
+                    <p className="text-[11px] text-on-surface-variant mt-1">Update: {formatDate(draft.updated_at)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="flex items-center gap-4 flex-wrap bg-surface-container-lowest border border-neutral-200 p-4 rounded-xl">
             <div className="flex items-center gap-2 text-on-surface-variant">

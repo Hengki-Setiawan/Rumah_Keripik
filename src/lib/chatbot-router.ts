@@ -13,14 +13,16 @@
  *      d. Fallback: RAG + LLM
  */
 
+import { createHash } from 'crypto';
 import { db } from '@/lib/db';
-import { pelangganChatbot, botAutoReply, chatLog, aiKnowledgeBase, transaksi, detailTransaksi, produk } from '@/lib/schema';
+import { pelangganChatbot, botAutoReply, chatLog, aiKnowledgeBase, transaksi, detailTransaksi, produk, aiResponseCache } from '@/lib/schema';
 import { eq, like, or, and, inArray, sql, desc } from 'drizzle-orm';
 import { callGroqLLM } from '@/lib/groq';
 import { getSystemPrompt, getRAGSystemPrompt } from '@/lib/chatbot-prompts';
 import { processOrderState, handleGreeting, getMenuText } from './order-state-machine';
 import { extractCoordsFromText } from './location-parser';
 import { processLocationMessage } from './location-flow';
+import { closeOrderDraft, logOrderEvent, syncOrderDraft } from './order-events';
 import type { OrderContext } from './order-types';
 
 export interface RouterResult {
@@ -99,6 +101,12 @@ export async function processIncomingMessage(
     // Simpan context baru
     if (result.newContext) {
       await updateContext(no_wa, result.newContext);
+      await logOrderEvent({
+        no_wa,
+        id_transaksi: result.newContext.id_transaksi,
+        event: `step_${result.newContext.step}`,
+        payload: { source: 'order_flow' },
+      });
     }
 
     // Log ke chat_log
@@ -169,6 +177,7 @@ export async function processIncomingMessage(
       const result = await handleGreeting(no_wa, message, pelanggan);
       if (result.newContext) {
         await updateContext(no_wa, result.newContext);
+        await logOrderEvent({ no_wa, event: `step_${result.newContext.step}`, payload: { source: 'greeting' } });
       }
       await logChat(no_wa, message, result.response, 'rule');
       return { response: result.response, source: 'order_flow' };
@@ -179,6 +188,13 @@ export async function processIncomingMessage(
 
   // Step 5 — RAG dari knowledge base
   const knowledgeContext = await searchKnowledgeBase(lowerMessage);
+  const cacheKey = buildAiCacheKey(lowerMessage, knowledgeContext);
+  const cachedAi = await getCachedAiResponse(cacheKey);
+  if (cachedAi) {
+    await logChat(no_wa, message, cachedAi, 'rule', 'cache', 0);
+    await touchPelanggan(no_wa);
+    return { response: cachedAi, source: 'rule', modelUsed: 'cache', tokensUsed: 0 };
+  }
 
   const messages = [{ role: 'user' as const, content: message }];
   const systemPrompt = knowledgeContext
@@ -189,6 +205,7 @@ export async function processIncomingMessage(
   try {
     const llmResult = await callGroqLLM(messages, 512, 0.7, systemPrompt);
     const source = llmResult.provider === 'gemini' ? 'gemini' : 'groq';
+    await saveCachedAiResponse(cacheKey, lowerMessage, llmResult.text, llmResult.provider, llmResult.tokensUsed);
 
     await logChat(no_wa, message, llmResult.text, source, llmResult.provider, llmResult.tokensUsed);
     await touchPelanggan(no_wa);
@@ -478,6 +495,7 @@ async function updateContext(no_wa: string, ctx: OrderContext) {
       .update(pelangganChatbot)
       .set({ context_sesi: JSON.stringify(ctx) })
       .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
+    await syncOrderDraft(no_wa, ctx);
   } catch (error) {
     console.error('updateContext error:', error);
   }
@@ -492,6 +510,7 @@ async function resetContext(no_wa: string) {
       .update(pelangganChatbot)
       .set({ context_sesi: JSON.stringify({ step: 'IDLE' }) })
       .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
+    await closeOrderDraft(no_wa, 'Cancelled');
   } catch (error) {
     console.error('resetContext error:', error);
   }
@@ -503,4 +522,50 @@ async function resetContext(no_wa: string) {
 function isGreeting(lowerMessage: string): boolean {
   const greetings = ['halo', 'hai', 'hi', 'hey', 'siang', 'pagi', 'sore', 'malam', 'assalamualaikum', 'assalamu\'alaikum', 'test'];
   return greetings.some((g) => lowerMessage.includes(g)) || lowerMessage.length < 5;
+}
+
+function buildAiCacheKey(message: string, knowledgeContext: string | null) {
+  return createHash('sha256')
+    .update(JSON.stringify({ message, knowledgeContext: knowledgeContext || '' }))
+    .digest('hex');
+}
+
+async function getCachedAiResponse(cacheKey: string): Promise<string | null> {
+  try {
+    const [row] = await db
+      .select()
+      .from(aiResponseCache)
+      .where(eq(aiResponseCache.cache_key, cacheKey))
+      .limit(1);
+
+    if (!row) return null;
+    if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) return null;
+    return row.response_text;
+  } catch {
+    return null;
+  }
+}
+
+async function saveCachedAiResponse(
+  cacheKey: string,
+  prompt: string,
+  responseText: string,
+  modelUsed?: string,
+  tokensUsed?: number,
+) {
+  try {
+    await db
+      .insert(aiResponseCache)
+      .values({
+        cache_key: cacheKey,
+        prompt_hash: createHash('sha256').update(prompt).digest('hex'),
+        response_text: responseText,
+        model_used: modelUsed || null,
+        tokens_used: tokensUsed ?? 0,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .onConflictDoNothing();
+  } catch {
+    // Cache is only an optimization.
+  }
 }

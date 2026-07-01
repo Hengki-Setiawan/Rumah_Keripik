@@ -1,3 +1,8 @@
+import { eq } from 'drizzle-orm';
+import { db } from './db';
+import { geocodeCache } from './schema';
+import { isValidCoordinate } from './location-parser';
+
 const GEOCODING_CACHE = new Map<string, string>();
 
 /**
@@ -9,6 +14,12 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
   
   if (GEOCODING_CACHE.has(cacheKey)) {
     return GEOCODING_CACHE.get(cacheKey)!;
+  }
+
+  const dbCached = await getCachedGeocode(cacheKey);
+  if (dbCached?.formatted_address) {
+    GEOCODING_CACHE.set(cacheKey, dbCached.formatted_address);
+    return dbCached.formatted_address;
   }
   
   try {
@@ -42,6 +53,12 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
     
     if (result) {
       GEOCODING_CACHE.set(cacheKey, result);
+      await saveGeocodeCache(cacheKey, {
+        lat,
+        lng,
+        formatted_address: result,
+        raw_json: JSON.stringify(data),
+      });
     }
     
     return result;
@@ -56,7 +73,15 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
  */
 export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    const encoded = encodeURIComponent(address + ', Kalimantan Timur, Indonesia');
+    const query = `${address}, Kalimantan Timur, Indonesia`;
+    const cached = await getCachedGeocode(query);
+    if (cached?.lat && cached.lng) {
+      const lat = Number(cached.lat);
+      const lng = Number(cached.lng);
+      if (isValidCoordinate(lat, lng)) return { lat, lng };
+    }
+
+    const encoded = encodeURIComponent(query);
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`;
     
     const res = await fetch(url, {
@@ -70,14 +95,55 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
     
     const data = await res.json();
     if (!data || data.length === 0) return null;
-    
-    return {
-      lat: parseFloat(data[0].lat),
-      lng: parseFloat(data[0].lon),
-    };
+
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
+    if (!isValidCoordinate(lat, lng)) return null;
+
+    await saveGeocodeCache(query, {
+      lat,
+      lng,
+      formatted_address: data[0].display_name || address,
+      raw_json: JSON.stringify(data[0]),
+    });
+
+    return { lat, lng };
   } catch (err) {
     console.warn('[Geocoding] Forward geocoding error:', err);
     return null;
+  }
+}
+
+async function getCachedGeocode(query: string) {
+  try {
+    return await db
+      .select()
+      .from(geocodeCache)
+      .where(eq(geocodeCache.query, query))
+      .limit(1)
+      .then((rows) => rows[0]);
+  } catch {
+    return null;
+  }
+}
+
+async function saveGeocodeCache(
+  query: string,
+  data: { lat: number; lng: number; formatted_address?: string | null; raw_json?: string | null },
+) {
+  try {
+    await db
+      .insert(geocodeCache)
+      .values({
+        query,
+        lat: String(data.lat),
+        lng: String(data.lng),
+        formatted_address: data.formatted_address || null,
+        raw_json: data.raw_json || null,
+      })
+      .onConflictDoNothing();
+  } catch {
+    // Cache miss is acceptable; geocoding should never block order flow.
   }
 }
 

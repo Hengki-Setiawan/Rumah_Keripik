@@ -8,7 +8,7 @@ import { extractCoordsFromText } from './location-parser';
 import { processLocationMessage } from './location-flow';
 import { buildPersonalizedGreeting } from './memory-engine';
 import { updateMemoryAfterOrder, saveRating } from './memory-engine';
-import { learnFromInteraction } from './memory-engine';
+import { enqueueJob } from './worker-queue';
 
 /**
  * Tampilkan daftar menu/katalog produk aktif
@@ -553,7 +553,12 @@ export async function processOrderState(
         await updateMemoryAfterOrder(no_wa, ctx, rating);
 
         if (rating >= 4) {
-          learnFromInteraction(ctx.kode_pesanan || 'order_selesai', 'Terima kasih sudah berbelanja!', rating).catch(() => {});
+          enqueueJob('ai_learn', {
+            trigger_pattern: ctx.kode_pesanan || 'order_selesai',
+            response_template: 'Terima kasih sudah berbelanja!',
+            rating,
+            no_wa,
+          }).catch(() => {});
         }
 
         const thanks = rating >= 4

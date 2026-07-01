@@ -25,6 +25,29 @@
 - `EVOLUTION_API_URL`
 - `EVOLUTION_API_KEY`
 - `EVOLUTION_INSTANCE_NAME`
+- `WORKER_ID`
+- `WORKER_NAME`
+- `WORKER_POLL_MS`
+
+## Database migration
+
+Run this once after deploying the worker/blueprint update:
+
+```bash
+npm run db:migrate:v3
+```
+
+The migration is idempotent, so it is safe to run again if needed.
+
+## Local worker
+
+Railway is no longer required for the AI/background processor. Run the local worker when your computer is online:
+
+```bash
+npm run worker
+```
+
+If the worker is offline, pending jobs remain stored in Turso and will continue when the worker is started again. The dashboard shows the worker online/offline state from `/api/worker/status`.
 
 ## Telegram webhook
 
