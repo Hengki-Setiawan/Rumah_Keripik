@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { pelangganChatbot, transaksi, detailTransaksi, produk, pesanChat } from '@/lib/schema';
+import { pelangganChatbot, transaksi, detailTransaksi, produk, pesanChat, lokasiPelanggan } from '@/lib/schema';
 import { eq, desc, like, or, sql, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -14,7 +14,39 @@ export async function getAllPelanggan(page: number = 1, limit: number = 50) {
   try {
     const offset = (page - 1) * limit;
     return await db
-      .select()
+      .select({
+        no_wa_pelanggan: pelangganChatbot.no_wa_pelanggan,
+        nama_pelanggan: pelangganChatbot.nama_pelanggan,
+        alamat_pengiriman: pelangganChatbot.alamat_pengiriman,
+        channel: pelangganChatbot.channel,
+        status_handle: pelangganChatbot.status_handle,
+        context_sesi: pelangganChatbot.context_sesi,
+        tags: pelangganChatbot.tags,
+        diambil_oleh: pelangganChatbot.diambil_oleh,
+        waktu_daftar: pelangganChatbot.waktu_daftar,
+        terakhir_aktif: pelangganChatbot.terakhir_aktif,
+        latest_lat: sql<string | null>`(
+          SELECT ${lokasiPelanggan.lat}
+          FROM ${lokasiPelanggan}
+          WHERE ${lokasiPelanggan.no_wa_pelanggan} = ${pelangganChatbot.no_wa_pelanggan}
+          ORDER BY ${lokasiPelanggan.timestamp} DESC
+          LIMIT 1
+        )`,
+        latest_lng: sql<string | null>`(
+          SELECT ${lokasiPelanggan.lng}
+          FROM ${lokasiPelanggan}
+          WHERE ${lokasiPelanggan.no_wa_pelanggan} = ${pelangganChatbot.no_wa_pelanggan}
+          ORDER BY ${lokasiPelanggan.timestamp} DESC
+          LIMIT 1
+        )`,
+        latest_location_source: sql<string | null>`(
+          SELECT ${lokasiPelanggan.source}
+          FROM ${lokasiPelanggan}
+          WHERE ${lokasiPelanggan.no_wa_pelanggan} = ${pelangganChatbot.no_wa_pelanggan}
+          ORDER BY ${lokasiPelanggan.timestamp} DESC
+          LIMIT 1
+        )`,
+      })
       .from(pelangganChatbot)
       .orderBy(desc(pelangganChatbot.terakhir_aktif))
       .limit(limit)

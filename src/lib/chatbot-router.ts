@@ -19,6 +19,8 @@ import { eq, like, or, and, inArray, sql, desc } from 'drizzle-orm';
 import { callGroqLLM } from '@/lib/groq';
 import { getSystemPrompt, getRAGSystemPrompt } from '@/lib/chatbot-prompts';
 import { processOrderState, handleGreeting, getMenuText } from './order-state-machine';
+import { extractCoordsFromText } from './location-parser';
+import { processLocationMessage } from './location-flow';
 import type { OrderContext } from './order-types';
 
 export interface RouterResult {
@@ -79,11 +81,15 @@ export async function processIncomingMessage(
     }
 
     // Jika lokasi masuk saat FORM_ALAMAT → proses lokasi
-    if (locationData && ctx.step === 'FORM_ALAMAT') {
-      const { processLocationMessage } = await import('./location-flow');
-      const result = await processLocationMessage(no_wa, locationData, ctx);
+    const parsedMapsLocation = locationData ? null : await extractCoordsFromText(message);
+    const incomingLocation = locationData
+      ? { ...locationData, source: 'wa_native' as const }
+      : parsedMapsLocation;
+
+    if (incomingLocation && ctx.step === 'FORM_ALAMAT') {
+      const result = await processLocationMessage(no_wa, incomingLocation, ctx);
       await updateContext(no_wa, result.newContext);
-      await logChat(no_wa, `[Lokasi: ${locationData.lat},${locationData.lng}]`, result.response, 'rule');
+      await logChat(no_wa, `[Lokasi: ${incomingLocation.lat},${incomingLocation.lng}]`, result.response, 'rule');
       return { response: result.response, source: 'order_flow' };
     }
 
@@ -104,6 +110,18 @@ export async function processIncomingMessage(
   // ─── TIDAK ADA ORDER AKTIF — DETEKSI INTENT ──────────────────────
 
   // Step 1 — Auto Reply Rules
+  const standaloneLocation = locationData
+    ? { ...locationData, source: 'wa_native' as const }
+    : await extractCoordsFromText(message);
+
+  if (standaloneLocation) {
+    const result = await processLocationMessage(no_wa, standaloneLocation, ctx);
+    await updateContext(no_wa, result.newContext);
+    await logChat(no_wa, `[Lokasi: ${standaloneLocation.lat},${standaloneLocation.lng}]`, result.response, 'rule');
+    await touchPelanggan(no_wa);
+    return { response: result.response, source: 'rule' };
+  }
+
   const ruleMatch = await matchAutoReply(lowerMessage);
   if (ruleMatch) {
     await logChat(no_wa, message, ruleMatch, 'rule');
@@ -256,7 +274,13 @@ async function checkOrderTracking(no_wa: string, lowerMessage: string): Promise<
     const dateStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     const itemList = items.map((i) => `- ${i.nama_produk} x${i.qty_terjual}`).join('\n');
     const total = `Rp ${tx[0].total_bayar.toLocaleString('id-ID')}`;
-    const statusIcon = tx[0].status_pembayaran === 'Lunas' ? '✅ Lunas' : tx[0].status_pembayaran === 'Piutang' ? '⏳ Belum Dibayar' : '❌ Gagal';
+    const statusIcon =
+      tx[0].status_pembayaran === 'Lunas' ? '✅ Lunas' :
+      tx[0].status_pembayaran === 'Menunggu_Verifikasi' ? '⏳ Menunggu verifikasi admin' :
+      tx[0].status_pembayaran === 'Menunggu_Bayar' ? '💳 Menunggu pembayaran' :
+      tx[0].status_pembayaran === 'Piutang' ? '⏳ Belum dibayar / piutang' :
+      tx[0].status_pembayaran === 'Dibatalkan' ? '❌ Dibatalkan' :
+      tx[0].status_pembayaran;
 
     return `Status Pesanan Terakhirmu:\n\nKode: ${tx[0].kode_pesanan || tx[0].id_transaksi}\nTanggal: ${dateStr}\nPembayaran: ${statusIcon}\nTotal: ${total}\n\nPesanan:\n${itemList}\n\n${tx[0].catatan ? `Catatan: ${tx[0].catatan}\n\n` : ''}Untuk info lebih lanjut, hubungi admin ya.`;
   } catch (error) {
@@ -315,56 +339,55 @@ async function searchKnowledgeBase(lowerMessage: string): Promise<string | null>
   try {
     let results: { judul: string; potongan_teks: string; kategori: string | null }[] = [];
 
-    // Try vector search first
-    try {
-      const { generateQueryEmbedding } = await import('@/lib/gemini');
-      const { embedding } = await generateQueryEmbedding(lowerMessage);
-      const vectorStr = `[${embedding.join(',')}]`;
+    const keywords = lowerMessage.split(/\s+/).filter((k) => k.length > 2);
+    if (keywords.length > 0) {
+      const conditions = keywords.map((k) =>
+        or(
+          like(aiKnowledgeBase.judul, `%${k}%`),
+          like(aiKnowledgeBase.potongan_teks, `%${k}%`)
+        )
+      );
 
-      const client = (await import('@libsql/client')).createClient({
-        url: process.env.TURSO_DATABASE_URL!,
-        authToken: process.env.TURSO_AUTH_TOKEN!,
-      });
+      const textResults = await db
+        .select()
+        .from(aiKnowledgeBase)
+        .where(and(or(...conditions), eq(aiKnowledgeBase.is_active, 1)))
+        .limit(3);
 
-      const result = await client.execute({
-        sql: `SELECT id, judul, potongan_teks, kategori, vector_distance_cos(vector_embedding, vector(?)) AS distance FROM ai_knowledge_base WHERE is_active = 1 AND vector_embedding IS NOT NULL ORDER BY distance LIMIT 3`,
-        args: [vectorStr],
-      });
-
-      results = result.rows
-        .filter((row: any) => (row.distance as number) < 0.45)
-        .map((row: any) => ({
-          judul: row.judul as string,
-          potongan_teks: row.potongan_teks as string,
-          kategori: row.kategori as string | null,
-        }));
-    } catch (vecError) {
-      console.warn('Vector search failed, falling back to text search:', vecError);
+      results = textResults.map((kb) => ({
+        judul: kb.judul,
+        potongan_teks: kb.potongan_teks,
+        kategori: kb.kategori,
+      }));
     }
 
-    // Fallback to text search if vector search returned nothing
-    if (results.length === 0) {
-      const keywords = lowerMessage.split(/\s+/).filter((k) => k.length > 2);
-      if (keywords.length > 0) {
-        const conditions = keywords.map((k) =>
-          or(
-            like(aiKnowledgeBase.judul, `%${k}%`),
-            like(aiKnowledgeBase.potongan_teks, `%${k}%`)
-          )
-        );
+    // Try vector search only when cheap keyword search finds nothing.
+    try {
+      if (results.length === 0) {
+        const { generateQueryEmbedding } = await import('@/lib/gemini');
+        const { embedding } = await generateQueryEmbedding(lowerMessage);
+        const vectorStr = `[${embedding.join(',')}]`;
 
-        const textResults = await db
-          .select()
-          .from(aiKnowledgeBase)
-          .where(and(or(...conditions), eq(aiKnowledgeBase.is_active, 1)))
-          .limit(3);
+        const client = (await import('@libsql/client')).createClient({
+          url: process.env.TURSO_DATABASE_URL!,
+          authToken: process.env.TURSO_AUTH_TOKEN!,
+        });
 
-        results = textResults.map((kb) => ({
-          judul: kb.judul,
-          potongan_teks: kb.potongan_teks,
-          kategori: kb.kategori,
-        }));
+        const result = await client.execute({
+          sql: `SELECT id, judul, potongan_teks, kategori, vector_distance_cos(vector_embedding, vector(?)) AS distance FROM ai_knowledge_base WHERE is_active = 1 AND vector_embedding IS NOT NULL ORDER BY distance LIMIT 3`,
+          args: [vectorStr],
+        });
+
+        results = result.rows
+          .filter((row: any) => (row.distance as number) < 0.45)
+          .map((row: any) => ({
+            judul: row.judul as string,
+            potongan_teks: row.potongan_teks as string,
+            kategori: row.kategori as string | null,
+          }));
       }
+    } catch (vecError) {
+      console.warn('Vector search failed, falling back to text search:', vecError);
     }
 
     if (results.length === 0) return null;

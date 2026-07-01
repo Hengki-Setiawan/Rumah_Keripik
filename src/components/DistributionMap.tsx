@@ -63,7 +63,10 @@ export default function DistributionMap({ customers, warungs }: DistributionMapP
   const activeCustomersList: CustomerLocation[] = customers
     .filter(c => c.alamat_pengiriman)
     .map(c => {
-      const coords = getCoords(c.no_wa_pelanggan, 0.7);
+      const realLat = Number(c.latest_lat);
+      const realLng = Number(c.latest_lng);
+      const hasRealCoords = Number.isFinite(realLat) && Number.isFinite(realLng);
+      const coords = hasRealCoords ? { lat: realLat, lng: realLng } : getCoords(c.no_wa_pelanggan, 0.7);
       return {
         id: c.no_wa_pelanggan,
         nama: c.nama_pelanggan || 'Pelanggan Chatbot',
@@ -156,6 +159,9 @@ export default function DistributionMap({ customers, warungs }: DistributionMapP
             <p class="font-bold text-sm text-gray-900">${cust.nama}</p>
             <p class="text-xs text-gray-500 font-mono">${cust.no_wa}</p>
             <p class="text-xs text-gray-700">${cust.alamat}</p>
+            <a href="https://www.google.com/maps/search/?api=1&query=${cust.lat},${cust.lng}" target="_blank" rel="noopener noreferrer" class="block mt-1 text-[11px] text-blue-600 underline">
+              Buka Google Maps
+            </a>
             <button onclick="window.dispatchRouteSelect('${cust.nama}', ${cust.lat}, ${cust.lng})" class="mt-2 w-full text-center py-1 bg-primary text-white text-[11px] font-medium rounded hover:opacity-90">
               Analisis Rute
             </button>

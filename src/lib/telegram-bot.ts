@@ -4,6 +4,8 @@ interface TelegramMessage {
   message_id: number
   chat: { id: number; type: string }
   text?: string
+  location?: { latitude: number; longitude: number; horizontal_accuracy?: number }
+  venue?: { location: { latitude: number; longitude: number }; title?: string; address?: string }
   from?: { id: number; first_name?: string; username?: string }
 }
 
@@ -46,15 +48,30 @@ export function parseTelegramPayload(body: unknown): {
   chatId: string
   text: string
   firstName?: string
+  locationData?: { lat: number; lng: number; address?: string }
 } | null {
   const payload = body as Record<string, unknown> | undefined
   const msg = (payload?.message as TelegramMessage | undefined)
     ?? (payload?.edited_message as TelegramMessage | undefined)
     ?? (payload?.channel_post as TelegramMessage | undefined)
-  if (!msg?.text || !msg?.chat?.id) return null
+  if (!msg?.chat?.id) return null
+
+  const location = msg.location
+    ? { lat: msg.location.latitude, lng: msg.location.longitude }
+    : msg.venue
+      ? {
+          lat: msg.venue.location.latitude,
+          lng: msg.venue.location.longitude,
+          address: [msg.venue.title, msg.venue.address].filter(Boolean).join(', ') || undefined,
+        }
+      : undefined
+
+  if (!msg.text && !location) return null
+
   return {
     chatId: String(msg.chat.id),
-    text: msg.text,
+    text: msg.text || '[location]',
     firstName: msg.from?.first_name,
+    locationData: location,
   }
 }

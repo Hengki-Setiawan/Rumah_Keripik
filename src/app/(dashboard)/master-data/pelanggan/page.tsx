@@ -37,6 +37,9 @@ interface Pelanggan {
   tags: string | null;
   waktu_daftar: string;
   terakhir_aktif: string;
+  latest_lat?: string | null;
+  latest_lng?: string | null;
+  latest_location_source?: string | null;
 }
 
 interface Warung {

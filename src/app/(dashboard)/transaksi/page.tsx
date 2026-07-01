@@ -51,7 +51,7 @@ export default function TransaksiHubPage() {
 
   // Filters
   const [typeFilter, setTypeFilter] = useState<'all' | 'Online_WA' | 'Offline_Gudang'>('all');
-  const [paymentFilter, setPaymentFilter] = useState<'all' | 'Lunas' | 'Piutang' | 'Tidak_Lunas'>('all');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'Lunas' | 'Piutang' | 'Tidak_Lunas' | 'Menunggu_Bayar' | 'Menunggu_Verifikasi' | 'Dibatalkan'>('all');
 
   // Form State
   const [form, setForm] = useState({
@@ -71,6 +71,8 @@ export default function TransaksiHubPage() {
 
   useEffect(() => {
     fetchMainData().catch(console.error);
+    const interval = setInterval(() => fetchMainData(true).catch(console.error), 10_000);
+    return () => clearInterval(interval);
   }, [currentPage, typeFilter, paymentFilter]);
 
   useEffect(() => {
@@ -95,12 +97,12 @@ export default function TransaksiHubPage() {
     loadFormOptions().catch(console.error);
   }, []);
 
-  async function fetchMainData() {
-    setLoading(true);
+  async function fetchMainData(silent = false) {
+    if (!silent) setLoading(true);
     const res = await getAllTransaksi(currentPage, limit);
     setTransactions(res.data);
     setTotalCount(res.total);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
 
   // Form helpers
@@ -204,6 +206,19 @@ export default function TransaksiHubPage() {
   // Helpers
   function formatDate(ts: string) {
     return new Date(ts + 'Z').toLocaleString('id-ID', { timeZone: 'Asia/Makassar' });
+  }
+
+  function getStatusClass(status: string) {
+    if (status === 'Lunas') return 'bg-green-100 text-green-700';
+    if (status === 'Menunggu_Verifikasi') return 'bg-orange-100 text-orange-700';
+    if (status === 'Menunggu_Bayar') return 'bg-blue-100 text-blue-700';
+    if (status === 'Piutang') return 'bg-red-100 text-red-700';
+    if (status === 'Dibatalkan') return 'bg-gray-200 text-gray-600';
+    return 'bg-gray-100 text-gray-700';
+  }
+
+  function formatStatus(status: string) {
+    return status.replace(/_/g, ' ');
   }
 
   // Filters locally or dynamically
@@ -315,6 +330,9 @@ export default function TransaksiHubPage() {
               <option value="Lunas">Lunas</option>
               <option value="Piutang">Piutang</option>
               <option value="Tidak_Lunas">Tidak Lunas</option>
+              <option value="Menunggu_Bayar">Menunggu Bayar</option>
+              <option value="Menunggu_Verifikasi">Menunggu Verifikasi</option>
+              <option value="Dibatalkan">Dibatalkan</option>
             </select>
           </div>
 
@@ -374,10 +392,9 @@ export default function TransaksiHubPage() {
                         <td className="px-4 py-3 text-on-surface-variant text-sm whitespace-nowrap">{formatDate(tx.waktu_simpan)}</td>
                         <td className="px-4 py-3 text-right font-bold text-sm text-on-surface">{formatRupiah(tx.total_bayar)}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full font-label-md text-[10px] font-bold ${
-                            tx.status_pembayaran === 'Lunas' ? 'bg-green-100 text-green-700' :
-                            tx.status_pembayaran === 'Piutang' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
-                          }`}>{tx.status_pembayaran}</span>
+                          <span className={`px-2.5 py-0.5 rounded-full font-label-md text-[10px] font-bold ${getStatusClass(tx.status_pembayaran)}`}>
+                            {formatStatus(tx.status_pembayaran)}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-label-md text-[10px] font-bold ${
@@ -415,8 +432,8 @@ export default function TransaksiHubPage() {
                           <td colSpan={7} className="px-4 py-3 bg-surface-cream">
                             <div className="h-48 rounded-xl overflow-hidden border border-outline-variant/30">
                               <MiniMap
-                                lat={tx.lat_pengiriman || -0.5022}
-                                lng={tx.lng_pengiriman || 117.1536}
+                                lat={tx.lat_pengiriman ? Number(tx.lat_pengiriman) : -0.5022}
+                                lng={tx.lng_pengiriman ? Number(tx.lng_pengiriman) : 117.1536}
                                 height={192}
                               />
                             </div>

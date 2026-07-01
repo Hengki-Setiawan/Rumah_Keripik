@@ -1,9 +1,11 @@
 import { db } from './db';
 import { produk, transaksi, detailTransaksi, pelangganChatbot } from './schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { OrderContext, CartItem } from './order-types';
 import { generateIdTransaksi, generateKodePesanan } from './id-generator';
-import { estimateShipping } from './geocoding';
+import { estimateShipping, geocodeAddress } from './geocoding';
+import { extractCoordsFromText } from './location-parser';
+import { processLocationMessage } from './location-flow';
 import { buildPersonalizedGreeting } from './memory-engine';
 import { updateMemoryAfterOrder, saveRating } from './memory-engine';
 import { learnFromInteraction } from './memory-engine';
@@ -356,6 +358,22 @@ export async function processOrderState(
         };
       }
 
+      const mapsLocation = await extractCoordsFromText(address);
+      if (mapsLocation) {
+        return {
+          ...(await processLocationMessage(no_wa, mapsLocation, ctx)),
+          source: 'rule',
+        };
+      }
+
+      const coords = await geocodeAddress(address);
+      if (coords) {
+        return {
+          ...(await processLocationMessage(no_wa, { ...coords, address, source: 'geocoded' }, ctx)),
+          source: 'rule',
+        };
+      }
+
       const newCtx: OrderContext = {
         ...ctx,
         alamat_pengiriman: address,
@@ -391,9 +409,18 @@ export async function processOrderState(
       if (lowerMsg === 'ya' || lowerMsg === 'benar' || lowerMsg === 'oke' || lowerMsg === 'ok') {
         const newCtx: OrderContext = {
           ...ctx,
-          step: 'REKAP_ORDER',
+          step: ctx.no_hp ? 'REKAP_ORDER' : 'FORM_NOHP',
           last_updated: new Date().toISOString(),
         };
+
+        if (newCtx.step === 'FORM_NOHP') {
+          return {
+            response: 'Nomor HP yang bisa dihubungi? (Ketik *lewat* jika mau pakai nomor chat ini)',
+            source: 'rule',
+            newContext: newCtx,
+          };
+        }
+
         return showOrderSummary(newCtx);
       } else {
         const newCtx: OrderContext = {
@@ -448,12 +475,6 @@ export async function processOrderState(
                 harga_snapshot: item.harga_satuan,
                 subtotal: item.subtotal,
               });
-
-              // Reduce stock atomatically
-              await tx
-                .update(produk)
-                .set({ stok_gudang_utama: sql`stok_gudang_utama - ${item.qty}` })
-                .where(eq(produk.id_produk, item.id_produk));
             }
           });
 

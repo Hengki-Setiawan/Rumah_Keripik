@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const parsed = parseTelegramPayload(body)
   if (!parsed) return NextResponse.json({ ok: true })
 
-  const { chatId, text, firstName } = parsed
+  const { chatId, text, firstName, locationData } = parsed
   const externalId = formatTelegramChatId(chatId)
 
   const [pelanggan] = await db
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { processIncomingMessage } = await import('@/lib/chatbot-router')
-    const result = await processIncomingMessage(externalId, text)
+    const result = await processIncomingMessage(externalId, text, false, undefined, locationData)
 
     if (result.response) {
       await sendTelegramMessage(chatId, result.response)

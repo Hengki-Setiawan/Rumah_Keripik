@@ -34,11 +34,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const incoming = parseEvolutionWebhook(body);
 
-    if (!incoming || !incoming.text) {
+    if (!incoming || (!incoming.text && !incoming.locationData && !incoming.isImage)) {
       return NextResponse.json({ success: true, ignored: true });
     }
 
-    console.log(`WA dari ${incoming.from} (${incoming.name}): "${incoming.text}"`);
+    const incomingText = incoming.text || incoming.imageCaption || '[media]';
+    const locationData = incoming.locationData
+      ? {
+          lat: incoming.locationData.latitude,
+          lng: incoming.locationData.longitude,
+          address: incoming.locationData.address || incoming.locationData.name,
+        }
+      : undefined;
+
+    console.log(`WA dari ${incoming.from} (${incoming.name}): "${incomingText}"`);
 
     // Simpan pesan masuk dari WhatsApp ke database agar muncul di Live Chat
     const { db } = await import('@/lib/db');
@@ -49,7 +58,7 @@ export async function POST(req: NextRequest) {
         channel: 'wa',
         direction: 'in',
         sumber: 'pelanggan',
-        teks: incoming.text,
+        teks: incomingText,
         id_external: incoming.message_id || String(Date.now()),
         status_kirim: 'sent',
       });
@@ -57,7 +66,13 @@ export async function POST(req: NextRequest) {
       console.error('[WA Webhook] Gagal menyimpan pesan masuk ke db:', dbErr);
     }
 
-    const result = await processIncomingMessage(incoming.from, incoming.text);
+    const result = await processIncomingMessage(
+      incoming.from,
+      incomingText,
+      incoming.isImage,
+      incoming.message_id,
+      locationData,
+    );
 
     if (result.response) {
       const sent = await sendTextMessage(incoming.from, result.response);

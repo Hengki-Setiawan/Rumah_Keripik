@@ -2,7 +2,7 @@ import { db } from './db';
 import { lokasiPelanggan, pelangganChatbot } from './schema';
 import { eq, sql } from 'drizzle-orm';
 import { calculateDistance, buildMapsLink } from './location-parser';
-import { reverseGeocode } from './geocoding';
+import { estimateShipping, reverseGeocode } from './geocoding';
 import type { OrderContext } from './order-types';
 
 const GUDANG_LAT = -0.5022;
@@ -29,6 +29,7 @@ export async function processLocationMessage(
 
   const mapsLink = buildMapsLink(lat, lng);
   const jarak = calculateDistance(GUDANG_LAT, GUDANG_LNG, lat, lng);
+  const shipping = estimateShipping(jarak);
 
   await saveLocationToDB(no_wa, { lat, lng, address, source: location.source || 'wa_native' });
 
@@ -40,6 +41,7 @@ export async function processLocationMessage(
       lng_pengiriman: String(lng),
       maps_link_pengiriman: mapsLink,
       jarak_km: Math.round(jarak * 10) / 10,
+      shipping_cost: shipping.ongkir,
       step: 'CONFIRM_ALAMAT',
       last_updated: new Date().toISOString(),
     };
@@ -49,6 +51,7 @@ export async function processLocationMessage(
         `📍 *Lokasi diterima!*\n\n` +
         `Alamat terdeteksi: *${address}*\n` +
         `🔗 ${mapsLink}\n\n` +
+        `Estimasi ongkir: *Rp ${shipping.ongkir.toLocaleString('id-ID')}* (${shipping.zona})\n\n` +
         `Apakah alamat pengiriman ke sini kak? Ketik *ya* untuk konfirmasi.`,
       newContext,
     };
@@ -76,6 +79,16 @@ async function saveLocationToDB(
       alamat_teks: location.address || null,
       source: (location.source as any) || 'wa_native',
     });
+
+    if (location.address) {
+      await db
+        .update(pelangganChatbot)
+        .set({
+          alamat_pengiriman: location.address,
+          terakhir_aktif: sql`(datetime('now', 'utc'))`,
+        })
+        .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
+    }
   } catch (err) {
     console.warn('[LocationFlow] Gagal simpan lokasi:', err);
   }

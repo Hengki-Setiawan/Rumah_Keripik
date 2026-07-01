@@ -109,7 +109,10 @@ export async function extractCoordsFromText(text: string): Promise<ParsedLocatio
   const MAPS_URL_RE = /https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.com|www\.google\.com\/maps|google\.com\/maps)[^\s]*/gi;
   const matches = text.match(MAPS_URL_RE);
   
-  if (!matches || matches.length === 0) return null;
+  if (!matches || matches.length === 0) {
+    const directCoords = parseCoordinatePair(text);
+    return directCoords ? { ...directCoords, original_text: text } : null;
+  }
   
   const url = matches[0];
   
@@ -138,8 +141,10 @@ export async function extractCoordsFromText(text: string): Promise<ParsedLocatio
  * Parse full URL format Google Maps
  */
 function parseFullMapsUrl(url: string): Omit<ParsedLocation, 'original_text'> | null {
+  const decodedUrl = safeDecodeURIComponent(url);
+
   // Pattern 1: /@lat,lng
-  const atMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  const atMatch = decodedUrl.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
   if (atMatch) {
     const lat = parseFloat(atMatch[1]);
     const lng = parseFloat(atMatch[2]);
@@ -148,27 +153,34 @@ function parseFullMapsUrl(url: string): Omit<ParsedLocation, 'original_text'> | 
     }
   }
   
-  // Pattern 2: ?q=lat,lng
-  const qMatch = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-  if (qMatch) {
-    const lat = parseFloat(qMatch[1]);
-    const lng = parseFloat(qMatch[2]);
-    if (isValidCoordinate(lat, lng)) {
-      return { lat, lng, source: 'maps_link', maps_link: buildMapsLink(lat, lng) };
-    }
+  // Pattern 2: query params such as q=lat,lng, query=lat,lng, ll=lat,lng.
+  const queryMatch = decodedUrl.match(/[?&](?:q|query|ll)=(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
+  if (queryMatch) {
+    const lat = parseFloat(queryMatch[1]);
+    const lng = parseFloat(queryMatch[2]);
+    if (isValidCoordinate(lat, lng)) return { lat, lng, source: 'maps_link', maps_link: buildMapsLink(lat, lng) };
   }
   
-  // Pattern 3: ?ll=lat,lng
-  const llMatch = url.match(/[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-  if (llMatch) {
-    const lat = parseFloat(llMatch[1]);
-    const lng = parseFloat(llMatch[2]);
-    if (isValidCoordinate(lat, lng)) {
-      return { lat, lng, source: 'maps_link', maps_link: buildMapsLink(lat, lng) };
-    }
+  return parseCoordinatePair(decodedUrl);
+}
+
+function parseCoordinatePair(text: string): Omit<ParsedLocation, 'original_text'> | null {
+  const coordMatch = text.match(/(-?\d{1,2}\.\d{4,})\s*,\s*(-?\d{1,3}\.\d{4,})/);
+  if (!coordMatch) return null;
+
+  const lat = parseFloat(coordMatch[1]);
+  const lng = parseFloat(coordMatch[2]);
+  if (!isValidCoordinate(lat, lng)) return null;
+
+  return { lat, lng, source: 'maps_link', maps_link: buildMapsLink(lat, lng) };
+}
+
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
   }
-  
-  return null;
 }
 
 /**

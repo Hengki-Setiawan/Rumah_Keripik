@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { transaksi, detailTransaksi, produk, buktiPembayaran, pelangganChatbot } from '@/lib/schema';
 import { eq, sql } from 'drizzle-orm';
 import { sendTextMessage } from '@/lib/evolution';
+import { sendTelegramMessage } from '@/lib/telegram-bot';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +25,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'approve') {
+      if (tx.status_pembayaran === 'Lunas') {
+        return NextResponse.json({ success: true, status: 'Lunas', already_verified: true });
+      }
+
       await db.transaction(async (trx) => {
         await trx
           .update(transaksi)
@@ -49,10 +54,14 @@ export async function POST(req: NextRequest) {
           .where(eq(detailTransaksi.id_transaksi, id_transaksi));
 
         for (const detail of details) {
-          await trx
+          const stockUpdate = await trx
             .update(produk)
             .set({ stok_gudang_utama: sql`stok_gudang_utama - ${detail.qty_terjual}` })
-            .where(eq(produk.id_produk, detail.id_produk));
+            .where(sql`${produk.id_produk} = ${detail.id_produk} AND ${produk.stok_gudang_utama} >= ${detail.qty_terjual}`);
+
+          if (stockUpdate.rowsAffected === 0) {
+            throw new Error(`Stok ${detail.id_produk} tidak cukup untuk verifikasi`);
+          }
         }
 
         // Set context ke SELESAI agar customer bisa kasih rating
@@ -87,7 +96,7 @@ export async function POST(req: NextRequest) {
 
         msg += `Ketik *rating* 1-5 untuk penilaian pelayanan kami ya kak ⭐🙏`;
 
-        sendTextMessage(tx.no_wa_pelanggan, msg).catch(console.warn);
+        sendCustomerNotification(tx.no_wa_pelanggan, msg).catch(console.warn);
       }
 
       return NextResponse.json({ success: true, status: 'Lunas', invoice_url: invoiceUrl });
@@ -136,7 +145,7 @@ export async function POST(req: NextRequest) {
           `Alasan: ${reason}\n\n` +
           `Silakan kirim ulang bukti transfer yang valid ya kak 🙏`;
 
-        sendTextMessage(tx.no_wa_pelanggan, msg).catch(console.warn);
+        sendCustomerNotification(tx.no_wa_pelanggan, msg).catch(console.warn);
       }
 
       return NextResponse.json({ success: true, status: 'Dibatalkan' });
@@ -147,4 +156,12 @@ export async function POST(req: NextRequest) {
     console.error('[VerifyPayment] Error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+async function sendCustomerNotification(customerId: string, message: string) {
+  if (customerId.startsWith('tg_')) {
+    return sendTelegramMessage(customerId.replace(/^tg_/, ''), message);
+  }
+
+  return sendTextMessage(customerId, message);
 }
