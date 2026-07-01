@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { catatPenjualanOffline, getPiutangBelumLunas, tandaiPiutangLunas, getAllTransaksi } from '@/actions/transaksi';
 import { getAllProdukAktif } from '@/actions/produk';
 import { getAllWarungAktif } from '@/actions/warung';
 import { useToast } from '@/components/ui/toast';
 import { formatRupiah } from '@/lib/utils';
 import { VerifikasiAntrian } from '@/components/transaksi/VerifikasiAntrian';
+import { DeliveryZonesManager } from '@/components/dashboard/DeliveryZonesManager';
 import dynamic from 'next/dynamic';
 import {
   TrendingUp,
@@ -31,8 +33,9 @@ import {
 const MiniMap = dynamic(() => import('@/components/maps/MiniDeliveryMap').then((m) => ({ default: m.MiniDeliveryMap })), { ssr: false });
 
 export default function TransaksiHubPage() {
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang' | 'verifikasi'>('riwayat');
+  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang' | 'verifikasi' | 'zona'>('riwayat');
 
   // Unified Lists
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -69,6 +72,13 @@ export default function TransaksiHubPage() {
   useEffect(() => {
     fetchMainData().catch(console.error);
   }, [currentPage, typeFilter, paymentFilter]);
+
+  useEffect(() => {
+    const nextTab = searchParams.get('tab');
+    if (nextTab === 'riwayat' || nextTab === 'catat' || nextTab === 'piutang' || nextTab === 'verifikasi' || nextTab === 'zona') {
+      setActiveTab(nextTab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Load lists for the form once
@@ -210,12 +220,12 @@ export default function TransaksiHubPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface">Riwayat & Catat Transaksi</h1>
+          <h1 className="font-headline-lg text-headline-lg text-on-surface">Transaksi & Pengiriman</h1>
           <p className="text-on-surface-variant font-body-md mt-1">
-            Pantau seluruh pesanan chatbot (online) dan penjualan langsung di gudang (offline)
+            Pantau pesanan, verifikasi pembayaran, piutang, dan zona pengiriman dari satu halaman kerja
           </p>
         </div>
-        {activeTab !== 'catat' && (
+        {activeTab !== 'catat' && activeTab !== 'zona' && (
           <button
             onClick={() => setActiveTab('catat')}
             className="bg-primary hover:opacity-90 text-on-primary px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-label-md transition-all shrink-0 shadow-sm"
@@ -251,6 +261,7 @@ export default function TransaksiHubPage() {
         {[
           { key: 'riwayat' as const, label: 'Semua Transaksi', icon: ShoppingCart },
           { key: 'verifikasi' as const, label: 'Verifikasi', icon: Shield },
+          { key: 'zona' as const, label: 'Zona Pengiriman', icon: MapPin },
           { key: 'catat' as const, label: 'Catat Penjualan (Offline)', icon: Plus },
           { key: 'piutang' as const, label: 'Daftar Piutang', icon: DollarSign, count: piutang.length },
         ].map((t) => {
@@ -446,6 +457,10 @@ export default function TransaksiHubPage() {
       {/* --- TAB 2: VERIFIKASI PEMBAYARAN --- */}
       {activeTab === 'verifikasi' && (
         <VerifikasiAntrian />
+      )}
+
+      {activeTab === 'zona' && (
+        <DeliveryZonesManager />
       )}
 
       {/* --- TAB 3: CATAT PENJUALAN OFFLINE --- */}

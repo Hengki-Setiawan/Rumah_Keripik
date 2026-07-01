@@ -2,12 +2,22 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
-  BarChart3, Package, MessageSquare, TrendingUp,
-  Bot, Users, ShieldCheck, Bell, ArrowUpRight, ArrowDownRight, Minus,
+  Home,
+  BarChart3,
+  Package,
+  MessageSquare,
+  TrendingUp,
+  Bot,
+  Users,
+  ShieldCheck,
+  Bell,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from 'lucide-react';
-
-// ─── KPI DATA ────────────────────────────────────────────────────────────────
+import { AnalyticsHub } from '@/components/dashboard/AnalyticsHub';
 
 interface KPIData {
   pendapatan_hari_ini: number;
@@ -27,22 +37,17 @@ function useKPI() {
       try {
         const res = await fetch('/api/analytics/kpi');
         if (res.ok) {
-          const d = await res.json();
-          setData(d);
+          setData(await res.json());
         }
-      } catch {
-        // Fallback gracefully
       } finally {
         setLoading(false);
       }
     }
-    fetchKPI();
+    fetchKPI().catch(console.error);
   }, []);
 
   return { data, loading };
 }
-
-// ─── COMPONENTS ──────────────────────────────────────────────────────────────
 
 function formatRupiah(n: number) {
   if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}jt`;
@@ -69,21 +74,14 @@ function KPICard({ title, value, icon, change, urgent, href, loading }: KPICardP
   const content = (
     <div
       className={`bg-surface-container-lowest border rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group ${
-        urgent
-          ? 'border-orange-300 bg-orange-50 hover:border-orange-400'
-          : 'border-neutral-200 hover:border-primary/30'
+        urgent ? 'border-orange-300 bg-orange-50 hover:border-orange-400' : 'border-neutral-200 hover:border-primary/30'
       }`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className={`p-2.5 rounded-lg ${urgent ? 'bg-orange-100 text-orange-600' : 'bg-primary/10 text-primary'}`}>
           {icon}
         </div>
-        {href && (
-          <ArrowUpRight
-            size={16}
-            className="text-on-surface-variant/40 group-hover:text-primary group-hover:opacity-100 transition-all opacity-0"
-          />
-        )}
+        {href && <ArrowUpRight size={16} className="text-on-surface-variant/40 group-hover:text-primary group-hover:opacity-100 transition-all opacity-0" />}
       </div>
 
       {loading ? (
@@ -93,9 +91,7 @@ function KPICard({ title, value, icon, change, urgent, href, loading }: KPICardP
         </div>
       ) : (
         <>
-          <p className={`text-2xl font-bold mb-0.5 ${urgent ? 'text-orange-700' : 'text-on-surface'}`}>
-            {value}
-          </p>
+          <p className={`text-2xl font-bold mb-0.5 ${urgent ? 'text-orange-700' : 'text-on-surface'}`}>{value}</p>
           <p className="text-xs text-on-surface-variant font-medium">{title}</p>
           {change !== undefined && change !== null && (
             <div className={`flex items-center gap-0.5 mt-1.5 text-[11px] font-semibold ${
@@ -110,183 +106,174 @@ function KPICard({ title, value, icon, change, urgent, href, loading }: KPICardP
     </div>
   );
 
-  if (href) {
-    return <Link href={href}>{content}</Link>;
-  }
-  return content;
+  return href ? <Link href={href}>{content}</Link> : content;
 }
-
-// ─── MODULE GRID ─────────────────────────────────────────────────────────────
 
 const modules = [
   {
-    href: '/analitik',
-    title: 'Analitik & Keuangan',
-    description: 'Dashboard KPI, grafik omzet, ranking produk, dan laporan keuangan',
-    icon: BarChart3,
-    color: 'bg-violet-100 text-violet-700',
-  },
-  {
     href: '/master-data/produk',
     title: 'Manajemen Produk',
-    description: 'CRUD produk, manajemen stok, dan pengaturan harga',
+    description: 'CRUD produk, manajemen stok, dan pengaturan harga.',
     icon: Package,
     color: 'bg-blue-100 text-blue-700',
   },
   {
     href: '/master-data/pelanggan',
-    title: 'Pelanggan, Mitra & Peta',
-    description: 'Kelola pelanggan chatbot, warung grosir, dan rute peta distribusi',
+    title: 'Pelanggan & Mitra',
+    description: 'Kelola pelanggan chatbot, warung grosir, dan peta distribusi.',
     icon: Users,
     color: 'bg-green-100 text-green-700',
   },
   {
     href: '/transaksi',
-    title: 'Riwayat Transaksi',
-    description: 'Kelola penjualan manual offline dan pesanan online chatbot',
+    title: 'Transaksi & Pengiriman',
+    description: 'Kelola penjualan, piutang, verifikasi, dan zona pengiriman.',
     icon: TrendingUp,
     color: 'bg-orange-100 text-orange-700',
   },
   {
     href: '/livechat',
     title: 'Hub Komunikasi',
-    description: 'Pantau percakapan live chat dan kirim pesan broadcast massal',
+    description: 'Pantau live chat dan tindak lanjuti percakapan pelanggan.',
     icon: MessageSquare,
     color: 'bg-pink-100 text-pink-700',
   },
   {
     href: '/bot-config',
-    title: 'Pengaturan Bot AI',
-    description: 'Kelola basis pengetahuan (KB), auto reply, dan log token',
+    title: 'Knowledge Base & AI',
+    description: 'Kelola basis pengetahuan, auto reply, log, dan analitik bot.',
     icon: Bot,
     color: 'bg-indigo-100 text-indigo-700',
   },
 ];
 
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
-
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
   const { data, loading } = useKPI();
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
 
-  const pendapatanChange = pctChange(
-    data?.pendapatan_hari_ini ?? 0,
-    data?.pendapatan_kemarin ?? 0,
-  );
-  const orderChange = pctChange(
-    data?.order_hari_ini ?? 0,
-    data?.order_kemarin ?? 0,
-  );
+  useEffect(() => {
+    setActiveTab(searchParams.get('tab') === 'analytics' ? 'analytics' : 'overview');
+  }, [searchParams]);
+
+  const pendapatanChange = pctChange(data?.pendapatan_hari_ini ?? 0, data?.pendapatan_kemarin ?? 0);
+  const orderChange = pctChange(data?.order_hari_ini ?? 0, data?.order_kemarin ?? 0);
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h2 className="font-headline-lg text-headline-lg text-on-surface">
-          Selamat Datang! 👋
-        </h2>
+        <h2 className="font-headline-lg text-headline-lg text-on-surface">Dashboard Rumah Kripik</h2>
         <p className="text-on-surface-variant mt-1 font-body-md">
-          Kelola semua aspek bisnis Rumah Keripik dari satu dashboard terpusat.
+          Halaman utama sekarang merangkum beranda dan analitik supaya alur kerja lebih singkat.
         </p>
       </div>
 
-      {/* KPI Cards Row */}
-      <div>
-        <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-3">
-          Ringkasan Hari Ini
-        </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard
-            title="Pendapatan Hari Ini"
-            value={data ? formatRupiah(data.pendapatan_hari_ini) : '—'}
-            icon={<TrendingUp size={20} />}
-            change={pendapatanChange}
-            href="/analitik"
-            loading={loading}
-          />
-          <KPICard
-            title="Order Hari Ini"
-            value={data ? String(data.order_hari_ini) : '—'}
-            icon={<Package size={20} />}
-            change={orderChange}
-            href="/transaksi"
-            loading={loading}
-          />
-          <KPICard
-            title="Chat Bot Hari Ini"
-            value={data ? String(data.chat_bot_hari_ini) : '—'}
-            icon={<MessageSquare size={20} />}
-            href="/livechat"
-            loading={loading}
-          />
-          <KPICard
-            title="Menunggu Verifikasi"
-            value={data ? String(data.pending_verifikasi) : '—'}
-            icon={<Bell size={20} />}
-            urgent={(data?.pending_verifikasi ?? 0) > 0}
-            href="/transaksi"
-            loading={loading}
-          />
-        </div>
+      <div className="flex gap-1 bg-surface-container-lowest border border-neutral-200 rounded-xl p-1 w-full md:w-fit">
+        {[
+          { key: 'overview' as const, label: 'Beranda', icon: Home },
+          { key: 'analytics' as const, label: 'Analitik', icon: BarChart3 },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-label-md text-label-md transition-all ${
+                isActive ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'
+              }`}
+            >
+              <Icon size={16} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Module Grid */}
-      <div>
-        <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-3">
-          Modul Sistem
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          {modules.map((module) => {
-            const Icon = module.icon;
-            return (
-              <Link
-                key={module.href}
-                href={module.href}
-                className="group bg-surface-container-lowest rounded-xl border border-neutral-200 hover:shadow-lg transition-all duration-300 p-6 hover:border-primary/30"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-lg ${module.color}`}>
-                    <Icon size={22} />
-                  </div>
-                  <span className="font-caption text-caption text-outline group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100">
-                    Buka →
-                  </span>
-                </div>
-                <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">
-                  {module.title}
-                </h3>
-                <p className="font-body-md text-body-md text-on-surface-variant">
-                  {module.description}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+      {activeTab === 'analytics' ? (
+        <AnalyticsHub />
+      ) : (
+        <>
+          <div>
+            <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-3">Ringkasan Hari Ini</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard
+                title="Pendapatan Hari Ini"
+                value={data ? formatRupiah(data.pendapatan_hari_ini) : '-'}
+                icon={<TrendingUp size={20} />}
+                change={pendapatanChange}
+                href="/?tab=analytics"
+                loading={loading}
+              />
+              <KPICard
+                title="Order Hari Ini"
+                value={data ? String(data.order_hari_ini) : '-'}
+                icon={<Package size={20} />}
+                change={orderChange}
+                href="/transaksi"
+                loading={loading}
+              />
+              <KPICard
+                title="Chat Bot Hari Ini"
+                value={data ? String(data.chat_bot_hari_ini) : '-'}
+                icon={<MessageSquare size={20} />}
+                href="/livechat"
+                loading={loading}
+              />
+              <KPICard
+                title="Menunggu Verifikasi"
+                value={data ? String(data.pending_verifikasi) : '-'}
+                icon={<Bell size={20} />}
+                urgent={(data?.pending_verifikasi ?? 0) > 0}
+                href="/transaksi?tab=verifikasi"
+                loading={loading}
+              />
+            </div>
+          </div>
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href="/transaksi"
-          className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-neutral-200 rounded-xl text-sm font-medium text-on-surface hover:border-primary/40 hover:shadow-sm transition-all"
-        >
-          <ShieldCheck size={16} className="text-orange-500" />
-          Cek Verifikasi Pembayaran
-        </Link>
-        <Link
-          href="/livechat"
-          className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-neutral-200 rounded-xl text-sm font-medium text-on-surface hover:border-primary/40 hover:shadow-sm transition-all"
-        >
-          <MessageSquare size={16} className="text-green-500" />
-          Live Chat
-        </Link>
-        <Link
-          href="/master-data/produk"
-          className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-neutral-200 rounded-xl text-sm font-medium text-on-surface hover:border-primary/40 hover:shadow-sm transition-all"
-        >
-          <Package size={16} className="text-blue-500" />
-          Update Stok Produk
-        </Link>
-      </div>
+          <div>
+            <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-3">Modul Sistem</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+              {modules.map((module) => {
+                const Icon = module.icon;
+                return (
+                  <Link
+                    key={module.href}
+                    href={module.href}
+                    className="group bg-surface-container-lowest rounded-xl border border-neutral-200 hover:shadow-lg transition-all duration-300 p-6 hover:border-primary/30"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`p-3 rounded-lg ${module.color}`}>
+                        <Icon size={22} />
+                      </div>
+                      <span className="font-caption text-caption text-outline group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100">
+                        Buka {'->'}
+                      </span>
+                    </div>
+                    <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">{module.title}</h3>
+                    <p className="font-body-md text-body-md text-on-surface-variant">{module.description}</p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link href="/transaksi?tab=verifikasi" className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-neutral-200 rounded-xl text-sm font-medium text-on-surface hover:border-primary/40 hover:shadow-sm transition-all">
+              <ShieldCheck size={16} className="text-orange-500" />
+              Cek Verifikasi Pembayaran
+            </Link>
+            <Link href="/livechat" className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-neutral-200 rounded-xl text-sm font-medium text-on-surface hover:border-primary/40 hover:shadow-sm transition-all">
+              <MessageSquare size={16} className="text-green-500" />
+              Live Chat
+            </Link>
+            <Link href="/master-data/produk" className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-neutral-200 rounded-xl text-sm font-medium text-on-surface hover:border-primary/40 hover:shadow-sm transition-all">
+              <Package size={16} className="text-blue-500" />
+              Update Stok Produk
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   );
 }

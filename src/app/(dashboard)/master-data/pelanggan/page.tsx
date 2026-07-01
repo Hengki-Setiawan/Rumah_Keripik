@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getAllPelanggan, updatePelanggan, getStatsPelanggan } from '@/actions/pelanggan';
 import { getAllWarung, tambahWarung, updateWarung, nonaktifkanWarung, aktifkanWarung } from '@/actions/warung';
 import { exportPelangganCSV } from '@/actions/export';
@@ -52,6 +52,7 @@ interface Warung {
 
 export default function MasterDataPelangganPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'pelanggan' | 'warung' | 'map'>('pelanggan');
 
@@ -91,6 +92,13 @@ export default function MasterDataPelangganPage() {
     fetchPelangganData().catch(console.error);
     fetchWarungData().catch(console.error);
   }, []);
+
+  useEffect(() => {
+    const nextTab = searchParams.get('tab');
+    if (nextTab === 'pelanggan' || nextTab === 'warung' || nextTab === 'map') {
+      setActiveTab(nextTab);
+    }
+  }, [searchParams]);
 
   // Fetch functions
   async function fetchPelangganData() {

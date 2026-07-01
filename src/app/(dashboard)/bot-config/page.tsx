@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   getAutoReplyRules,
   addAutoReplyRule,
@@ -49,6 +50,7 @@ interface KBEntry {
 }
 
 export default function BotConfigPage() {
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   const [tab, setTab] = useState<'rules' | 'kb' | 'logs' | 'analytics'>('rules');
 
@@ -75,6 +77,13 @@ export default function BotConfigPage() {
     fetchConfigData().catch(console.error);
     fetchKbData().catch(console.error);
   }, []);
+
+  useEffect(() => {
+    const nextTab = searchParams.get('tab');
+    if (nextTab === 'rules' || nextTab === 'kb' || nextTab === 'logs' || nextTab === 'analytics') {
+      setTab(nextTab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (tab === 'logs') {

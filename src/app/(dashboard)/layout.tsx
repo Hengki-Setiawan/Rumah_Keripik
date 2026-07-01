@@ -31,16 +31,12 @@ interface NotifCounts {
 }
 
 const menuItems = [
-  { href: '/', label: 'Beranda', icon: Home },
-  { href: '/analitik', label: 'Analitik', icon: BarChart3 },
+  { href: '/', label: 'Beranda & Analitik', icon: Home },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
-  { href: '/master-data/warung', label: 'Warung Retail', icon: Store },
-  { href: '/master-data/zona-pengiriman', label: 'Zona Pengiriman', icon: MapPin },
-  { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
+  { href: '/transaksi', label: 'Transaksi & Pengiriman', icon: ShoppingCart },
   { href: '/livechat', label: 'Hub Komunikasi', icon: MessageSquare },
-  { href: '/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
-  { href: '/bot-config', label: 'Pengaturan Bot AI', icon: Bot },
+  { href: '/bot-config', label: 'Knowledge Base & AI', icon: Bot },
 ];
 
 function NotificationPoller() {
@@ -270,7 +266,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { href: '/master-data/pelanggan', label: 'Mitra', icon: Users },
             { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
             { href: '/livechat', label: 'Chat Hub', icon: MessageSquare },
-            { href: '/bot-config', label: 'Seting AI', icon: Bot },
+            { href: '/bot-config', label: 'KB & AI', icon: Bot },
           ].map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
