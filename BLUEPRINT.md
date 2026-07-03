@@ -474,6 +474,407 @@ Rekomendasi endpoint:
 
 Endpoint harus server-side agar token API, Turso token, dan Cloudinary secret tidak bocor ke client.
 
+## Konsep Lanjutan: Advanced Mini-Commerce System
+
+Jika ingin dibuat lebih canggih dari blueprint awal, arah terbaik bukan membuat chatbot menjadi semakin panjang, tetapi membuat web pemesanan terasa seperti mini aplikasi yang pintar, cepat, dan tetap sederhana.
+
+Konsep utamanya:
+
+- Pelanggan merasa seperti dibantu pelayan toko yang ramah.
+- Admin merasa seperti punya asisten operasional.
+- Database tetap menjadi sumber kebenaran.
+- AI bekerja di bagian yang bernilai tinggi, bukan di semua tombol.
+- Sistem tetap jalan walau worker lokal atau AI sedang tidak aktif.
+
+### 1. PWA Ringan Untuk Pelanggan
+
+Web pemesanan bisa dikembangkan menjadi Progressive Web App.
+
+Manfaat:
+
+- Bisa dibuka seperti aplikasi dari homescreen HP.
+- Lebih terasa cepat dan app-like.
+- Bisa punya offline fallback sederhana.
+- Bisa menyimpan draft keranjang lokal jika koneksi putus.
+- Cocok untuk pelanggan repeat order dan mitra warung.
+
+Fitur PWA yang disarankan:
+
+- Manifest app dengan nama "Rumah Keripik".
+- Icon app dari brand Rumah Keripik.
+- Offline page untuk kondisi jaringan buruk.
+- Cache halaman katalog dan asset gambar penting.
+- Draft cart tersimpan di local storage lalu disinkronkan ke `order_draft`.
+
+Catatan penting:
+
+- Jangan simpan data sensitif di browser.
+- Data transaksi final tetap harus dibuat server-side.
+- Push notification web bisa dipertimbangkan nanti, tetapi Telegram lebih sederhana untuk fase awal.
+
+### 2. AI Concierge Di Halaman Pesan
+
+Alih-alih chatbot panjang seperti WhatsApp, AI dibuat sebagai concierge kecil di dalam halaman `/pesan`.
+
+Contoh tampilan:
+
+- Tombol "Bantu pilih rasa".
+- Tombol "Paket hemat 50 ribu".
+- Tombol "Untuk oleh-oleh".
+- Tombol "Saya suka pedas".
+- Input bebas: "Aku mau yang cocok buat anak-anak".
+
+AI Concierge harus memberi hasil berbentuk aksi:
+
+- Rekomendasi produk.
+- Tombol tambah ke keranjang.
+- Alasan singkat.
+- Opsi paket.
+- Pertanyaan klarifikasi maksimal 1 kali jika perlu.
+
+Aturan rekomendasi:
+
+- Tampilkan 1 sampai 3 rekomendasi saja.
+- Produk wajib berasal dari tabel `produk`.
+- Jika stok habis, AI tidak boleh merekomendasikan sebagai pilihan utama.
+- Jika pelanggan menyebut budget, AI menghitung kombinasi berdasarkan harga database.
+- Jika pelanggan menyebut "pedas", "original", atau "oleh-oleh", pakai tag produk sebelum LLM.
+
+### 3. Smart Bundle Dan Upsell Halus
+
+Sistem bisa membantu menaikkan nilai transaksi tanpa terasa memaksa.
+
+Contoh:
+
+- Jika cart di bawah Rp50.000, tampilkan "Tambah 1 Kripik Original agar jadi paket hemat".
+- Jika pelanggan pilih pedas, tawarkan original sebagai penyeimbang.
+- Jika pelanggan warung, tawarkan paket reseller.
+- Jika pelanggan pernah beli produk tertentu, tampilkan "Pesan lagi favoritmu".
+
+Sumber data:
+
+- `detail_transaksi` untuk histori pembelian.
+- `produk` untuk harga dan stok.
+- `memory_pelanggan` untuk preferensi.
+- `ai_response_cache` untuk cache rekomendasi umum.
+
+AI dipakai hanya untuk bahasa penjelasan. Perhitungan bundle tetap deterministic dari database.
+
+### 4. Repeat Order Super Cepat
+
+Untuk pelanggan lama, alur bisa dipersingkat.
+
+Flow:
+
+- Pelanggan buka link dari Telegram atau halaman lacak.
+- Sistem mengenali nomor HP atau `chatId`.
+- Tampilkan order terakhir.
+- Tombol "Pesan lagi".
+- Pelanggan hanya konfirmasi qty, alamat, dan pembayaran.
+
+Data terkait:
+
+- `pelanggan_chatbot`
+- `memory_pelanggan`
+- `transaksi`
+- `detail_transaksi`
+- `lokasi_pelanggan`
+
+Ini sangat cocok untuk:
+
+- Warung retail.
+- Reseller.
+- Pelanggan rutin mingguan.
+- Order keluarga.
+
+### 5. Smart Address Dan Map Kit
+
+Location kit perlu dibuat bertahap agar tidak mahal dan tidak terlalu kompleks.
+
+Fase murah:
+
+- Terima alamat manual.
+- Terima link Google Maps.
+- Terima koordinat dari browser geolocation.
+- Simpan semua ke `lokasi_pelanggan`.
+- Cache hasil parse/geocode di `geocode_cache`.
+
+Fase canggih:
+
+- Autocomplete alamat.
+- Validasi alamat.
+- Deteksi zona pengiriman otomatis.
+- Hitung estimasi jarak.
+- Tampilkan peta pelanggan di dashboard.
+- Susun daftar pengiriman berdasarkan area.
+
+Fase sangat canggih:
+
+- Route optimization untuk banyak titik pengiriman.
+- Delivery batch: "rute hari ini".
+- Estimasi ongkir berbasis jarak.
+- Deteksi pelanggan di luar zona.
+- Heatmap pelanggan dan area potensial.
+
+Prinsip biaya:
+
+- Jangan panggil API Maps setiap render.
+- Cache semua hasil geocode.
+- Pakai geocode hanya saat alamat berubah.
+- Untuk MVP, koordinat manual/link maps sudah cukup.
+
+### 6. Realtime Order Timeline
+
+Setiap order harus punya timeline yang jelas.
+
+Contoh timeline pelanggan:
+
+- Pesanan dibuat.
+- Menunggu pembayaran.
+- Bukti pembayaran diterima.
+- Admin memverifikasi.
+- Pesanan diproses.
+- Pesanan dikirim.
+- Pesanan selesai.
+
+Contoh timeline admin:
+
+- Draft dibuat dari web.
+- Produk dikunci sementara.
+- Bukti pembayaran masuk.
+- Admin A memverifikasi.
+- Stok dipotong.
+- Pengiriman dibuat.
+
+Tabel utama:
+
+- `order_events`
+- `transaksi`
+- `detail_transaksi`
+- `bukti_pembayaran`
+- `delivery_assignment`
+
+Jika belum memakai websocket, realtime bisa dimulai dari polling ringan setiap 10 sampai 20 detik di dashboard transaksi.
+
+### 7. Admin Copilot
+
+Dashboard bisa dibuat lebih kuat dengan AI Copilot.
+
+Fitur admin copilot:
+
+- Ringkas order yang perlu tindakan.
+- Ringkas pelanggan repeat.
+- Buat balasan cepat untuk chat.
+- Sarankan update knowledge base.
+- Deteksi alamat kurang lengkap.
+- Deteksi bukti pembayaran yang perlu dicek manual.
+- Sarankan prioritas pengiriman hari ini.
+
+Contoh kartu copilot:
+
+```text
+Ada 3 order menunggu verifikasi.
+2 pelanggan belum melengkapi alamat.
+1 pertanyaan belum terjawab di knowledge base.
+Produk Kripik Pedas mulai menipis.
+```
+
+AI copilot tidak boleh mengambil keputusan final. Admin tetap klik verifikasi, ubah status, dan konfirmasi pengiriman.
+
+### 8. Token Budgeting AI
+
+Agar AI tidak boros token, setiap fitur diberi level prioritas.
+
+Level 0: tanpa AI
+
+- Harga.
+- Stok.
+- Ongkir dari zona.
+- Status transaksi.
+- Validasi qty.
+
+Level 1: rule/template
+
+- Sapaan.
+- Format invoice.
+- Status order.
+- Instruksi pembayaran.
+- Reminder alamat kurang lengkap.
+
+Level 2: retrieval/cache
+
+- FAQ knowledge base.
+- Rekomendasi berdasarkan tag produk.
+- Pertanyaan katalog.
+- Pertanyaan pengiriman umum.
+
+Level 3: LLM
+
+- Pertanyaan bebas.
+- Perapihan alamat.
+- Ringkasan chat panjang.
+- Admin copilot.
+- Saran knowledge base baru.
+
+Aturan:
+
+- Selalu cek cache dulu.
+- Selalu kirim konteks minimal.
+- Jangan kirim seluruh database ke model.
+- Batasi output pendek.
+- Simpan pertanyaan gagal untuk review, bukan dipaksa dijawab.
+
+### 9. Agentic Workflow Aman
+
+Konsep AI agent boleh dipakai, tetapi dengan batas aman.
+
+AI boleh:
+
+- Membuat draft order.
+- Mengusulkan produk.
+- Mengisi draft alamat.
+- Membuat ringkasan.
+- Menyiapkan pesan notifikasi.
+- Membuat job untuk worker.
+
+AI tidak boleh:
+
+- Mengubah transaksi menjadi lunas.
+- Menghapus transaksi.
+- Mengubah stok final.
+- Mengirim broadcast tanpa approval.
+- Menentukan order selesai tanpa admin.
+
+Semua aksi penting harus melewati:
+
+- Validasi server.
+- Database transaction jika diperlukan.
+- Event log.
+- Approval admin untuk aksi sensitif.
+
+### 10. Customer Intelligence
+
+Sistem bisa belajar dari transaksi tanpa terasa menyeramkan.
+
+Data yang bermanfaat:
+
+- Produk favorit.
+- Rasa favorit.
+- Budget umum.
+- Area pengiriman.
+- Frekuensi repeat order.
+- Status pelanggan: baru, loyal, reseller, warung.
+
+Output yang berguna:
+
+- Segmentasi pelanggan.
+- Paket rekomendasi.
+- Reminder restock untuk warung.
+- Promo area tertentu.
+- Rekomendasi produksi stok.
+
+Privasi:
+
+- Tampilkan hanya data yang relevan untuk operasional.
+- Jangan menjual data pelanggan.
+- Jangan menyimpan data sensitif yang tidak dibutuhkan.
+- Beri opsi admin menghapus data pelanggan jika diminta.
+
+### 11. Inventory Forecasting Ringan
+
+Untuk bisnis keripik, AI bisa membantu stok tanpa sistem ERP mahal.
+
+Fitur awal:
+
+- Produk terlaris 7 hari dan 30 hari.
+- Estimasi stok habis.
+- Rekomendasi produksi sederhana.
+- Alert jika stok di bawah batas.
+
+Rumus awal tanpa AI:
+
+```text
+rata_rata_terjual_harian = total_terjual_7_hari / 7
+estimasi_hari_sisa = stok_saat_ini / rata_rata_terjual_harian
+```
+
+AI dipakai untuk menjelaskan insight:
+
+- "Kripik Pedas kemungkinan habis dalam 3 hari."
+- "Produksi Original bisa dinaikkan minggu ini karena repeat order naik."
+
+### 12. Mode Hemat Biaya
+
+Arsitektur hemat yang disarankan:
+
+- Vercel untuk web dan API.
+- Turso untuk database.
+- Cloudinary untuk gambar dan bukti pembayaran.
+- Telegram untuk notifikasi murah.
+- Worker lokal opsional untuk job berat.
+- Google Maps API hanya untuk fitur yang benar-benar perlu.
+- WhatsApp resmi ditunda sampai order stabil.
+
+Mode degradasi:
+
+- Jika AI mati, checkout tetap jalan.
+- Jika worker mati, job menunggu.
+- Jika Maps API mahal, pelanggan tetap bisa input alamat manual.
+- Jika Telegram gagal, admin tetap melihat order di dashboard.
+
+## Roadmap Implementasi Canggih
+
+### Fase A: Web Order MVP
+
+Fokus:
+
+- `/pesan`
+- katalog produk
+- cart
+- checkout singkat
+- create transaksi
+- dashboard menerima order
+
+### Fase B: Trust Layer
+
+Fokus:
+
+- bukti pembayaran Cloudinary
+- invoice sederhana
+- tracking order
+- timeline status
+- admin verification
+
+### Fase C: AI-Assisted Commerce
+
+Fokus:
+
+- AI concierge
+- FAQ knowledge base
+- smart bundle
+- repeat order
+- cache AI
+
+### Fase D: Map And Delivery Intelligence
+
+Fokus:
+
+- parse link Google Maps
+- koordinat pelanggan
+- zona pengiriman
+- dashboard map
+- delivery batch
+
+### Fase E: Business Intelligence
+
+Fokus:
+
+- inventory forecast
+- customer segmentation
+- admin copilot
+- unanswered question review
+- rekomendasi produksi
+
 ## Roadmap Implementasi
 
 ### Fase 1: MVP Web Pemesanan
@@ -652,4 +1053,8 @@ Database dan dashboard tetap menjadi pusat kebenaran.
 - Baymard Institute Checkout UX: https://baymard.com/research/checkout-usability
 - Nielsen Norman Group Web Form Design: https://www.nngroup.com/articles/web-form-design/
 - Google Places Autocomplete: https://developers.google.com/maps/documentation/places/web-service/place-autocomplete
+- Google Maps Routes API: https://developers.google.com/maps/documentation/routes
+- web.dev Progressive Web Apps: https://web.dev/explore/progressive-web-apps
+- Next.js Forms: https://nextjs.org/docs/app/guides/forms
+- Cloudinary Image Transformations: https://cloudinary.com/documentation/image_transformations
 - Stripe Checkout: https://docs.stripe.com/payments/checkout
