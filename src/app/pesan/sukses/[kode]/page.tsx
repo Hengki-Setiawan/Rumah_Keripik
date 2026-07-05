@@ -2,23 +2,30 @@ import Link from 'next/link';
 import { eq } from 'drizzle-orm';
 import { CheckCircle2, ClipboardList, MessageCircle, PackageCheck } from 'lucide-react';
 import { db } from '@/lib/db';
-import { transaksi } from '@/lib/schema';
+import { paymentIntent, transaksi } from '@/lib/schema';
 import { formatRupiah } from '@/lib/utils';
+import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
+import { PaymentInstructionCard } from '@/components/order/PaymentInstructionCard';
 
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
   params: Promise<{ kode: string }>;
+  searchParams?: Promise<{ token?: string }>;
 };
 
-export default async function OrderSuccessPage({ params }: PageProps) {
+export default async function OrderSuccessPage({ params, searchParams }: PageProps) {
   const { kode } = await params;
+  const query = await searchParams;
   const decodedCode = decodeURIComponent(kode);
   const [order] = await db
     .select()
     .from(transaksi)
     .where(eq(transaksi.kode_pesanan, decodedCode))
     .limit(1);
+  const [intent] = order ? await db.select().from(paymentIntent).where(eq(paymentIntent.id_transaksi, order.id_transaksi)).limit(1) : [];
+  const hasValidToken = !order?.status_token || query?.token === order.status_token;
+  const instruction = parseInstruction(intent?.instruction_json);
 
   return (
     <main className="min-h-screen bg-[linear-gradient(135deg,#fff7df,#ffe6a7,#f8cf72)] px-5 py-8 text-[#241306]">
@@ -41,7 +48,7 @@ export default async function OrderSuccessPage({ params }: PageProps) {
           <div className="mt-8 rounded-[1.5rem] bg-[#2a1606] p-6 text-white">
             <p className="text-sm font-bold text-white/65">Kode pesanan</p>
             <p className="mt-2 break-all text-3xl font-black">{decodedCode}</p>
-            {order && (
+            {order && hasValidToken && (
               <div className="mt-5 grid gap-3 border-t border-white/15 pt-5 sm:grid-cols-2">
                 <div>
                   <p className="text-sm text-white/65">Total produk</p>
@@ -54,6 +61,19 @@ export default async function OrderSuccessPage({ params }: PageProps) {
               </div>
             )}
           </div>
+
+          {order && order.status_token && hasValidToken && order.payment_status !== 'verified' && order.payment_method !== 'cod' && (
+            <>
+              <PaymentInstructionCard amount={order.total_bayar} instruction={instruction} />
+              <PaymentProofUploader orderId={order.id_transaksi} statusToken={order.status_token} />
+            </>
+          )}
+
+          {order?.status_token && !hasValidToken && (
+            <div className="mt-6 rounded-[1.5rem] border border-amber-300 bg-amber-50 p-5 text-sm font-bold text-amber-800">
+              Link ini membutuhkan token pesanan untuk menampilkan detail dan upload bukti pembayaran. Gunakan link sukses/status dari proses checkout terakhir.
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <div className="rounded-3xl border border-[#ecd3a7] bg-[#fff8e8] p-4">
@@ -75,10 +95,10 @@ export default async function OrderSuccessPage({ params }: PageProps) {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href={`/api/order/track?code=${encodeURIComponent(decodedCode)}`}
+              href={`/pesan/status/${encodeURIComponent(decodedCode)}${query?.token || order?.status_token ? `?token=${encodeURIComponent(query?.token || order?.status_token || '')}` : ''}`}
               className="flex-1 rounded-2xl bg-[#8d4b00] px-5 py-4 text-center font-black text-white transition hover:bg-[#6f3900]"
             >
-              Lihat data tracking
+              Lihat status pesanan
             </Link>
             <Link
               href="/pesan"
@@ -91,4 +111,13 @@ export default async function OrderSuccessPage({ params }: PageProps) {
       </section>
     </main>
   );
+}
+
+function parseInstruction(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as { type?: string; label?: string; accountName?: string; accountNumber?: string; bankName?: string; qrisImageUrl?: string; note?: string };
+  } catch {
+    return null;
+  }
 }

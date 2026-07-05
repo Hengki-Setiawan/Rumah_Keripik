@@ -1,6 +1,7 @@
 import { db } from './db';
 import { produk, transaksi, warungRetail } from './schema';
 import { desc, like } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
 
 const MAX_ID_RETRIES = 5;
 
@@ -51,4 +52,24 @@ export async function generateIdTransaksi(): Promise<string> {
 export function generateKodePesanan(): string {
   const num = Math.floor(100000 + Math.random() * 900000);
   return `PESANAN-${num}`;
+}
+
+export function generateIdCustomer(): string {
+  return `CUS-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomUUID().slice(0, 8).toUpperCase()}`;
+}
+
+export function generateIdWebSession(): string {
+  return `WOS-${randomUUID()}`;
+}
+
+export function generateAnonymousToken(): string {
+  return randomUUID().replace(/-/g, '');
+}
+
+export function generateOrderStatusToken(): string {
+  return randomUUID().replace(/-/g, '');
+}
+
+export function generateIdPaymentProof(): string {
+  return `PAY-${randomUUID()}`;
 }

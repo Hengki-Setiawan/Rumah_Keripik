@@ -21,6 +21,7 @@ import {
   MapPin,
   ShieldAlert,
   Plus,
+  CreditCard,
 } from 'lucide-react';
 import { ToastProvider, useToast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/modal';
@@ -35,6 +36,7 @@ const menuItems = [
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/transaksi', label: 'Transaksi & Pengiriman', icon: ShoppingCart },
+  { href: '/pembayaran/verifikasi', label: 'Verifikasi Pembayaran', icon: CreditCard },
   { href: '/livechat', label: 'Hub Komunikasi', icon: MessageSquare },
   { href: '/bot-config', label: 'Knowledge Base & AI', icon: Bot },
 ];

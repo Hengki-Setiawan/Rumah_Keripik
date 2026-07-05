@@ -29,8 +29,12 @@ async function main() {
   const pollMs = Number(process.env.WORKER_POLL_MS || 5000);
 
   const { claimNextJob, completeJob, failJob, heartbeat } = await import('../lib/worker-queue');
-  const { learnFromInteraction } = await import('../lib/memory-engine');
-  const { geocodeAddress } = await import('../lib/geocoding');
+    const { learnFromInteraction } = await import('../lib/memory-engine');
+    const { geocodeAddress } = await import('../lib/geocoding');
+    const { analyzePaymentProof } = await import('../lib/payment-ocr');
+    const { savePaymentOcrResult } = await import('../lib/payment-ocr-results');
+    const { db } = await import('../lib/db');
+    const { outboundMessageQueue } = await import('../lib/schema');
 
   console.log(`[worker] started: ${workerId}`);
 
@@ -61,6 +65,27 @@ async function main() {
       if (job.type === 'geocode_address') {
         const result = await geocodeAddress(payload.address || payload.query || '');
         await completeJob(job.id, { result });
+        continue;
+      }
+
+      if (job.type === 'payment_proof_ocr_assist') {
+        const result = await analyzePaymentProof(payload);
+        await savePaymentOcrResult(result, job.id);
+        await completeJob(job.id, result);
+        continue;
+      }
+
+      if (job.type === 'send_outbound_message') {
+        const recipientId = String(payload.recipientId || '');
+        const messageText = String(payload.messageText || '');
+        if (!recipientId || !messageText) throw new Error('recipientId dan messageText wajib ada');
+        await db.insert(outboundMessageQueue).values({
+          channel: payload.channel === 'telegram' ? 'telegram' : 'wa',
+          recipient_id: recipientId,
+          message_text: messageText,
+          status: 'pending',
+        });
+        await completeJob(job.id, { queued: true, recipientId, channel: payload.channel || 'wa' });
         continue;
       }
 

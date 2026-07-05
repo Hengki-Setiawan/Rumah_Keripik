@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Package, Search, TrendingUp, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { getAllProduk, tambahProduk, updateHarga, nonaktifkanProduk, aktifkanProduk } from '@/actions/produk';
+import { getAllProduk, tambahProduk, updateProdukLengkap, nonaktifkanProduk, aktifkanProduk } from '@/actions/produk';
 import type { Produk } from '@/lib/schema';
 import { useToast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/modal';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
 import { exportProdukCSV } from '@/actions/export';
+import { CloudinaryImageUpload } from '@/components/admin/CloudinaryImageUpload';
 
 function formatRupiahDesign(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID');
@@ -17,6 +18,7 @@ function formatRupiahDesign(n: number) {
 export default function ProdukPage() {
   const { addToast } = useToast();
   const [products, setProducts] = useState<Produk[]>([]);
+  const [categoriesDb, setCategoriesDb] = useState<Array<{ id_kategori: string; nama_kategori: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,10 +32,15 @@ export default function ProdukPage() {
     deskripsi: '',
     harga_jual: 0,
     stok_gudang_utama: 0,
+    kategori_id: '',
+    image_url: '',
+    cloudinary_public_id: '',
+    sort_order: 0,
   });
 
   useEffect(() => {
     loadProducts().catch(console.error);
+    fetch('/api/admin/product-categories').then((res) => res.json()).then((data) => setCategoriesDb(data.categories || [])).catch(() => undefined);
   }, []);
 
   async function loadProducts() {
@@ -46,7 +53,16 @@ export default function ProdukPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (editingId) {
-      const result = await updateHarga(editingId, formData.harga_jual);
+      const result = await updateProdukLengkap(editingId, {
+        nama_produk: formData.nama_produk,
+        deskripsi: formData.deskripsi,
+        harga_jual: formData.harga_jual,
+        stok_gudang_utama: formData.stok_gudang_utama,
+        kategori_id: formData.kategori_id || null,
+        image_url: formData.image_url || null,
+        cloudinary_public_id: formData.cloudinary_public_id || null,
+        sort_order: formData.sort_order,
+      });
       addToast(result.success ? 'success' : 'error', result.message);
     } else {
       const result = await tambahProduk({
@@ -54,10 +70,14 @@ export default function ProdukPage() {
         deskripsi: formData.deskripsi,
         harga_jual: formData.harga_jual,
         stok_gudang_utama: formData.stok_gudang_utama,
+        kategori_id: formData.kategori_id || null,
+        image_url: formData.image_url || null,
+        cloudinary_public_id: formData.cloudinary_public_id || null,
+        sort_order: formData.sort_order,
       });
       addToast(result.success ? 'success' : 'error', result.message);
     }
-    setFormData({ nama_produk: '', deskripsi: '', harga_jual: 0, stok_gudang_utama: 0 });
+    setFormData({ nama_produk: '', deskripsi: '', harga_jual: 0, stok_gudang_utama: 0, kategori_id: '', image_url: '', cloudinary_public_id: '', sort_order: 0 });
     setEditingId(null);
     setShowForm(false);
     await loadProducts();
@@ -242,6 +262,10 @@ export default function ProdukPage() {
                         deskripsi: product.deskripsi || '',
                         harga_jual: product.harga_jual,
                         stok_gudang_utama: product.stok_gudang_utama,
+                        kategori_id: product.kategori_id || '',
+                        image_url: product.image_url || '',
+                        cloudinary_public_id: product.cloudinary_public_id || '',
+                        sort_order: product.sort_order || 0,
                       });
                       setShowForm(true);
                     }}
@@ -269,7 +293,7 @@ export default function ProdukPage() {
           onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData({ nama_produk: '', deskripsi: '', harga_jual: 0, stok_gudang_utama: 0 });
+            setFormData({ nama_produk: '', deskripsi: '', harga_jual: 0, stok_gudang_utama: 0, kategori_id: '', image_url: '', cloudinary_public_id: '', sort_order: 0 });
           }}
           className="group bg-transparent border-2 border-dashed border-outline-variant rounded-xl overflow-hidden hover:border-primary hover:bg-primary/5 transition-all duration-300 min-h-[350px] flex items-center justify-center cursor-pointer"
         >
@@ -287,7 +311,7 @@ export default function ProdukPage() {
         onClick={() => {
           setShowForm(true);
           setEditingId(null);
-          setFormData({ nama_produk: '', deskripsi: '', harga_jual: 0, stok_gudang_utama: 0 });
+          setFormData({ nama_produk: '', deskripsi: '', harga_jual: 0, stok_gudang_utama: 0, kategori_id: '', image_url: '', cloudinary_public_id: '', sort_order: 0 });
         }}
         className="fixed bottom-20 right-6 lg:hidden w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-50"
       >
@@ -311,7 +335,6 @@ export default function ProdukPage() {
                   onChange={(e) => setFormData({ ...formData, nama_produk: e.target.value })}
                   className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-primary focus:border-primary font-body-md"
                   placeholder="Contoh: Kripik Original"
-                  disabled={!!editingId}
                 />
               </div>
               <div>
@@ -321,7 +344,6 @@ export default function ProdukPage() {
                   onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
                   className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-primary focus:border-primary font-body-md"
                   placeholder="Deskripsi singkat produk"
-                  disabled={!!editingId}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -343,9 +365,43 @@ export default function ProdukPage() {
                     onChange={(e) => setFormData({ ...formData, stok_gudang_utama: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-primary focus:border-primary font-body-md"
                     placeholder="100"
-                    disabled={!!editingId}
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-label-md text-label-md text-on-surface mb-1">ID Kategori</label>
+                  <select value={formData.kategori_id} onChange={(e) => setFormData({ ...formData, kategori_id: e.target.value })} className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-primary focus:border-primary font-body-md">
+                    <option value="">Tanpa kategori</option>
+                    {categoriesDb.map((category) => <option key={category.id_kategori} value={category.id_kategori}>{category.nama_kategori}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-label-md text-label-md text-on-surface mb-1">Urutan</label>
+                  <input
+                    type="number"
+                    value={formData.sort_order}
+                    onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-primary focus:border-primary font-body-md"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-label-md text-label-md text-on-surface mb-1">URL Gambar Produk</label>
+                <input
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-primary focus:border-primary font-body-md"
+                  placeholder="https://res.cloudinary.com/..."
+                />
+              </div>
+              <div>
+                <label className="block font-label-md text-label-md text-on-surface mb-1">Upload Gambar Produk</label>
+                <CloudinaryImageUpload
+                  folder="rumah-keripik/products"
+                  value={formData.image_url}
+                  onUploaded={(url, publicId) => setFormData({ ...formData, image_url: url, cloudinary_public_id: publicId })}
+                />
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" className="flex-1 bg-primary text-on-primary py-2.5 rounded-lg font-label-md hover:opacity-90 transition-opacity">

@@ -52,7 +52,7 @@ interface KBEntry {
 export default function BotConfigPage() {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const [tab, setTab] = useState<'rules' | 'kb' | 'logs' | 'analytics'>('rules');
+  const [tab, setTab] = useState<'rules' | 'kb' | 'logs' | 'analytics' | 'menu'>('rules');
 
   // --- AUTO REPLY RULES & STATS ---
   const [rules, setRules] = useState<any[]>([]);
@@ -61,6 +61,8 @@ export default function BotConfigPage() {
   const [rulesLoading, setRulesLoading] = useState(true);
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [ruleForm, setRuleForm] = useState({ keyword: '', response: '' });
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [menuForm, setMenuForm] = useState({ label: '', sort_order: 0 });
 
   // --- KNOWLEDGE BASE STATES ---
   const [kbEntries, setKbEntries] = useState<KBEntry[]>([]);
@@ -76,11 +78,12 @@ export default function BotConfigPage() {
   useEffect(() => {
     fetchConfigData().catch(console.error);
     fetchKbData().catch(console.error);
+    fetchMenuItems().catch(console.error);
   }, []);
 
   useEffect(() => {
     const nextTab = searchParams.get('tab');
-    if (nextTab === 'rules' || nextTab === 'kb' || nextTab === 'logs' || nextTab === 'analytics') {
+    if (nextTab === 'rules' || nextTab === 'kb' || nextTab === 'logs' || nextTab === 'analytics' || nextTab === 'menu') {
       setTab(nextTab);
     }
   }, [searchParams]);
@@ -102,6 +105,39 @@ export default function BotConfigPage() {
 
   async function fetchLogsData() {
     setLogs(await getChatLogs());
+  }
+
+  async function fetchMenuItems() {
+    const res = await fetch('/api/admin/bot-menu-items');
+    const data = await res.json();
+    if (data.ok) setMenuItems(data.items || []);
+  }
+
+  async function handleAddMenuItem(e: React.FormEvent) {
+    e.preventDefault();
+    if (!menuForm.label.trim()) return;
+    const res = await fetch('/api/admin/bot-menu-items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: menuForm.label, value: menuForm.label, action: 'text_prompt', sort_order: menuForm.sort_order, is_active: 1 }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setMenuForm({ label: '', sort_order: 0 });
+      addToast('success', 'Prompt publik berhasil ditambahkan');
+      fetchMenuItems();
+    } else {
+      addToast('error', data.error || 'Gagal menambah prompt publik');
+    }
+  }
+
+  async function handleToggleMenuItem(item: any) {
+    await fetch('/api/admin/bot-menu-items', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id, data: { is_active: item.is_active ? 0 : 1 } }),
+    });
+    fetchMenuItems();
   }
 
   async function fetchKbData() {
@@ -241,6 +277,7 @@ export default function BotConfigPage() {
           { key: 'kb' as const, label: 'AI Knowledge Base', icon: BookOpen, count: kbEntries.length },
           { key: 'logs' as const, label: 'Conversation Log', icon: MessageSquare },
           { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
+          { key: 'menu' as const, label: 'Public Prompts', icon: Lightbulb, count: menuItems.length },
         ].map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.key;
@@ -549,6 +586,35 @@ export default function BotConfigPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'menu' && (
+        <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-outline-variant/10">
+            <h2 className="font-headline-sm text-headline-sm text-on-surface">Prompt Cepat /pesan</h2>
+            <p className="mt-1 text-sm text-on-surface-variant">Label aktif di sini akan muncul sebagai quick prompt di halaman pemesanan publik.</p>
+          </div>
+          <form onSubmit={handleAddMenuItem} className="grid gap-3 border-b border-outline-variant/10 bg-surface-cream/50 p-4 md:grid-cols-[1fr_120px_auto]">
+            <input value={menuForm.label} onChange={(e) => setMenuForm({ ...menuForm, label: e.target.value })} placeholder="Contoh: Paket hemat 50 ribu" className="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md outline-none focus:border-primary" />
+            <input type="number" value={menuForm.sort_order} onChange={(e) => setMenuForm({ ...menuForm, sort_order: Number(e.target.value) })} className="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md outline-none focus:border-primary" />
+            <button type="submit" className="rounded-lg bg-primary px-4 py-2 font-label-md text-on-primary">Tambah Prompt</button>
+          </form>
+          <div className="divide-y divide-outline-variant/10">
+            {menuItems.length === 0 ? (
+              <div className="p-8 text-center text-on-surface-variant">Belum ada prompt publik. Halaman /pesan akan memakai fallback default.</div>
+            ) : menuItems.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-4 p-4">
+                <div>
+                  <p className="font-bold text-on-surface">{item.label}</p>
+                  <p className="text-xs text-on-surface-variant">Urutan {item.sort_order} • {item.action}</p>
+                </div>
+                <button onClick={() => handleToggleMenuItem(item)} className="rounded-lg border border-outline-variant px-3 py-2 text-sm font-bold text-on-surface-variant" type="button">
+                  {item.is_active ? 'Aktif' : 'Nonaktif'}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

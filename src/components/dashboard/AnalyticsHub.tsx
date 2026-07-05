@@ -9,25 +9,39 @@ import { RevenueChart } from '@/components/analytics/RevenueChart';
 import { KpiCardSkeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
 
+type PublicOpsAnalytics = {
+  summary: {
+    orders30d: number;
+    paymentProofs: { pending: number; accepted: number; rejected: number };
+    ocrJobs: { pending: number; failed: number };
+  };
+};
+
 export function AnalyticsHub() {
   const [kpi, setKpi] = useState({ totalOmzet: 0, totalTransaksi: 0, totalStok: 0, totalPelanggan: 0 });
   const [ranking, setRanking] = useState<{ id_produk: string; qty_total: number; nama_produk: string }[]>([]);
   const [transaksi, setTransaksi] = useState<any[]>([]);
   const [chatAnalytics, setChatAnalytics] = useState<any>(null);
+  const [publicFunnel, setPublicFunnel] = useState<{ eventType: string; count: number; conversionFromPrevious: number | null }[]>([]);
+  const [publicOps, setPublicOps] = useState<PublicOpsAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
-      const [kpiData, rankingData, txData, chatData] = await Promise.all([
+      const [kpiData, rankingData, txData, chatData, funnelRes, opsRes] = await Promise.all([
         getAnalitikKPI(),
         getRankingProduk(),
         getAllTransaksi(1, 50),
         getChatLogAnalytics(),
+        fetch('/api/analytics/public-order-funnel').then((res) => res.json()).catch(() => null),
+        fetch('/api/analytics/public-order-operations').then((res) => res.json()).catch(() => null),
       ]);
       setKpi(kpiData);
       setRanking(rankingData);
       setTransaksi(txData.data || []);
       if (chatData.success) setChatAnalytics(chatData.data);
+      if (funnelRes?.ok) setPublicFunnel(funnelRes.funnel || []);
+      if (opsRes?.ok) setPublicOps(opsRes);
       setLoading(false);
     }
     fetchData().catch(console.error);
@@ -144,6 +158,47 @@ export function AnalyticsHub() {
                 <p className={`font-headline-md text-headline-md font-bold mt-1 ${s.color}`}>{s.value}</p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {publicFunnel.length > 0 && (
+        <div className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant">
+          <div className="mb-4">
+            <h3 className="font-headline-sm text-headline-sm text-on-surface">Funnel Public Order 30 Hari</h3>
+            <p className="text-sm text-on-surface-variant">Melacak progres pelanggan dari buka sesi sampai upload bukti pembayaran.</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+            {publicFunnel.map((step, index) => (
+              <div key={step.eventType} className="rounded-xl border border-outline-variant/40 bg-surface-container-low p-4">
+                <p className="text-xs font-black uppercase text-on-surface-variant">Step {index + 1}</p>
+                <p className="mt-1 min-h-10 text-sm font-bold text-on-surface">{step.eventType.replace(/^WEB_/, '').replace(/_/g, ' ')}</p>
+                <p className="mt-3 text-2xl font-black text-primary">{step.count}</p>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Konversi: {step.conversionFromPrevious == null ? '-' : `${step.conversionFromPrevious}%`}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {publicOps && (
+        <div className="grid gap-gutter lg:grid-cols-3">
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
+            <p className="text-sm text-on-surface-variant">Order public 30 hari</p>
+            <p className="mt-2 text-3xl font-black text-primary">{publicOps.summary.orders30d}</p>
+          </div>
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
+            <p className="text-sm text-on-surface-variant">Bukti pembayaran</p>
+            <p className="mt-2 text-sm font-bold text-on-surface">Pending: {publicOps.summary.paymentProofs.pending}</p>
+            <p className="text-sm font-bold text-green-700">Accepted: {publicOps.summary.paymentProofs.accepted}</p>
+            <p className="text-sm font-bold text-red-700">Rejected: {publicOps.summary.paymentProofs.rejected}</p>
+          </div>
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
+            <p className="text-sm text-on-surface-variant">OCR assist jobs</p>
+            <p className="mt-2 text-sm font-bold text-on-surface">Pending: {publicOps.summary.ocrJobs.pending}</p>
+            <p className="text-sm font-bold text-red-700">Failed: {publicOps.summary.ocrJobs.failed}</p>
           </div>
         </div>
       )}

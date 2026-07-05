@@ -14,6 +14,12 @@ const ProdukSchema = z.object({
   deskripsi: z.string().optional(),
   harga_jual: z.number().int().min(1000, 'Harga minimal Rp1.000'),
   stok_gudang_utama: z.number().int().min(0, 'Stok tidak boleh negatif'),
+  kategori_id: z.string().optional().nullable(),
+  image_url: z.string().url().optional().nullable().or(z.literal('')),
+  cloudinary_public_id: z.string().optional().nullable(),
+  sort_order: z.number().int().min(0).optional(),
+  is_featured: z.number().int().min(0).max(1).optional(),
+  is_best_seller: z.number().int().min(0).max(1).optional(),
 });
 
 type ProdukInput = z.infer<typeof ProdukSchema>;
@@ -29,6 +35,7 @@ export async function tambahProduk(data: ProdukInput) {
     const result = await db.insert(produk).values({
       id_produk,
       ...validated,
+      image_url: validated.image_url || null,
       is_active: 1,
     });
 
@@ -57,7 +64,7 @@ export async function updateProduk(id_produk: string, data: Partial<ProdukInput>
 
     await db
       .update(produk)
-      .set(validated)
+      .set({ ...validated, image_url: validated.image_url || null })
       .where(eq(produk.id_produk, id_produk));
 
     revalidatePath('/master-data/produk');
@@ -137,6 +144,10 @@ export async function updateHarga(id_produk: string, harga_jual: number) {
       message: 'Gagal update harga',
     };
   }
+}
+
+export async function updateProdukLengkap(id_produk: string, data: Partial<ProdukInput>) {
+  return updateProduk(id_produk, data);
 }
 
 /**

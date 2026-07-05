@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import {
   Bot,
   CheckCircle2,
@@ -23,20 +23,52 @@ export type OrderProduct = {
   deskripsi: string | null;
   harga_jual: number;
   stok_gudang_utama: number;
+  image_url?: string | null;
+  kategori_id?: string | null;
+  kategori_nama?: string | null;
+  variants?: Array<{ id_varian: string; nama_varian: string; harga_jual: number; stok: number; image_url?: string | null }>;
 };
 
 type CartItem = {
   id_produk: string;
+  id_varian?: string;
   qty: number;
+};
+
+type PaymentMethod = {
+  id: string;
+  type: 'bank_transfer' | 'qris' | 'ewallet' | 'cod';
+  label: string;
+  accountName: string | null;
+  accountNumber: string | null;
+  bankName: string | null;
+  qrisImageUrl: string | null;
+  note: string | null;
+  minOrderTotal?: number | null;
+  maxOrderTotal?: number | null;
+};
+
+type SavedAddress = {
+  id: number;
+  recipientName: string | null;
+  phone: string | null;
+  addressText: string;
+  landmark: string | null;
+  courierNote: string | null;
+  latitude: string | null;
+  longitude: string | null;
 };
 
 type Props = {
   products: OrderProduct[];
+  categories?: Array<{ id: string; name: string }>;
+  paymentMethods?: PaymentMethod[];
+  quickPrompts?: string[];
   source?: string;
   chatId?: string;
 };
 
-const quickPrompts = [
+const fallbackQuickPrompts = [
   'Paket hemat 50 ribu',
   'Yang pedas favorit',
   'Cocok buat oleh-oleh',
@@ -60,50 +92,110 @@ function extractCoordsFromMapsLink(value: string) {
   return null;
 }
 
-export function WebOrderApp({ products, source = 'web', chatId }: Props) {
+export function WebOrderApp({ products, categories = [], paymentMethods = [], quickPrompts = fallbackQuickPrompts, source = 'web', chatId }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [customer, setCustomer] = useState({ name: '', phone: '', type: 'konsumen' });
   const [address, setAddress] = useState({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
-  const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cod'>('transfer');
+  const firstPayment = paymentMethods[0];
+  const [paymentMethodId, setPaymentMethodId] = useState(firstPayment?.id || '');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [helperText, setHelperText] = useState('Ceritakan seleramu, nanti aku bantu pilihkan varian yang cocok.');
+  const [assistantText, setAssistantText] = useState('');
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [isPending, startTransition] = useTransition();
 
-  const activeProducts = products.filter((product) => product.stok_gudang_utama > 0);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function ensureSession() {
+      try {
+        const response = await fetch('/api/public/session', { method: 'POST' });
+        if (!response.ok || cancelled) return;
+        const result = await response.json();
+        const message = result?.responses?.[0]?.message;
+        if (typeof message === 'string') setHelperText(message);
+      } catch {
+        // Existing order form remains usable if session bootstrap fails.
+      }
+    }
+
+    ensureSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSavedAddresses() {
+      try {
+        const response = await fetch('/api/public/saved-addresses');
+        if (!response.ok || cancelled) return;
+        const result = await response.json();
+        if (Array.isArray(result.addresses)) setSavedAddresses(result.addresses);
+      } catch {
+        // Saved address is optional; manual address remains the primary path.
+      }
+    }
+    loadSavedAddresses();
+    return () => { cancelled = true; };
+  }, []);
+
+  const activeProducts = products.filter((product) => product.stok_gudang_utama > 0 || (product.variants || []).some((variant) => variant.stok > 0));
+  const visibleProducts = selectedCategory === 'all' ? products : products.filter((product) => product.kategori_id === selectedCategory);
   const cartDetails = cart
     .map((item) => {
       const product = products.find((entry) => entry.id_produk === item.id_produk);
       if (!product) return null;
-      return { ...item, product, subtotal: product.harga_jual * item.qty };
+      const variant = product.variants?.find((entry) => entry.id_varian === item.id_varian) || null;
+      const unitPrice = variant?.harga_jual ?? product.harga_jual;
+      return { ...item, product, variant, unitPrice, subtotal: unitPrice * item.qty };
     })
-    .filter(Boolean) as Array<CartItem & { product: OrderProduct; subtotal: number }>;
+    .filter(Boolean) as Array<CartItem & { product: OrderProduct; variant: NonNullable<OrderProduct['variants']>[number] | null; unitPrice: number; subtotal: number }>;
   const total = cartDetails.reduce((sum, item) => sum + item.subtotal, 0);
   const totalQty = cartDetails.reduce((sum, item) => sum + item.qty, 0);
 
-  function getQty(id: string) {
-    return cart.find((item) => item.id_produk === id)?.qty || 0;
+  useEffect(() => {
+    if (!paymentMethods.length) return;
+    const current = paymentMethods.find((method) => method.id === paymentMethodId);
+    const isInvalid = current && ((current.minOrderTotal != null && total < current.minOrderTotal) || (current.maxOrderTotal != null && total > current.maxOrderTotal));
+    if (!current || isInvalid) {
+      const fallback = paymentMethods.find((method) => (method.minOrderTotal == null || total >= method.minOrderTotal) && (method.maxOrderTotal == null || total <= method.maxOrderTotal));
+      if (fallback) setPaymentMethodId(fallback.id);
+    }
+  }, [paymentMethodId, paymentMethods, total]);
+
+  function getQty(id: string, variantId?: string) {
+    return cart.find((item) => item.id_produk === id && item.id_varian === variantId)?.qty || 0;
   }
 
-  function addToCart(id: string) {
+  function addToCart(id: string, variantId?: string) {
     const product = products.find((entry) => entry.id_produk === id);
-    if (!product || product.stok_gudang_utama <= 0) return;
+    if (!product) return;
+    const variant = product.variants?.find((entry) => entry.id_varian === variantId);
+    if ((product.variants?.length || 0) > 0 && !variant) return;
+    const maxStock = variant ? variant.stok : product.stok_gudang_utama;
+    if (maxStock <= 0) return;
 
     setCart((current) => {
-      const existing = current.find((item) => item.id_produk === id);
-      if (!existing) return [...current, { id_produk: id, qty: 1 }];
-      if (existing.qty >= product.stok_gudang_utama) return current;
-      return current.map((item) => item.id_produk === id ? { ...item, qty: item.qty + 1 } : item);
+      const existing = current.find((item) => item.id_produk === id && item.id_varian === variantId);
+      if (!existing) return [...current, { id_produk: id, id_varian: variantId, qty: 1 }];
+      if (existing.qty >= maxStock) return current;
+      return current.map((item) => item.id_produk === id && item.id_varian === variantId ? { ...item, qty: item.qty + 1 } : item);
     });
   }
 
-  function removeFromCart(id: string) {
+  function removeFromCart(id: string, variantId?: string) {
     setCart((current) => {
-      const existing = current.find((item) => item.id_produk === id);
+      const existing = current.find((item) => item.id_produk === id && item.id_varian === variantId);
       if (!existing) return current;
-      if (existing.qty <= 1) return current.filter((item) => item.id_produk !== id);
-      return current.map((item) => item.id_produk === id ? { ...item, qty: item.qty - 1 } : item);
+      if (existing.qty <= 1) return current.filter((item) => !(item.id_produk === id && item.id_varian === variantId));
+      return current.map((item) => item.id_produk === id && item.id_varian === variantId ? { ...item, qty: item.qty - 1 } : item);
     });
   }
 
@@ -118,12 +210,27 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
     });
 
     const selected = candidates.slice(0, lower.includes('hemat') ? 2 : 1);
-    selected.forEach((product) => addToCart(product.id_produk));
+    selected.forEach((product) => addToCart(product.id_produk, product.variants?.[0]?.id_varian));
     setHelperText(
       selected.length > 0
         ? `Aku tambahkan ${selected.map((item) => item.nama_produk).join(', ')} ke keranjang. Kamu masih bisa ubah qty.`
         : 'Belum ada produk yang cocok dari stok aktif. Coba pilih manual dulu ya.'
     );
+  }
+
+  async function askAssistant() {
+    if (!assistantText.trim()) return;
+    setAssistantLoading(true);
+    try {
+      const res = await fetch('/api/public/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: assistantText }) });
+      const data = await res.json();
+      setHelperText(data.answer || data.error || 'Asisten belum bisa menjawab.');
+    } catch {
+      setHelperText('Asisten sedang tidak tersedia. Kamu tetap bisa lanjut pilih produk secara manual.');
+    } finally {
+      setAssistantLoading(false);
+      setAssistantText('');
+    }
   }
 
   function useBrowserLocation() {
@@ -163,6 +270,7 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
   function canSubmit() {
     return (
       cartDetails.length > 0 &&
+      paymentMethodId.trim().length > 0 &&
       customer.name.trim().length >= 2 &&
       customer.phone.trim().length >= 8 &&
       address.text.trim().length >= 8
@@ -173,7 +281,7 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
     setError('');
 
     if (!canSubmit()) {
-      setError('Lengkapi nama, nomor kontak, alamat, dan minimal 1 produk dulu ya.');
+      setError('Lengkapi nama, nomor kontak, alamat, metode pembayaran, dan minimal 1 produk dulu ya.');
       return;
     }
 
@@ -186,9 +294,9 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
           chatId,
           customer,
           address,
-          paymentMethod,
+          paymentMethodId,
           notes,
-          items: cartDetails.map((item) => ({ id_produk: item.id_produk, qty: item.qty })),
+          items: cartDetails.map((item) => ({ id_produk: item.id_produk, id_varian: item.id_varian, qty: item.qty })),
         }),
       });
       const result = await response.json();
@@ -198,7 +306,8 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
         return;
       }
 
-      window.location.href = `/pesan/sukses/${encodeURIComponent(result.order.kodePesanan)}`;
+      const tokenQuery = result.order.statusToken ? `?token=${encodeURIComponent(result.order.statusToken)}` : '';
+      window.location.href = `/pesan/sukses/${encodeURIComponent(result.order.kodePesanan)}${tokenQuery}`;
     });
   }
 
@@ -259,22 +368,43 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
                   </button>
                 ))}
               </div>
+              <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]">
+                <input value={assistantText} onChange={(event) => setAssistantText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') askAssistant(); }} placeholder="Tanya asisten: pembayaran, rasa, COD, pengiriman..." className="rounded-2xl border border-[#e0bd82] bg-white px-4 py-3 text-sm font-bold outline-none focus:border-[#8d4b00]" />
+                <button type="button" onClick={askAssistant} disabled={assistantLoading} className="rounded-2xl bg-[#123524] px-5 py-3 text-sm font-black text-white disabled:opacity-60">{assistantLoading ? 'Menjawab...' : 'Tanya'}</button>
+              </div>
             </div>
 
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setSelectedCategory('all')} className={`rounded-full px-4 py-2 text-sm font-black ${selectedCategory === 'all' ? 'bg-[#2a1606] text-white' : 'border border-[#e0bd82] bg-white/80 text-[#7a3f00]'}`}>Semua</button>
+                {categories.map((category) => (
+                  <button key={category.id} type="button" onClick={() => setSelectedCategory(category.id)} className={`rounded-full px-4 py-2 text-sm font-black ${selectedCategory === category.id ? 'bg-[#2a1606] text-white' : 'border border-[#e0bd82] bg-white/80 text-[#7a3f00]'}`}>{category.name}</button>
+                ))}
+              </div>
+            )}
+
             <section className="grid gap-4 sm:grid-cols-2">
-              {products.map((product) => {
-                const qty = getQty(product.id_produk);
-                const soldOut = product.stok_gudang_utama <= 0;
+              {visibleProducts.map((product) => {
+                const selectedVariantId = selectedVariants[product.id_produk] || product.variants?.[0]?.id_varian;
+                const primaryVariant = product.variants?.find((variant) => variant.id_varian === selectedVariantId) || product.variants?.[0];
+                const qty = getQty(product.id_produk, selectedVariantId);
+                const displayPrice = primaryVariant?.harga_jual ?? product.harga_jual;
+                const displayStock = primaryVariant?.stok ?? product.stok_gudang_utama;
+                const soldOut = displayStock <= 0;
+                const imageUrl = primaryVariant?.image_url || product.image_url;
 
                 return (
                   <article
                     key={product.id_produk}
                     className="group rounded-[1.8rem] border border-[#e8c98d] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-[#8d4b00]/10"
                   >
-                    <div className="mb-5 flex h-40 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,#ffe8ad,#ffd06a)] shadow-inner">
-                      <div className="grid h-24 w-24 place-items-center rounded-full border-8 border-white/45 bg-[#8d4b00] text-2xl font-black text-white shadow-lg">
-                        RK
-                      </div>
+                    <div className="mb-5 flex h-40 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[linear-gradient(135deg,#ffe8ad,#ffd06a)] shadow-inner">
+                      {imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={imageUrl} alt={product.nama_produk} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="grid h-24 w-24 place-items-center rounded-full border-8 border-white/45 bg-[#8d4b00] text-2xl font-black text-white shadow-lg">RK</div>
+                      )}
                     </div>
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -284,23 +414,41 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
                         </p>
                       </div>
                       <span className="rounded-full bg-[#fff0c2] px-3 py-1 text-xs font-black text-[#8d4b00]">
-                        {product.id_produk}
+                         {product.kategori_nama || product.id_produk}
                       </span>
                     </div>
+                    {product.variants && product.variants.length > 0 && (
+                      <div className="mt-4 rounded-2xl bg-[#fff8e8] p-3 text-sm font-bold text-[#79583b]">
+                        <p className="mb-2 text-xs uppercase tracking-widest text-[#8d4b00]">Pilih Varian</p>
+                        <div className="flex flex-wrap gap-2">
+                          {product.variants.map((variant) => (
+                            <button
+                              key={variant.id_varian}
+                              type="button"
+                              disabled={variant.stok <= 0}
+                              onClick={() => setSelectedVariants((current) => ({ ...current, [product.id_produk]: variant.id_varian }))}
+                              className={`rounded-full px-3 py-1.5 text-xs font-black ${selectedVariantId === variant.id_varian ? 'bg-[#2a1606] text-white' : 'bg-white text-[#7a3f00]'} disabled:cursor-not-allowed disabled:opacity-40`}
+                            >
+                              {variant.nama_varian} - {formatRupiah(variant.harga_jual)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="mt-5 flex items-center justify-between">
                       <div>
-                        <p className="text-2xl font-black text-[#8d4b00]">{formatRupiah(product.harga_jual)}</p>
+                        <p className="text-2xl font-black text-[#8d4b00]">{formatRupiah(displayPrice)}</p>
                         <p className={`text-sm font-bold ${soldOut ? 'text-red-600' : 'text-[#287243]'}`}>
-                          {soldOut ? 'Stok habis' : `Stok ${product.stok_gudang_utama}`}
+                          {soldOut ? 'Stok habis' : `Stok ${displayStock}`}
                         </p>
                       </div>
                       {qty > 0 ? (
                         <div className="flex items-center gap-2 rounded-full bg-[#2a1606] p-1 text-white">
-                          <button type="button" onClick={() => removeFromCart(product.id_produk)} className="grid h-9 w-9 place-items-center rounded-full bg-white/10">
+                          <button type="button" onClick={() => removeFromCart(product.id_produk, selectedVariantId)} className="grid h-9 w-9 place-items-center rounded-full bg-white/10">
                             <Minus size={16} />
                           </button>
                           <span className="min-w-6 text-center font-black">{qty}</span>
-                          <button type="button" onClick={() => addToCart(product.id_produk)} className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#2a1606]">
+                          <button type="button" onClick={() => addToCart(product.id_produk, selectedVariantId)} className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#2a1606]">
                             <Plus size={16} />
                           </button>
                         </div>
@@ -308,7 +456,7 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
                         <button
                           type="button"
                           disabled={soldOut}
-                          onClick={() => addToCart(product.id_produk)}
+                          onClick={() => addToCart(product.id_produk, selectedVariantId)}
                           className="rounded-full bg-[#8d4b00] px-4 py-3 text-sm font-black text-white transition hover:bg-[#6f3900] disabled:cursor-not-allowed disabled:bg-[#c9b9a3]"
                         >
                           Tambah
@@ -358,8 +506,9 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
                     <div key={item.id_produk} className="flex items-center justify-between gap-3 rounded-3xl bg-[#fff4d6] p-4">
                       <div>
                         <p className="font-black">{item.product.nama_produk}</p>
+                        {item.variant && <p className="text-xs font-bold text-[#735033]">{item.variant.nama_varian}</p>}
                         <p className="text-sm text-[#735033]">
-                          {item.qty} x {formatRupiah(item.product.harga_jual)}
+                          {item.qty} x {formatRupiah(item.unitPrice)}
                         </p>
                       </div>
                       <p className="font-black text-[#8d4b00]">{formatRupiah(item.subtotal)}</p>
@@ -414,6 +563,24 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
                 </div>
                 <label className="block">
                   <span className="mb-2 block text-sm font-black text-[#5e3d22]">Alamat lengkap</span>
+                  {savedAddresses.length > 0 && (
+                    <div className="mb-3 space-y-2 rounded-2xl border border-[#dfbd83] bg-[#fff8e8] p-3">
+                      <p className="text-xs font-black uppercase tracking-widest text-[#8d4b00]">Alamat tersimpan dari sesi ini</p>
+                      {savedAddresses.map((saved) => (
+                        <button
+                          key={saved.id}
+                          type="button"
+                          onClick={() => {
+                            setCustomer((current) => ({ ...current, name: saved.recipientName || current.name, phone: saved.phone || current.phone }));
+                            setAddress({ text: saved.addressText, note: saved.courierNote || saved.landmark || '', mapsLink: '', lat: saved.latitude || '', lng: saved.longitude || '' });
+                          }}
+                          className="block w-full rounded-xl bg-white px-3 py-2 text-left text-sm font-bold text-[#735033] shadow-sm"
+                        >
+                          {saved.addressText}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <textarea
                     value={address.text}
                     onChange={(event) => setAddress({ ...address, text: event.target.value })}
@@ -464,25 +631,47 @@ export function WebOrderApp({ products, source = 'web', chatId }: Props) {
             {step === 3 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('transfer')}
-                    className={`rounded-3xl border p-4 text-left ${paymentMethod === 'transfer' ? 'border-[#8d4b00] bg-[#ffe1aa]' : 'border-[#dfbd83] bg-white'}`}
-                  >
-                    <Store className="mb-2" />
-                    <p className="font-black">Transfer</p>
-                    <p className="text-xs text-[#735033]">Admin cek bukti bayar</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('cod')}
-                    className={`rounded-3xl border p-4 text-left ${paymentMethod === 'cod' ? 'border-[#8d4b00] bg-[#ffe1aa]' : 'border-[#dfbd83] bg-white'}`}
-                  >
-                    <Truck className="mb-2" />
-                    <p className="font-black">COD</p>
-                    <p className="text-xs text-[#735033]">Menunggu admin setujui</p>
-                  </button>
+                  {(paymentMethods.length ? paymentMethods : []).map((method) => (
+                    (() => {
+                      const disabledByMin = method.minOrderTotal != null && total < method.minOrderTotal;
+                      const disabledByMax = method.maxOrderTotal != null && total > method.maxOrderTotal;
+                      const disabled = disabledByMin || disabledByMax;
+                      return (
+                    <button
+                      key={method.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setPaymentMethodId(method.id)}
+                      className={`rounded-3xl border p-4 text-left ${paymentMethodId === method.id ? 'border-[#8d4b00] bg-[#ffe1aa]' : 'border-[#dfbd83] bg-white'} disabled:cursor-not-allowed disabled:opacity-45`}
+                    >
+                      {method.type === 'cod' ? <Truck className="mb-2" /> : <Store className="mb-2" />}
+                      <p className="font-black">{method.label}</p>
+                      <p className="text-xs text-[#735033]">{method.note || (method.type === 'cod' ? 'Menunggu admin setujui' : 'Admin cek bukti bayar')}</p>
+                      {disabledByMin && <p className="mt-2 text-xs font-black text-red-700">Minimal {formatRupiah(method.minOrderTotal || 0)}</p>}
+                      {disabledByMax && <p className="mt-2 text-xs font-black text-red-700">Maksimal {formatRupiah(method.maxOrderTotal || 0)}</p>}
+                    </button>
+                      );
+                    })()
+                  ))}
                 </div>
+                {paymentMethods.length === 0 && (
+                  <div className="rounded-3xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+                    Metode pembayaran belum dikonfigurasi admin. Tambahkan rekening/QRIS/COD di dashboard dulu.
+                  </div>
+                )}
+                {paymentMethods.find((method) => method.id === paymentMethodId)?.qrisImageUrl && (
+                  <div className="rounded-3xl border border-[#dfbd83] bg-white p-4 text-sm font-bold text-[#735033]">
+                    <p className="mb-2 font-black text-[#2a1606]">QRIS statis</p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={paymentMethods.find((method) => method.id === paymentMethodId)?.qrisImageUrl || ''} alt="QRIS" className="mx-auto max-h-56 rounded-2xl object-contain" />
+                    <p className="mt-2">Pastikan nominal sesuai total sebelum upload bukti.</p>
+                  </div>
+                )}
+                {(() => {
+                  const method = paymentMethods.find((entry) => entry.id === paymentMethodId);
+                  if (!method || method.type === 'qris' || method.type === 'cod') return null;
+                  return <div className="rounded-3xl border border-[#dfbd83] bg-white p-4 text-sm text-[#735033]"><p className="font-black text-[#2a1606]">Instruksi {method.label}</p>{method.bankName && <p>Bank: {method.bankName}</p>}{method.accountNumber && <p>No: <b>{method.accountNumber}</b></p>}{method.accountName && <p>Nama: {method.accountName}</p>}</div>;
+                })()}
                 <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}

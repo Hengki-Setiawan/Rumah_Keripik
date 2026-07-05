@@ -33,18 +33,108 @@ export const pelangganChatbot = sqliteTable('pelanggan_chatbot', {
     .default(sql`(datetime('now', 'utc'))`),
 });
 
+// ─── KATALOG PRODUK WEB ───────────────────────────────────────────────────────
+export const produkKategori = sqliteTable(
+  'produk_kategori',
+  {
+    id_kategori: text('id_kategori').primaryKey(),
+    nama_kategori: text('nama_kategori').notNull(),
+    slug: text('slug').notNull().unique(),
+    deskripsi: text('deskripsi'),
+    sort_order: integer('sort_order').notNull().default(0),
+    is_active: integer('is_active').notNull().default(1),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    activeSortIdx: index('idx_produk_kategori_active_sort').on(table.is_active, table.sort_order),
+    slugIdx: index('idx_produk_kategori_slug').on(table.slug),
+  })
+);
+
 // ─── PRODUK ──────────────────────────────────────────────────────────────────
-export const produk = sqliteTable('produk', {
-  id_produk: text('id_produk').primaryKey(), // KRP-001
-  nama_produk: text('nama_produk').notNull(),
-  deskripsi: text('deskripsi'),
-  harga_jual: integer('harga_jual').notNull(), // Rupiah
-  stok_gudang_utama: integer('stok_gudang_utama').notNull().default(0),
-  is_active: integer('is_active').notNull().default(1), // 0 or 1
-  updated_at: text('updated_at')
-    .notNull()
-    .default(sql`(datetime('now', 'utc'))`),
-});
+export const produk = sqliteTable(
+  'produk',
+  {
+    id_produk: text('id_produk').primaryKey(), // KRP-001
+    nama_produk: text('nama_produk').notNull(),
+    deskripsi: text('deskripsi'),
+    harga_jual: integer('harga_jual').notNull(), // Rupiah
+    stok_gudang_utama: integer('stok_gudang_utama').notNull().default(0),
+    is_active: integer('is_active').notNull().default(1), // 0 or 1
+    slug: text('slug').unique(),
+    kategori_id: text('kategori_id').references(() => produkKategori.id_kategori),
+    berat_gram: integer('berat_gram'),
+    cloudinary_public_id: text('cloudinary_public_id'),
+    image_url: text('image_url'),
+    image_alt: text('image_alt'),
+    tags_json: text('tags_json').notNull().default('[]'),
+    is_featured: integer('is_featured').notNull().default(0),
+    is_best_seller: integer('is_best_seller').notNull().default(0),
+    sort_order: integer('sort_order').notNull().default(0),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    activeKategoriIdx: index('idx_produk_active_kategori').on(table.is_active, table.kategori_id),
+    slugIdx: index('idx_produk_slug').on(table.slug),
+    featuredIdx: index('idx_produk_featured').on(table.is_active, table.is_featured, table.sort_order),
+    bestSellerIdx: index('idx_produk_best_seller').on(table.is_active, table.is_best_seller, table.sort_order),
+  })
+);
+
+export const produkVarian = sqliteTable(
+  'produk_varian',
+  {
+    id_varian: text('id_varian').primaryKey(),
+    id_produk: text('id_produk')
+      .notNull()
+      .references(() => produk.id_produk, { onDelete: 'cascade' }),
+    sku: text('sku').unique(),
+    nama_varian: text('nama_varian').notNull(),
+    rasa: text('rasa'),
+    ukuran: text('ukuran'),
+    berat_gram: integer('berat_gram'),
+    harga_jual: integer('harga_jual').notNull(),
+    stok: integer('stok').notNull().default(0),
+    cloudinary_public_id: text('cloudinary_public_id'),
+    image_url: text('image_url'),
+    is_active: integer('is_active').notNull().default(1),
+    sort_order: integer('sort_order').notNull().default(0),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    produkActiveIdx: index('idx_varian_produk_active').on(table.id_produk, table.is_active),
+    skuIdx: index('idx_varian_sku').on(table.sku),
+    stockIdx: index('idx_varian_stock').on(table.is_active, table.stok),
+  })
+);
+
+export const produkMedia = sqliteTable(
+  'produk_media',
+  {
+    id_media: integer('id_media').primaryKey({ autoIncrement: true }),
+    id_produk: text('id_produk')
+      .notNull()
+      .references(() => produk.id_produk, { onDelete: 'cascade' }),
+    id_varian: text('id_varian').references(() => produkVarian.id_varian, { onDelete: 'cascade' }),
+    cloudinary_public_id: text('cloudinary_public_id').notNull(),
+    secure_url: text('secure_url'),
+    media_type: text('media_type', { enum: ['image', 'video'] }).notNull().default('image'),
+    alt_text: text('alt_text'),
+    sort_order: integer('sort_order').notNull().default(0),
+    is_primary: integer('is_primary').notNull().default(0),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    produkIdx: index('idx_produk_media_produk').on(table.id_produk, table.sort_order),
+    varianIdx: index('idx_produk_media_varian').on(table.id_varian),
+    primaryIdx: index('idx_produk_media_primary').on(table.id_produk, table.is_primary),
+  })
+);
 
 // ─── WARUNG RETAIL [v1.1 NEW] ────────────────────────────────────────────────
 export const warungRetail = sqliteTable('warung_retail', {
@@ -68,6 +158,121 @@ export const warungRetail = sqliteTable('warung_retail', {
     .default(sql`(datetime('now', 'utc'))`),
 });
 
+// ─── CUSTOMER WEB / CHANNEL-NEUTRAL ───────────────────────────────────────────
+export const customerProfile = sqliteTable(
+  'customer_profile',
+  {
+    id_customer: text('id_customer').primaryKey(),
+    nama: text('nama'),
+    phone: text('phone'),
+    email: text('email'),
+    default_address_id: integer('default_address_id'),
+    notes: text('notes'),
+    tags_json: text('tags_json').notNull().default('[]'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    last_active_at: text('last_active_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    phoneIdx: index('idx_customer_phone').on(table.phone),
+    lastActiveIdx: index('idx_customer_last_active').on(table.last_active_at),
+  })
+);
+
+export const customerIdentity = sqliteTable(
+  'customer_identity',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    id_customer: text('id_customer')
+      .notNull()
+      .references(() => customerProfile.id_customer, { onDelete: 'cascade' }),
+    provider: text('provider', { enum: ['wa', 'telegram', 'web'] }).notNull(),
+    external_id: text('external_id').notNull(),
+    verified_at: text('verified_at'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    providerExternalUnique: unique('uq_customer_identity_provider_external').on(table.provider, table.external_id),
+    customerIdx: index('idx_customer_identity_customer').on(table.id_customer),
+  })
+);
+
+export const customerAddress = sqliteTable(
+  'customer_address',
+  {
+    id_address: integer('id_address').primaryKey({ autoIncrement: true }),
+    id_customer: text('id_customer')
+      .notNull()
+      .references(() => customerProfile.id_customer, { onDelete: 'cascade' }),
+    label: text('label'),
+    recipient_name: text('recipient_name'),
+    phone: text('phone'),
+    address_text: text('address_text').notNull(),
+    province: text('province'),
+    city: text('city'),
+    district: text('district'),
+    postal_code: text('postal_code'),
+    latitude: text('latitude'),
+    longitude: text('longitude'),
+    location_accuracy: integer('location_accuracy'),
+    location_source: text('location_source', { enum: ['manual', 'gps', 'map_picker', 'saved_address'] }),
+    landmark: text('landmark'),
+    courier_note: text('courier_note'),
+    is_default: integer('is_default').notNull().default(0),
+    last_used_at: text('last_used_at'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    customerIdx: index('idx_customer_address_customer').on(table.id_customer, table.last_used_at),
+    defaultIdx: index('idx_customer_address_default').on(table.id_customer, table.is_default),
+  })
+);
+
+export const webOrderSession = sqliteTable(
+  'web_order_session',
+  {
+    id_session: text('id_session').primaryKey(),
+    anonymous_token: text('anonymous_token').notNull().unique(),
+    id_customer: text('id_customer').references(() => customerProfile.id_customer),
+    current_state: text('current_state').notNull().default('START'),
+    cart_json: text('cart_json').notNull().default('{}'),
+    context_json: text('context_json').notNull().default('{}'),
+    status: text('status', { enum: ['active', 'completed', 'abandoned', 'expired'] }).notNull().default('active'),
+    last_event_at: text('last_event_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    tokenIdx: index('idx_web_order_session_token').on(table.anonymous_token),
+    customerIdx: index('idx_web_order_session_customer').on(table.id_customer),
+    statusIdx: index('idx_web_order_session_status').on(table.status, table.last_event_at),
+  })
+);
+
+export const webChatMessage = sqliteTable(
+  'web_chat_message',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    id_session: text('id_session')
+      .notNull()
+      .references(() => webOrderSession.id_session, { onDelete: 'cascade' }),
+    direction: text('direction', { enum: ['in', 'out'] }).notNull(),
+    message_type: text('message_type', {
+      enum: ['text', 'quick_replies', 'product_cards', 'form', 'payment_upload', 'confirmation', 'system'],
+    }).notNull(),
+    text: text('text'),
+    payload_json: text('payload_json'),
+    action_json: text('action_json'),
+    model_used: text('model_used'),
+    tokens_used: integer('tokens_used').notNull().default(0),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    sessionTimeIdx: index('idx_web_chat_message_session_time').on(table.id_session, table.created_at),
+    typeIdx: index('idx_web_chat_message_type').on(table.message_type),
+  })
+);
+
 // ─── TRANSAKSI ───────────────────────────────────────────────────────────────
 export const transaksi = sqliteTable(
   'transaksi',
@@ -77,8 +282,11 @@ export const transaksi = sqliteTable(
       () => pelangganChatbot.no_wa_pelanggan
     ), // NULLABLE
     id_warung: text('id_warung').references(() => warungRetail.id_warung), // NULLABLE
+    id_customer: text('id_customer').references(() => customerProfile.id_customer),
+    id_session: text('id_session').references(() => webOrderSession.id_session),
+    id_address: integer('id_address').references(() => customerAddress.id_address),
     tipe_penjualan: text('tipe_penjualan', {
-      enum: ['Online_WA', 'Offline_Gudang'],
+      enum: ['Online_WA', 'Offline_Gudang', 'Online_Web'],
     })
       .notNull()
       .default('Online_WA'),
@@ -90,6 +298,7 @@ export const transaksi = sqliteTable(
       .default('Lunas'),
     tanggal_jatuh_tempo: text('tanggal_jatuh_tempo'), // Untuk piutang
     kode_pesanan: text('kode_pesanan').unique(), // PESANAN-XXXXXX
+    status_token: text('status_token'),
     catatan: text('catatan'),
     
     // NEW: Delivery & Location details
@@ -104,18 +313,29 @@ export const transaksi = sqliteTable(
     lng_pengiriman: text('lng_pengiriman'),
     jarak_km_dari_gudang: text('jarak_km_dari_gudang'), // As real/string number
     invoice_url: text('invoice_url'), // Link invoice Cloudinary
+    order_status: text('order_status').notNull().default('draft'),
+    payment_status: text('payment_status').notNull().default('unpaid'),
+    payment_method: text('payment_method'),
+    shipping_address_snapshot: text('shipping_address_snapshot'),
+    shipping_location_json: text('shipping_location_json'),
+    admin_note: text('admin_note'),
+    verified_by: text('verified_by'),
+    verified_at: text('verified_at'),
     
     waktu_simpan: text('waktu_simpan')
       .notNull()
       .default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
   },
   (table) => ({
     statusIdx: index('idx_transaksi_status').on(table.status_pembayaran),
+    orderStatusIdx: index('idx_transaksi_order_status').on(table.order_status),
+    paymentStatusIdx: index('idx_transaksi_payment_status').on(table.payment_status),
     tanggalIdx: index('idx_transaksi_tanggal').on(table.waktu_simpan),
     warungIdx: index('idx_transaksi_warung').on(table.id_warung),
     validasiTransaksi: check(
       'ck_transaksi_valid',
-      sql`(${table.no_wa_pelanggan} IS NOT NULL) OR (${table.id_warung} IS NOT NULL)`
+      sql`(${table.no_wa_pelanggan} IS NOT NULL) OR (${table.id_warung} IS NOT NULL) OR (${table.id_customer} IS NOT NULL)`
     ),
   })
 );
@@ -129,8 +349,12 @@ export const detailTransaksi = sqliteTable('detail_transaksi', {
   id_produk: text('id_produk')
     .notNull()
     .references(() => produk.id_produk, { onDelete: 'restrict' }),
+  id_varian: text('id_varian').references(() => produkVarian.id_varian),
   qty_terjual: integer('qty_terjual').notNull(),
   harga_snapshot: integer('harga_snapshot').notNull(), // Snapshot harga saat transaksi
+  nama_produk_snapshot: text('nama_produk_snapshot'),
+  nama_varian_snapshot: text('nama_varian_snapshot'),
+  berat_gram_snapshot: integer('berat_gram_snapshot'),
   subtotal: integer('subtotal').notNull(), // qty × harga_snapshot
 });
 
@@ -271,6 +495,207 @@ export const buktiPembayaran = sqliteTable('bukti_pembayaran', {
     .default(sql`(datetime('now', 'utc'))`),
   waktu_verifikasi: text('waktu_verifikasi'),
 });
+
+export const paymentProof = sqliteTable(
+  'payment_proof',
+  {
+    id_payment_proof: text('id_payment_proof').primaryKey(),
+    id_transaksi: text('id_transaksi')
+      .notNull()
+      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+    cloudinary_public_id: text('cloudinary_public_id').notNull(),
+    secure_url: text('secure_url').notNull(),
+    original_filename: text('original_filename'),
+    file_format: text('file_format'),
+    file_size_bytes: integer('file_size_bytes'),
+    amount_claimed: integer('amount_claimed'),
+    status: text('status', { enum: ['pending', 'accepted', 'rejected'] }).notNull().default('pending'),
+    uploaded_at: text('uploaded_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    verified_by: text('verified_by'),
+    verified_at: text('verified_at'),
+    admin_note: text('admin_note'),
+  },
+  (table) => ({
+    transaksiIdx: index('idx_payment_proof_transaksi').on(table.id_transaksi),
+    statusTimeIdx: index('idx_payment_proof_status_time').on(table.status, table.uploaded_at),
+  })
+);
+
+export const paymentOcrResult = sqliteTable(
+  'payment_ocr_result',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    id_payment_proof: text('id_payment_proof')
+      .notNull()
+      .references(() => paymentProof.id_payment_proof, { onDelete: 'cascade' }),
+    id_transaksi: text('id_transaksi')
+      .notNull()
+      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+    worker_job_id: integer('worker_job_id'),
+    engine: text('engine').notNull().default('rule_based_mvp'),
+    extracted_text: text('extracted_text'),
+    extracted_amount: integer('extracted_amount'),
+    reference_number: text('reference_number'),
+    status_keywords_json: text('status_keywords_json').notNull().default('[]'),
+    score: integer('score').notNull().default(0),
+    warnings_json: text('warnings_json').notNull().default('[]'),
+    summary: text('summary'),
+    raw_json: text('raw_json'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    proofIdx: index('idx_payment_ocr_result_proof').on(table.id_payment_proof),
+    transaksiIdx: index('idx_payment_ocr_result_transaksi').on(table.id_transaksi),
+    scoreIdx: index('idx_payment_ocr_result_score').on(table.score),
+    refIdx: index('idx_payment_ocr_result_reference').on(table.reference_number),
+  })
+);
+
+export const paymentMethod = sqliteTable(
+  'payment_method',
+  {
+    id_payment_method: text('id_payment_method').primaryKey(),
+    type: text('type', { enum: ['bank_transfer', 'qris', 'ewallet', 'cod'] }).notNull(),
+    label: text('label').notNull(),
+    account_name: text('account_name'),
+    account_number: text('account_number'),
+    bank_name: text('bank_name'),
+    qris_public_id: text('qris_public_id'),
+    qris_image_url: text('qris_image_url'),
+    note: text('note'),
+    min_order_total: integer('min_order_total'),
+    max_order_total: integer('max_order_total'),
+    sort_order: integer('sort_order').notNull().default(0),
+    is_active: integer('is_active').notNull().default(1),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    activeIdx: index('idx_payment_method_active').on(table.is_active, table.sort_order),
+    typeIdx: index('idx_payment_method_type').on(table.type),
+  })
+);
+
+export const paymentIntent = sqliteTable(
+  'payment_intent',
+  {
+    id_payment_intent: text('id_payment_intent').primaryKey(),
+    id_transaksi: text('id_transaksi')
+      .notNull()
+      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+    id_payment_method: text('id_payment_method').references(() => paymentMethod.id_payment_method),
+    method_type: text('method_type', { enum: ['bank_transfer', 'qris', 'ewallet', 'cod'] }).notNull(),
+    amount_due: integer('amount_due').notNull(),
+    status: text('status', {
+      enum: ['instruction_shown', 'proof_uploaded', 'awaiting_admin_verification', 'verified', 'rejected', 'cancelled'],
+    }).notNull().default('instruction_shown'),
+    instruction_json: text('instruction_json'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    transaksiIdx: index('idx_payment_intent_transaksi').on(table.id_transaksi),
+    statusIdx: index('idx_payment_intent_status').on(table.status),
+  })
+);
+
+export const orderStatusHistory = sqliteTable(
+  'order_status_history',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    id_transaksi: text('id_transaksi')
+      .notNull()
+      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+    order_status: text('order_status'),
+    payment_status: text('payment_status'),
+    event_type: text('event_type').notNull(),
+    note: text('note'),
+    actor: text('actor').notNull().default('system'),
+    metadata_json: text('metadata_json'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    transaksiIdx: index('idx_order_status_history_transaksi').on(table.id_transaksi, table.created_at),
+    eventIdx: index('idx_order_status_history_event').on(table.event_type),
+  })
+);
+
+export const orderDocument = sqliteTable(
+  'order_document',
+  {
+    id_document: text('id_document').primaryKey(),
+    id_transaksi: text('id_transaksi')
+      .notNull()
+      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+    document_type: text('document_type', { enum: ['proforma', 'receipt', 'packing-label'] }).notNull(),
+    document_number: text('document_number').notNull().unique(),
+    status: text('status', { enum: ['draft', 'issued', 'void'] }).notNull().default('issued'),
+    issued_by: text('issued_by').notNull().default('system'),
+    issued_at: text('issued_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    print_count: integer('print_count').notNull().default(0),
+    last_printed_at: text('last_printed_at'),
+    metadata_json: text('metadata_json'),
+  },
+  (table) => ({
+    txTypeIdx: index('idx_order_document_tx_type').on(table.id_transaksi, table.document_type),
+    numberIdx: index('idx_order_document_number').on(table.document_number),
+  })
+);
+
+export const failedConversation = sqliteTable(
+  'failed_conversation',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    channel: text('channel', { enum: ['wa', 'telegram', 'web'] }).notNull(),
+    id_session: text('id_session'),
+    no_wa_pelanggan: text('no_wa_pelanggan'),
+    user_message: text('user_message').notNull(),
+    current_state: text('current_state'),
+    reason: text('reason', {
+      enum: ['low_confidence', 'invalid_json', 'no_product_found', 'provider_error', 'ambiguous_address', 'payment_issue', 'unknown'],
+    }).notNull(),
+    raw_ai_output: text('raw_ai_output'),
+    model_used: text('model_used'),
+    resolved: integer('resolved').notNull().default(0),
+    admin_note: text('admin_note'),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    reviewed_at: text('reviewed_at'),
+  },
+  (table) => ({
+    createdIdx: index('idx_failed_conversation_created').on(table.created_at),
+    reasonIdx: index('idx_failed_conversation_reason').on(table.reason),
+    resolvedIdx: index('idx_failed_conversation_resolved').on(table.resolved),
+  })
+);
+
+export const botSetting = sqliteTable('bot_setting', {
+  key: text('key').primaryKey(),
+  value_json: text('value_json').notNull(),
+  updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  updated_by: text('updated_by'),
+});
+
+export const botMenuItem = sqliteTable(
+  'bot_menu_item',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    surface: text('surface', { enum: ['public_ordering', 'wa', 'telegram', 'dashboard'] })
+      .notNull()
+      .default('public_ordering'),
+    label: text('label').notNull(),
+    action: text('action').notNull(),
+    value: text('value'),
+    payload_json: text('payload_json'),
+    sort_order: integer('sort_order').notNull().default(0),
+    is_active: integer('is_active').notNull().default(1),
+    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    surfaceActiveIdx: index('idx_bot_menu_surface_active').on(table.surface, table.is_active, table.sort_order),
+  })
+);
 
 // ─── WAITLIST PRODUK ─────────────────────────────────────────────────────────
 export const waitlistProduk = sqliteTable('waitlist_produk', {
@@ -523,11 +948,35 @@ export const deliveryRoutePoint = sqliteTable(
 export type PelangganChatbot = typeof pelangganChatbot.$inferSelect;
 export type InsertPelangganChatbot = typeof pelangganChatbot.$inferInsert;
 
+export type ProdukKategori = typeof produkKategori.$inferSelect;
+export type InsertProdukKategori = typeof produkKategori.$inferInsert;
+
 export type Produk = typeof produk.$inferSelect;
 export type InsertProduk = typeof produk.$inferInsert;
 
+export type ProdukVarian = typeof produkVarian.$inferSelect;
+export type InsertProdukVarian = typeof produkVarian.$inferInsert;
+
+export type ProdukMedia = typeof produkMedia.$inferSelect;
+export type InsertProdukMedia = typeof produkMedia.$inferInsert;
+
 export type WarungRetail = typeof warungRetail.$inferSelect;
 export type InsertWarungRetail = typeof warungRetail.$inferInsert;
+
+export type CustomerProfile = typeof customerProfile.$inferSelect;
+export type InsertCustomerProfile = typeof customerProfile.$inferInsert;
+
+export type CustomerIdentity = typeof customerIdentity.$inferSelect;
+export type InsertCustomerIdentity = typeof customerIdentity.$inferInsert;
+
+export type CustomerAddress = typeof customerAddress.$inferSelect;
+export type InsertCustomerAddress = typeof customerAddress.$inferInsert;
+
+export type WebOrderSession = typeof webOrderSession.$inferSelect;
+export type InsertWebOrderSession = typeof webOrderSession.$inferInsert;
+
+export type WebChatMessage = typeof webChatMessage.$inferSelect;
+export type InsertWebChatMessage = typeof webChatMessage.$inferInsert;
 
 export type Transaksi = typeof transaksi.$inferSelect;
 export type InsertTransaksi = typeof transaksi.$inferInsert;
@@ -552,6 +1001,31 @@ export type InsertMemoryPelanggan = typeof memoryPelanggan.$inferInsert;
 
 export type BuktiPembayaran = typeof buktiPembayaran.$inferSelect;
 export type InsertBuktiPembayaran = typeof buktiPembayaran.$inferInsert;
+
+export type PaymentProof = typeof paymentProof.$inferSelect;
+export type InsertPaymentProof = typeof paymentProof.$inferInsert;
+export type PaymentOcrResult = typeof paymentOcrResult.$inferSelect;
+export type InsertPaymentOcrResult = typeof paymentOcrResult.$inferInsert;
+
+export type PaymentMethod = typeof paymentMethod.$inferSelect;
+export type InsertPaymentMethod = typeof paymentMethod.$inferInsert;
+
+export type PaymentIntent = typeof paymentIntent.$inferSelect;
+export type InsertPaymentIntent = typeof paymentIntent.$inferInsert;
+
+export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
+export type InsertOrderStatusHistory = typeof orderStatusHistory.$inferInsert;
+export type OrderDocument = typeof orderDocument.$inferSelect;
+export type InsertOrderDocument = typeof orderDocument.$inferInsert;
+
+export type FailedConversation = typeof failedConversation.$inferSelect;
+export type InsertFailedConversation = typeof failedConversation.$inferInsert;
+
+export type BotSetting = typeof botSetting.$inferSelect;
+export type InsertBotSetting = typeof botSetting.$inferInsert;
+
+export type BotMenuItem = typeof botMenuItem.$inferSelect;
+export type InsertBotMenuItem = typeof botMenuItem.$inferInsert;
 
 export type WaitlistProduk = typeof waitlistProduk.$inferSelect;
 export type InsertWaitlistProduk = typeof waitlistProduk.$inferInsert;

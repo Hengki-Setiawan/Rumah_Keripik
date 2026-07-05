@@ -2,12 +2,18 @@ import { auth } from '@/lib/auth';
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+  const isDev = process.env.NODE_ENV !== 'production';
 
   const isPublic =
     pathname === '/login' ||
+    pathname === '/pesan' ||
+    pathname.startsWith('/pesan/') ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/cron') ||
     pathname.startsWith('/api/webhook') ||
-    pathname.startsWith('/api/debug') ||
+    pathname.startsWith('/api/public') ||
+    pathname === '/api/order/web' ||
+    (isDev && pathname.startsWith('/api/debug')) ||
     pathname === '/_not-found';
 
   if (!req.auth && !isPublic) {

@@ -5,6 +5,7 @@ import { workerHeartbeat, workerJob } from './schema';
 export type WorkerJobType =
   | 'ai_learn'
   | 'geocode_address'
+  | 'payment_proof_ocr_assist'
   | 'reembed_knowledge'
   | 'send_outbound_message'
   | 'refresh_location_zones';
