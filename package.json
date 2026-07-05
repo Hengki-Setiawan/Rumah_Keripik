@@ -18,6 +18,7 @@
     "smoke:worker": "tsx src/scripts/smoke-worker.ts",
     "smoke:cron-auth": "tsx src/scripts/smoke-cron-auth.ts",
     "readiness:production": "tsx src/scripts/readiness-production.ts",
+    "audit:production-ops": "tsx src/scripts/audit-production-ops.ts",
     "db:reembed": "tsx src/scripts/reembed-kb.ts",
     "db:migrate:v3": "tsx src/scripts/migrate-v3-worker-blueprint.ts",
     "db:migrate:v4": "tsx src/scripts/migrate-v4-integration-fixes.ts",
