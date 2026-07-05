@@ -522,7 +522,7 @@ async function confirmOrder(cart: CartState, context: PublicOrderContext, sessio
       state: 'PAYMENT_INSTRUCTION_SHOWN',
       cart,
       context,
-      responses: [buildPaymentInstruction(context.order.idTransaksi, context.order.kodePesanan, context.order.totalBayar, context.paymentMethod || 'bank_transfer')],
+      responses: [buildPaymentInstruction(context.order.idTransaksi, context.order.kodePesanan, context.order.totalBayar, context.paymentMethod || 'bank_transfer', context.order.statusToken)],
     };
   }
 
@@ -668,7 +668,7 @@ async function confirmOrder(cart: CartState, context: PublicOrderContext, sessio
     state: 'PAYMENT_INSTRUCTION_SHOWN',
     cart,
     context: nextContext,
-    responses: [buildPaymentInstruction(idTransaksi, kodePesanan, result.totalBayar, context.paymentMethod, result.instructionPayload)],
+    responses: [buildPaymentInstruction(idTransaksi, kodePesanan, result.totalBayar, context.paymentMethod, result.statusToken, result.instructionPayload)],
   };
 }
 
@@ -723,6 +723,7 @@ function buildPaymentInstruction(
   orderCode: string,
   amount: number,
   method: 'bank_transfer' | 'qris' | 'ewallet' | 'cod',
+  statusToken?: string,
   instruction?: { type: string; label: string; note?: string; accountName?: string; accountNumber?: string; bankName?: string; qrisImageUrl?: string },
 ): ChatUIResponse {
   return {
@@ -734,6 +735,7 @@ function buildPaymentInstruction(
     orderCode,
     amount,
     amountLabel: formatRupiah(amount),
+    statusToken,
     paymentMethods: [{
       type: method,
       label: instruction?.label || fallbackPaymentLabel(method),

@@ -54,3 +54,4 @@ Run this before production deployment and after major database migrations.
 
 - Run `npx tsc --noEmit`.
 - Run `npm run build`.
+- Run `npm run smoke:security` against a running local or deployed app.

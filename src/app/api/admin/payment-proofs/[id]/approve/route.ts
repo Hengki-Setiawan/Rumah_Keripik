@@ -3,7 +3,7 @@ import { and, eq, ne, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { detailTransaksi, orderStatusHistory, paymentIntent, paymentProof, produk, produkVarian, transaksi } from '@/lib/schema';
 import { PaymentProofDecisionSchema } from '@/lib/validators/payment';
-import { getAdminActor } from '@/lib/admin-actor';
+import { isUnauthorizedAdminError, requireAdminActor } from '@/lib/admin-actor';
 import { canApprovePaymentProof } from '@/lib/order-status-policy';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -21,7 +21,7 @@ export async function POST(req: Request, context: RouteContext) {
   if (!canApprovePaymentProof(order, proof)) return NextResponse.json({ ok: false, error: 'Bukti pembayaran tidak bisa di-approve pada status saat ini' }, { status: 409 });
 
   try {
-    const actor = await getAdminActor();
+    const actor = await requireAdminActor();
     await db.transaction(async (tx) => {
     const [stockDeducted] = await tx
       .select({ id: orderStatusHistory.id })
@@ -56,6 +56,7 @@ export async function POST(req: Request, context: RouteContext) {
       await tx.insert(orderStatusHistory).values({ id_transaksi: proof.id_transaksi, order_status: 'processing', payment_status: 'verified', event_type: 'PAYMENT_APPROVED', actor, note: parsed.data.note });
     });
   } catch (error) {
+    if (isUnauthorizedAdminError(error)) return NextResponse.json({ ok: false, error: 'Login admin diperlukan' }, { status: 401 });
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal approve pembayaran' }, { status: 409 });
   }
 

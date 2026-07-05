@@ -101,6 +101,12 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
               Lihat status pesanan
             </Link>
             <Link
+              href="/pesan/lacak"
+              className="flex-1 rounded-2xl border border-[#d8b77c] bg-[#fff8e8] px-5 py-4 text-center font-black text-[#7a3f00] transition hover:bg-[#fff4d6]"
+            >
+              Lacak dengan HP
+            </Link>
+            <Link
               href="/pesan"
               className="flex-1 rounded-2xl border border-[#d8b77c] bg-white px-5 py-4 text-center font-black text-[#7a3f00] transition hover:bg-[#fff4d6]"
             >

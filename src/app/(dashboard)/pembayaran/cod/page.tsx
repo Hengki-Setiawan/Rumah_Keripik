@@ -11,6 +11,11 @@ export default function CodOrdersPage() {
   useEffect(() => { load(); }, []);
   async function load() { const res = await fetch('/api/admin/cod-orders'); const data = await res.json(); setOrders(data.orders || []); }
   async function decide(id: string, action: 'approve' | 'reject') {
+    const confirmed = window.confirm(action === 'approve'
+      ? 'Setujui COD ini? Stok akan dipotong dan order masuk proses.'
+      : 'Tolak COD ini? Order akan dibatalkan.');
+    if (!confirmed) return;
+
     const res = await fetch(`/api/admin/cod-orders/${encodeURIComponent(id)}/${action}`, { method: 'POST' });
     const data = await res.json().catch(() => null);
     setMessage(res.ok && data?.ok ? `COD ${action === 'approve' ? 'disetujui' : 'ditolak'}` : data?.error || 'Gagal update COD');

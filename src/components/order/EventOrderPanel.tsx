@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import type { ChatUIResponse } from '@/lib/public-order/types';
 import { formatRupiah } from '@/lib/utils';
+import { PaymentProofUploader } from './PaymentProofUploader';
 
 type UserEvent =
   | { type: 'text'; text: string }
@@ -161,5 +162,73 @@ function ResponseCard({ response, sendEvent }: { response: ChatUIResponse; sendE
     );
   }
 
-  return <div className="rounded-2xl bg-[#fff8e8] p-4 text-sm font-bold text-[#735033]">{response.message}</div>;
+  if (response.type === 'customer_info_form') {
+    return <CustomerInfoForm response={response} sendEvent={sendEvent} />;
+  }
+
+  if (response.type === 'address_form') {
+    return <AddressForm response={response} sendEvent={sendEvent} />;
+  }
+
+  if (response.type === 'payment_instruction') {
+    return (
+      <div className="rounded-2xl bg-[#fff8e8] p-4 text-[#2a1606]">
+        <p className="font-black">{response.message}</p>
+        <div className="mt-3 rounded-2xl bg-white p-4 shadow-sm">
+          <p className="text-sm font-bold text-[#735033]">Kode pesanan</p>
+          <p className="text-2xl font-black">{response.orderCode}</p>
+          <p className="mt-2 text-sm font-bold text-[#735033]">Total</p>
+          <p className="text-xl font-black text-[#8d4b00]">{response.amountLabel}</p>
+          <div className="mt-3 space-y-2">
+            {response.paymentMethods.map((method) => (
+              <div key={`${method.type}-${method.label}`} className="rounded-xl border border-[#ecd3a7] bg-[#fffdf6] p-3 text-sm">
+                <b>{method.label}</b>
+                {method.note && <p className="mt-1 text-[#735033]">{method.note}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+        {response.paymentMethods.some((method) => method.type !== 'cod') && (
+          <PaymentProofUploader orderId={response.orderId} statusToken={(response as { statusToken?: string }).statusToken || ''} />
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a href={`/pesan/status/${encodeURIComponent(response.orderCode)}${(response as { statusToken?: string }).statusToken ? `?token=${encodeURIComponent((response as { statusToken?: string }).statusToken || '')}` : ''}`} className="rounded-full bg-[#123524] px-4 py-2 text-sm font-black text-white">Lihat Status</a>
+          <a href="/pesan/lacak" className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#7a3f00] shadow-sm">Lacak Pesanan</a>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function CustomerInfoForm({ response, sendEvent }: { response: Extract<ChatUIResponse, { type: 'customer_info_form' }>; sendEvent: (event: UserEvent) => Promise<void> }) {
+  const [values, setValues] = useState({ name: '', phone: '' });
+  return (
+    <div className="rounded-2xl bg-[#fff8e8] p-4">
+      <p className="font-black text-[#2a1606]">{response.message}</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <input value={values.name} onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))} placeholder="Nama" className="rounded-xl border border-[#d8b77c] px-3 py-3 text-sm font-bold" />
+        <input value={values.phone} onChange={(event) => setValues((current) => ({ ...current, phone: event.target.value }))} placeholder="Nomor HP/WA" className="rounded-xl border border-[#d8b77c] px-3 py-3 text-sm font-bold" />
+      </div>
+      <button type="button" onClick={() => sendEvent({ type: 'submit_customer_info', values })} className="mt-3 rounded-xl bg-[#2a1606] px-4 py-3 text-sm font-black text-white">{response.submitLabel}</button>
+    </div>
+  );
+}
+
+function AddressForm({ response, sendEvent }: { response: Extract<ChatUIResponse, { type: 'address_form' }>; sendEvent: (event: UserEvent) => Promise<void> }) {
+  const [values, setValues] = useState({ recipientName: '', phone: '', addressText: '', landmark: '', courierNote: '' });
+  return (
+    <div className="rounded-2xl bg-[#fff8e8] p-4">
+      <p className="font-black text-[#2a1606]">{response.message}</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <input value={values.recipientName} onChange={(event) => setValues((current) => ({ ...current, recipientName: event.target.value }))} placeholder="Nama penerima" className="rounded-xl border border-[#d8b77c] px-3 py-3 text-sm font-bold" />
+        <input value={values.phone} onChange={(event) => setValues((current) => ({ ...current, phone: event.target.value }))} placeholder="Nomor penerima" className="rounded-xl border border-[#d8b77c] px-3 py-3 text-sm font-bold" />
+        <textarea value={values.addressText} onChange={(event) => setValues((current) => ({ ...current, addressText: event.target.value }))} placeholder="Alamat lengkap" className="min-h-24 rounded-xl border border-[#d8b77c] px-3 py-3 text-sm font-bold md:col-span-2" />
+        <input value={values.landmark} onChange={(event) => setValues((current) => ({ ...current, landmark: event.target.value }))} placeholder="Patokan" className="rounded-xl border border-[#d8b77c] px-3 py-3 text-sm font-bold" />
+        <input value={values.courierNote} onChange={(event) => setValues((current) => ({ ...current, courierNote: event.target.value }))} placeholder="Catatan kurir" className="rounded-xl border border-[#d8b77c] px-3 py-3 text-sm font-bold" />
+      </div>
+      <button type="button" onClick={() => sendEvent({ type: 'submit_address', values })} className="mt-3 rounded-xl bg-[#2a1606] px-4 py-3 text-sm font-black text-white">{response.submitLabel}</button>
+    </div>
+  );
 }

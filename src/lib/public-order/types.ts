@@ -132,6 +132,7 @@ export type ChatUIResponse =
       orderCode: string;
       amount: number;
       amountLabel: string;
+      statusToken?: string;
       paymentMethods: Array<{
         type: 'bank_transfer' | 'qris' | 'ewallet' | 'cod';
         label: string;

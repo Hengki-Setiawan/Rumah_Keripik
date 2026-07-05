@@ -36,6 +36,11 @@ export default function PaymentProofDetailPage({ params }: PageProps) {
   }, [params]);
 
   async function decide(action: 'approve' | 'reject') {
+    const confirmed = window.confirm(action === 'approve'
+      ? 'Setujui pembayaran ini? Stok akan dipotong dan receipt dapat diterbitkan.'
+      : 'Tolak bukti pembayaran ini? Pelanggan perlu upload ulang bukti yang benar.');
+    if (!confirmed) return;
+
     const res = await fetch(`/api/admin/payment-proofs/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

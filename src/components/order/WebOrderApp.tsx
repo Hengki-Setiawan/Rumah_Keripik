@@ -107,6 +107,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
   const [assistantText, setAssistantText] = useState('');
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [sessionReady, setSessionReady] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -119,8 +120,24 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
         const result = await response.json();
         const message = result?.responses?.[0]?.message;
         if (typeof message === 'string') setHelperText(message);
+        const restoredItems = result?.session?.cart?.items;
+        if (Array.isArray(restoredItems)) {
+          setCart(restoredItems
+            .map((item) => ({ id_produk: String(item.productId || ''), id_varian: item.variantId ? String(item.variantId) : undefined, qty: Number(item.quantity) || 0 }))
+            .filter((item) => item.id_produk && item.qty > 0)
+          );
+        }
+        const restoredContext = result?.session?.context;
+        if (restoredContext && typeof restoredContext === 'object') {
+          if (restoredContext.customer && typeof restoredContext.customer === 'object') setCustomer((current) => ({ ...current, ...restoredContext.customer }));
+          if (restoredContext.address && typeof restoredContext.address === 'object') setAddress((current) => ({ ...current, ...restoredContext.address }));
+          if (typeof restoredContext.paymentMethodId === 'string') setPaymentMethodId(restoredContext.paymentMethodId);
+          if (typeof restoredContext.notes === 'string') setNotes(restoredContext.notes);
+        }
       } catch {
         // Existing order form remains usable if session bootstrap fails.
+      } finally {
+        if (!cancelled) setSessionReady(true);
       }
     }
 
@@ -129,6 +146,22 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    const timer = window.setTimeout(() => {
+      fetch('/api/public/session', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cart: { items: cart.map((item) => ({ productId: item.id_produk, variantId: item.id_varian, quantity: item.qty })) },
+          context: { customer, address, paymentMethodId, notes },
+        }),
+      }).catch(() => undefined);
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [address, cart, customer, notes, paymentMethodId, sessionReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,6 +319,15 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
     }
 
     startTransition(async () => {
+      await fetch('/api/public/session', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cart: { items: cartDetails.map((item) => ({ productId: item.id_produk, variantId: item.id_varian, quantity: item.qty })) },
+          context: { customer, address, paymentMethodId, notes },
+        }),
+      }).catch(() => undefined);
+
       const response = await fetch('/api/order/web', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
