@@ -50,4 +50,5 @@ npm run db:migrate:all
 - Payment gateway is intentionally not part of MVP.
 - Static QRIS and manual bank/e-wallet transfer require customer proof upload and admin verification.
 - OCR output is advisory only. Admin approval remains the source of truth.
+- Vercel Hobby only allows daily cron schedules; keep `vercel.json` cron expressions daily unless the project is upgraded to Pro.
 - See `DEPLOYMENT_DB_MIGRATION_ORDER.md` and `VERCEL_ENV_CHECKLIST.md` before production deploy.

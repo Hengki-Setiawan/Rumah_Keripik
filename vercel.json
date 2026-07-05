@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/payment-ops",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/cron/worker",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 2 * * *"
     }
   ]
 }
