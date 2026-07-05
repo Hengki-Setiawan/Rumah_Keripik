@@ -20,6 +20,9 @@
 # production
 /build
 
+# generated drizzle-kit migrations are not used in production deploy
+/src/drizzle/migrations/
+
 # misc
 .DS_Store
 *.pem
