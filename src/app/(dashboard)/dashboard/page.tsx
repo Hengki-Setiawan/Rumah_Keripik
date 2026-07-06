@@ -227,7 +227,7 @@ export default function DashboardPage() {
                 value={data ? formatRupiah(data.pendapatan_hari_ini) : '-'}
                 icon={<TrendingUp size={20} />}
                 change={pendapatanChange}
-                href="/?tab=analytics"
+                href="/dashboard?tab=analytics"
                 loading={loading}
               />
               <KPICard

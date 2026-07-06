@@ -32,7 +32,7 @@ interface NotifCounts {
 }
 
 const menuItems = [
-  { href: '/', label: 'Beranda & Analitik', icon: Home },
+  { href: '/dashboard', label: 'Beranda & Analitik', icon: Home },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/transaksi', label: 'Transaksi & Pengiriman', icon: ShoppingCart },
