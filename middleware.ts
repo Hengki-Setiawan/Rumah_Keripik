@@ -13,8 +13,13 @@ export default auth((req) => {
     pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/api/public') ||
     pathname === '/api/order/web' ||
+    pathname === '/api/order/track' ||
     (isDev && pathname.startsWith('/api/debug')) ||
     pathname === '/_not-found';
+
+  if (!req.auth && pathname === '/') {
+    return Response.redirect(new URL('/pesan', req.nextUrl.origin));
+  }
 
   if (!req.auth && !isPublic) {
     const newUrl = new URL('/login', req.nextUrl.origin);

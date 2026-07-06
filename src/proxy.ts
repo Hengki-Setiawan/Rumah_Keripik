@@ -17,6 +17,10 @@ export default auth((req) => {
     (isDev && pathname.startsWith('/api/debug')) ||
     pathname === '/_not-found';
 
+  if (!req.auth && pathname === '/') {
+    return Response.redirect(new URL('/pesan', req.nextUrl.origin));
+  }
+
   if (!req.auth && !isPublic) {
     const newUrl = new URL('/login', req.nextUrl.origin);
     newUrl.searchParams.set('callbackUrl', pathname);

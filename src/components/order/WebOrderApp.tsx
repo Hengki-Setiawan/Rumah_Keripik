@@ -122,17 +122,21 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
         if (typeof message === 'string') setHelperText(message);
         const restoredItems = result?.session?.cart?.items;
         if (Array.isArray(restoredItems)) {
-          setCart(restoredItems
+          const nextCart = restoredItems
             .map((item) => ({ id_produk: String(item.productId || ''), id_varian: item.variantId ? String(item.variantId) : undefined, qty: Number(item.quantity) || 0 }))
-            .filter((item) => item.id_produk && item.qty > 0)
-          );
+            .filter((item) => item.id_produk && item.qty > 0);
+          setCart((current) => current.length > 0 ? current : nextCart);
         }
         const restoredContext = result?.session?.context;
         if (restoredContext && typeof restoredContext === 'object') {
-          if (restoredContext.customer && typeof restoredContext.customer === 'object') setCustomer((current) => ({ ...current, ...restoredContext.customer }));
-          if (restoredContext.address && typeof restoredContext.address === 'object') setAddress((current) => ({ ...current, ...restoredContext.address }));
-          if (typeof restoredContext.paymentMethodId === 'string') setPaymentMethodId(restoredContext.paymentMethodId);
-          if (typeof restoredContext.notes === 'string') setNotes(restoredContext.notes);
+          if (restoredContext.customer && typeof restoredContext.customer === 'object') {
+            setCustomer((current) => current.name || current.phone || current.type !== 'konsumen' ? current : { ...current, ...restoredContext.customer });
+          }
+          if (restoredContext.address && typeof restoredContext.address === 'object') {
+            setAddress((current) => current.text || current.note || current.mapsLink || current.lat || current.lng ? current : { ...current, ...restoredContext.address });
+          }
+          if (typeof restoredContext.paymentMethodId === 'string') setPaymentMethodId((current) => current && current !== firstPayment?.id ? current : restoredContext.paymentMethodId);
+          if (typeof restoredContext.notes === 'string') setNotes((current) => current || restoredContext.notes);
         }
       } catch {
         // Existing order form remains usable if session bootstrap fails.

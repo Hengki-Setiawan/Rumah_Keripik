@@ -2,10 +2,14 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { botMenuItem, paymentMethod, produk, produkKategori, produkVarian } from '@/lib/schema';
 import { WebOrderApp } from '@/components/order/WebOrderApp';
-import { EventOrderPanel } from '@/components/order/EventOrderPanel';
 import { getProductImageUrl } from '@/lib/cloudinary-url';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: 'Pesan Keripik Online | Rumah Keripik',
+  description: 'Pilih keripik favorit, isi alamat, dan lacak status pesanan Rumah Keripik secara online. Tersedia transfer, QRIS, e-wallet, atau COD sesuai konfigurasi admin.',
+};
 
 type PageProps = {
   searchParams?: Promise<{
@@ -73,20 +77,13 @@ export default async function PesanPage({ searchParams }: PageProps) {
       }));
 
   return (
-    <>
-      <WebOrderApp
-        products={mappedProducts}
-        categories={categories}
-        paymentMethods={mappedPaymentMethods}
-        quickPrompts={menuItems.map((item) => item.label).filter(Boolean)}
-        source={params?.source}
-        chatId={params?.chatId}
-      />
-      <div className="bg-[#fff7df] px-5 pb-12 md:px-10 lg:px-16">
-        <div className="mx-auto max-w-7xl">
-          <EventOrderPanel />
-        </div>
-      </div>
-    </>
+    <WebOrderApp
+      products={mappedProducts}
+      categories={categories}
+      paymentMethods={mappedPaymentMethods}
+      quickPrompts={menuItems.map((item) => item.label).filter(Boolean)}
+      source={params?.source}
+      chatId={params?.chatId}
+    />
   );
 }
