@@ -111,6 +111,7 @@ async function callConditionalGeminiOcr(payload: PaymentOcrPayload): Promise<Pro
       generationConfig: { temperature: 0, responseMimeType: 'application/json' },
     }),
   });
+  if (res.status === 429) return null;
   if (!res.ok) throw new Error(`Gemini OCR gagal: ${res.status}`);
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
