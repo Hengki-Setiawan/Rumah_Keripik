@@ -23,7 +23,7 @@ const SessionPatchSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`public-session:${getClientIp(req)}`, 120, 60_000);
+  const rate = checkRateLimit(`public-session:${getClientIp(req)}`, 600, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak request. Coba lagi sebentar.' }, { status: 429 });
 
   const cookieStore = await cookies();
