@@ -55,9 +55,9 @@ export function EventOrderPanel() {
     <section className="rounded-[2rem] border border-[#d8b77c] bg-white/80 p-5 shadow-xl shadow-[#8d4b00]/10">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8d4b00]">Mode Interaktif Blueprint</p>
-          <h2 className="mt-1 text-2xl font-black text-[#2a1606]">Coba order via event engine</h2>
-          <p className="mt-2 text-sm text-[#735033]">Panel ini memakai session, UserEvent, dan ChatUIResponse. Form utama tetap tersedia sebagai jalur checkout stabil.</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8d4b00]">Mode Interaktif Pesanan</p>
+          <h2 className="mt-1 text-2xl font-black text-[#2a1606]">Coba order via percakapan</h2>
+          <p className="mt-2 text-sm text-[#735033]">Panel ini bersifat eksperimental. Form utama tetap menjadi jalur checkout stabil.</p>
         </div>
         <button type="button" disabled={isPending} onClick={() => sendEvent({ type: 'button_click', action: 'show_products' })} className="rounded-2xl bg-[#123524] px-4 py-3 text-sm font-black text-white disabled:opacity-60">
           Lihat Produk

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { eq } from 'drizzle-orm';
 import { CheckCircle2, ClipboardList, MessageCircle, PackageCheck } from 'lucide-react';
 import { db } from '@/lib/db';
-import { paymentIntent, transaksi } from '@/lib/schema';
+import { detailTransaksi, paymentIntent, transaksi } from '@/lib/schema';
 import { formatRupiah } from '@/lib/utils';
 import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
 import { PaymentInstructionCard } from '@/components/order/PaymentInstructionCard';
@@ -23,13 +23,18 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
     .from(transaksi)
     .where(eq(transaksi.kode_pesanan, decodedCode))
     .limit(1);
-  const [intent] = order ? await db.select().from(paymentIntent).where(eq(paymentIntent.id_transaksi, order.id_transaksi)).limit(1) : [];
+  const [intent, items] = order
+    ? await Promise.all([
+        db.select().from(paymentIntent).where(eq(paymentIntent.id_transaksi, order.id_transaksi)).limit(1).then((rows) => rows[0]),
+        db.select().from(detailTransaksi).where(eq(detailTransaksi.id_transaksi, order.id_transaksi)),
+      ])
+    : [undefined, []];
   const hasValidToken = !order?.status_token || query?.token === order.status_token;
   const instruction = parseInstruction(intent?.instruction_json);
 
   return (
     <main className="min-h-screen bg-[linear-gradient(135deg,#fff7df,#ffe6a7,#f8cf72)] px-5 py-8 text-[#241306]">
-      <section className="mx-auto flex min-h-[80vh] max-w-3xl items-center">
+      <section className="mx-auto flex min-h-[80vh] max-w-4xl items-center">
         <div className="w-full rounded-[2rem] border border-[#e0bd82] bg-white/85 p-6 shadow-2xl shadow-[#8d4b00]/15 backdrop-blur md:p-10">
           <div className="mx-auto mb-6 grid h-20 w-20 place-items-center rounded-full bg-[#1f7a3d] text-white">
             <CheckCircle2 size={42} />
@@ -41,7 +46,7 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
               Admin Rumah Keripik akan cek pesananmu.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-[#6b4a2e]">
-              Simpan kode pesanan ini untuk lacak status. Jika memilih transfer, siapkan bukti bayar saat admin mengonfirmasi.
+              Simpan kode pesanan ini untuk lacak status. Jika memilih transfer atau QRIS, upload bukti bayar agar admin bisa cek pembayaran.
             </p>
           </div>
 
@@ -62,6 +67,24 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
             )}
           </div>
 
+          {items.length > 0 && hasValidToken && (
+            <section className="mt-6 rounded-3xl border border-[#ecd3a7] bg-[#fffaf0] p-5">
+              <h2 className="text-xl font-black text-[#2a1606]">Ringkasan item</h2>
+              <div className="mt-4 space-y-3">
+                {items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4">
+                    <div>
+                      <p className="font-black">{item.nama_produk_snapshot || item.id_produk}</p>
+                      {item.nama_varian_snapshot && <p className="text-sm font-bold text-[#795735]">{item.nama_varian_snapshot}</p>}
+                      <p className="text-sm text-[#795735]">Qty {item.qty_terjual}</p>
+                    </div>
+                    <p className="font-black text-[#8d4b00]">{formatRupiah(item.subtotal)}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {order && order.status_token && hasValidToken && order.payment_status !== 'verified' && order.payment_method !== 'cod' && (
             <>
               <PaymentInstructionCard amount={order.total_bayar} instruction={instruction} />
@@ -78,8 +101,8 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <div className="rounded-3xl border border-[#ecd3a7] bg-[#fff8e8] p-4">
               <ClipboardList className="mb-3 text-[#8d4b00]" />
-              <p className="font-black">Order masuk dashboard</p>
-              <p className="mt-1 text-sm text-[#735033]">Admin bisa cek item, alamat, dan status.</p>
+              <p className="font-black">Order diterima admin</p>
+              <p className="mt-1 text-sm text-[#735033]">Item, alamat, dan catatan pesanan sudah diterima.</p>
             </div>
             <div className="rounded-3xl border border-[#ecd3a7] bg-[#fff8e8] p-4">
               <MessageCircle className="mb-3 text-[#8d4b00]" />
@@ -89,7 +112,7 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
             <div className="rounded-3xl border border-[#ecd3a7] bg-[#fff8e8] p-4">
               <PackageCheck className="mb-3 text-[#8d4b00]" />
               <p className="font-black">Pesanan diproses</p>
-              <p className="mt-1 text-sm text-[#735033]">Stok dipotong setelah admin verifikasi.</p>
+              <p className="mt-1 text-sm text-[#735033]">Pesanan berjalan setelah pembayaran atau COD disetujui.</p>
             </div>
           </div>
 

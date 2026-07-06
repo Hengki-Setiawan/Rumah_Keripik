@@ -53,13 +53,13 @@ export default function TrackOrderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(135deg,#fff8e7,#ffe4ad,#f7c96e)] px-5 py-8 text-[#231305]">
-      <section className="mx-auto max-w-4xl rounded-[2rem] border border-[#e0bd82] bg-white/90 p-6 shadow-2xl shadow-[#8d4b00]/15 md:p-10">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_10%_10%,rgba(245,158,11,0.22),transparent_28%),linear-gradient(135deg,#fff8e7,#ffe4ad,#f7c96e)] px-5 py-8 text-[#231305]">
+      <section className="mx-auto max-w-4xl rounded-[2rem] border border-[#e0bd82] bg-white/90 p-6 shadow-2xl shadow-[#8d4b00]/15 backdrop-blur md:p-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.25em] text-[#8d4b00]">Lacak Pesanan</p>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-5xl">Cek status dengan aman.</h1>
-            <p className="mt-3 max-w-2xl text-[#6b4a2e]">Masukkan kode pesanan dan nomor HP yang dipakai saat checkout. Kalau punya link sukses, token status juga bisa dipakai.</p>
+            <p className="mt-3 max-w-2xl text-[#6b4a2e]">Masukkan kode pesanan dan nomor HP yang dipakai saat checkout. Jika membuka dari link sukses, token status bisa dipakai untuk akses yang lebih aman.</p>
           </div>
           <Link href="/pesan" className="rounded-2xl bg-[#8d4b00] px-5 py-3 text-center font-black text-white">Pesan lagi</Link>
         </div>
@@ -67,15 +67,15 @@ export default function TrackOrderPage() {
         <div className="mt-8 grid gap-3 rounded-3xl border border-[#ecd3a7] bg-[#fffaf0] p-5 md:grid-cols-[1fr_1fr]">
           <label className="block">
             <span className="mb-2 block text-sm font-black text-[#5e3d22]">Kode pesanan</span>
-            <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Contoh: PESANAN-ABC123" className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]" />
+            <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Contoh: PESANAN-ABC123" autoComplete="off" className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]" />
           </label>
           <label className="block">
             <span className="mb-2 block text-sm font-black text-[#5e3d22]">Nomor HP</span>
-            <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Contoh: 08123456789" className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]" />
+            <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Contoh: 08123456789" inputMode="tel" autoComplete="tel" className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]" />
           </label>
           <label className="block md:col-span-2">
             <span className="mb-2 block text-sm font-black text-[#5e3d22]">Token status opsional</span>
-            <input value={token} onChange={(event) => setToken(event.target.value)} placeholder="Isi kalau admin/link sukses memberi token" className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]" />
+            <input value={token} onChange={(event) => setToken(event.target.value)} placeholder="Isi kalau link sukses memberi token" autoComplete="off" className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]" />
           </label>
           <button type="button" onClick={track} disabled={isPending} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2a1606] px-5 py-4 font-black text-white disabled:opacity-60 md:col-span-2">
             <Search size={18} /> {isPending ? 'Mengecek...' : 'Lacak Pesanan'}
@@ -93,7 +93,7 @@ export default function TrackOrderPage() {
                 <p className="mt-1 text-sm text-[#735033]">Penerima: {result.order.nama_penerima || '-'}</p>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-black text-green-700">
-                <ShieldCheck size={16} /> Terverifikasi
+                <ShieldCheck size={16} /> Data cocok
               </div>
             </div>
 
@@ -104,7 +104,7 @@ export default function TrackOrderPage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-black">Item</h3>
+              <h3 className="text-lg font-black">Ringkasan item</h3>
               <div className="mt-3 space-y-2">
                 {result.items.map((item) => (
                   <div key={`${item.id_produk}-${item.nama_produk}`} className="flex justify-between gap-4 rounded-2xl bg-[#fff8e8] p-4 text-sm">

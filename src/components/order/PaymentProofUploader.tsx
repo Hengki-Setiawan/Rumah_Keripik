@@ -52,7 +52,7 @@ export function PaymentProofUploader({ orderId, statusToken }: Props) {
         body: form,
       });
       const cloud = await cloudRes.json();
-      if (!cloudRes.ok) throw new Error(cloud.error?.message || 'Upload ke Cloudinary gagal');
+      if (!cloudRes.ok) throw new Error(cloud.error?.message || 'Upload bukti pembayaran gagal');
 
       const completeRes = await fetch('/api/public/payment-proof/complete', {
         method: 'POST',
@@ -73,7 +73,7 @@ export function PaymentProofUploader({ orderId, statusToken }: Props) {
 
       setFile(null);
       setAmountClaimed('');
-      setMessage('Bukti pembayaran berhasil diupload. Admin akan verifikasi manual.');
+       setMessage('Bukti pembayaran berhasil diupload. Admin akan cek dan memperbarui status pesanan.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Upload gagal');
     } finally {
@@ -89,7 +89,7 @@ export function PaymentProofUploader({ orderId, statusToken }: Props) {
         </div>
         <div>
           <p className="font-black">Upload bukti pembayaran</p>
-          <p className="text-sm text-[#735033]">JPG, PNG, atau WEBP maksimal 5 MB.</p>
+          <p className="text-sm text-[#735033]">JPG, PNG, atau WEBP maksimal 5 MB. Pastikan nominal terlihat jelas.</p>
         </div>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px]">

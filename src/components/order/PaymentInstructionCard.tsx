@@ -18,8 +18,8 @@ export function PaymentInstructionCard({ amount, instruction }: Props) {
   if (!instruction) {
     return (
       <section className="mt-6 rounded-[1.5rem] border border-amber-300 bg-amber-50 p-5 text-amber-900">
-        <p className="font-black">Instruksi pembayaran belum tersedia.</p>
-        <p className="mt-1 text-sm font-bold">Admin akan menghubungi untuk konfirmasi pembayaran.</p>
+        <p className="font-black">Instruksi pembayaran sedang disiapkan.</p>
+        <p className="mt-1 text-sm font-bold">Admin Rumah Keripik akan membantu konfirmasi pembayaran.</p>
       </section>
     );
   }
@@ -31,6 +31,7 @@ export function PaymentInstructionCard({ amount, instruction }: Props) {
     <section className="mt-6 rounded-[1.5rem] border border-[#e0bd82] bg-[#fff8e8] p-5 text-[#241306]">
       <p className="text-sm font-black uppercase tracking-[0.22em] text-[#8d4b00]">Instruksi Pembayaran</p>
       <h2 className="mt-2 text-2xl font-black">{instruction.label || 'Pembayaran Manual'}</h2>
+      <p className="mt-2 text-sm font-bold text-[#735033]">Pembayaran akan dicek manual oleh admin sebelum pesanan diproses.</p>
       <div className="mt-4 rounded-2xl bg-[#2a1606] p-4 text-white">
         <p className="text-sm text-white/70">Nominal yang harus dibayar</p>
         <p className="text-3xl font-black">{formatRupiah(amount)}</p>
@@ -48,14 +49,14 @@ export function PaymentInstructionCard({ amount, instruction }: Props) {
         <div className="mt-4 rounded-2xl bg-white p-4 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={instruction.qrisImageUrl} alt="QRIS Rumah Keripik" className="mx-auto max-h-72 rounded-xl object-contain" />
-          <p className="mt-3 text-sm font-bold text-[#735033]">Scan QRIS, masukkan nominal sesuai total, lalu upload bukti.</p>
+          <p className="mt-3 text-sm font-bold text-[#735033]">Scan QRIS, masukkan nominal sesuai total, lalu upload bukti pembayaran.</p>
         </div>
       )}
 
       <ul className="mt-4 space-y-2 text-sm font-bold text-[#735033]">
         <li>1. Pastikan nominal sesuai total di atas.</li>
         <li>2. Simpan screenshot bukti pembayaran.</li>
-        <li>3. Upload bukti agar admin bisa verifikasi manual.</li>
+        <li>3. Upload bukti agar admin bisa cek pembayaran.</li>
         {isCod && <li>4. COD menunggu persetujuan admin sebelum pesanan diproses.</li>}
       </ul>
       {instruction.note && <p className="mt-4 rounded-2xl bg-white p-3 text-sm font-bold text-[#735033]">{instruction.note}</p>}
