@@ -34,6 +34,7 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [heatGroup, setHeatGroup] = useState<any>(null);
+  const [markerGroup, setMarkerGroup] = useState<any>(null);
   const [mode, setMode] = useState<'heatmap' | 'markers' | 'both'>('heatmap');
   const [period, setPeriod] = useState<'today' | '7d' | '30d'>('7d');
   const [data, setData] = useState<HeatmapPoint[]>([]);
@@ -105,6 +106,9 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
     if (heatGroup) {
       mapInstance.removeLayer(heatGroup);
     }
+    if (markerGroup) {
+      mapInstance.removeLayer(markerGroup);
+    }
 
     if (mode === 'heatmap' || mode === 'both') {
       const { createHeatLayer } = await import('@/lib/leaflet-heat-compat');
@@ -112,10 +116,12 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
       const group = createHeatLayer(L, points);
       group.addTo(mapInstance);
       setHeatGroup(group);
+    } else {
+      setHeatGroup(null);
     }
 
     if (mode === 'markers' || mode === 'both') {
-      const markerGroup = L.layerGroup();
+      const nextMarkerGroup = L.layerGroup();
       data.forEach((point) => {
         if (!point.lat || !point.lng) return;
 
@@ -129,15 +135,18 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
         });
 
         L.marker([point.lat, point.lng], { icon })
-          .addTo(markerGroup)
+          .addTo(nextMarkerGroup)
           .bindPopup(
             point.kode_pesanan
               ? `<b>${point.kode_pesanan}</b><br>${point.nama || ''}`
               : 'Pesanan',
           );
       });
-        markerGroup.addTo(mapInstance);
-      }
+      nextMarkerGroup.addTo(mapInstance);
+      setMarkerGroup(nextMarkerGroup);
+    } else {
+      setMarkerGroup(null);
+    }
   }
 
   useEffect(() => {

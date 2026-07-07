@@ -13,7 +13,7 @@ export function ChatWindow({ messages, cart, loading, onSend, onAction }: { mess
   }, [messages.length, loading]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
+    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-gutter-stable px-4 py-6 md:px-8">
       <div className="mx-auto flex max-w-4xl flex-col gap-6">
         {!loading && messages.length === 0 && (
           <div className="flex min-h-[55vh] items-center justify-center">

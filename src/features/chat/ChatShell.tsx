@@ -17,18 +17,23 @@ export function ChatShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [error, setError] = useState('');
   const [started, setStarted] = useState(false);
+  const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadSessions().catch(() => undefined);
+    let cancelled = false;
+
+    async function resumeLatestSession() {
+      const loadedSessions = await loadSessions();
+      if (cancelled || loadedSessions.length === 0) return;
+      await openSession(loadedSessions[0].id, loadedSessions, true);
+    }
+
+    resumeLatestSession().catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  useEffect(() => {
-    if (!chatSessionId || sending) return;
-    const timer = window.setInterval(() => {
-      refreshChatState().catch(() => undefined);
-    }, 12_000);
-    return () => window.clearInterval(timer);
-  }, [chatSessionId, sending]);
 
   useEffect(() => {
     if (!chatSessionId || typeof EventSource === 'undefined') return;
@@ -61,6 +66,7 @@ export function ChatShell() {
     setMessages(data.messages || []);
     setCart(data.cart || null);
     setStarted(true);
+    setSidebarOpen(false);
     setLoading(false);
     loadSessions().catch(() => undefined);
   }
@@ -78,7 +84,37 @@ export function ChatShell() {
   async function loadSessions() {
     const response = await fetch('/api/chat/sessions');
     const data = await response.json();
-    if (data.ok) setSessions(data.sessions || []);
+    const loadedSessions = data.ok ? (data.sessions || []) : [];
+    if (data.ok) setSessions(loadedSessions);
+    return loadedSessions as ChatSessionSummary[];
+  }
+
+  async function openSession(nextSessionId: string, nextSessions?: ChatSessionSummary[], silent = false) {
+    if (!nextSessionId) return;
+    if (!silent) {
+      setSessionLoadingId(nextSessionId);
+      setError('');
+    }
+
+    try {
+      const response = await fetch(`/api/chat/state?chatSessionId=${encodeURIComponent(nextSessionId)}`);
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Riwayat chat gagal dibuka');
+      if (nextSessions) {
+        setSessions(nextSessions);
+      } else {
+        loadSessions().catch(() => undefined);
+      }
+      setChatSessionId(nextSessionId);
+      setMessages(data.messages || []);
+      setCart(data.cart || null);
+      setStarted(true);
+      setSidebarOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Riwayat chat gagal dibuka');
+    } finally {
+      if (!silent) setSessionLoadingId(null);
+    }
   }
 
   async function refreshChatState() {
@@ -90,6 +126,14 @@ export function ChatShell() {
     setCart(data.cart || null);
     loadSessions().catch(() => undefined);
   }
+
+  useEffect(() => {
+    if (!chatSessionId || sending) return;
+    const timer = window.setInterval(() => {
+      refreshChatState().catch(() => undefined);
+    }, 12_000);
+    return () => window.clearInterval(timer);
+  }, [chatSessionId, sending]);
 
   async function sendMessage(text: string) {
     if (!chatSessionId) return;
@@ -146,11 +190,11 @@ export function ChatShell() {
       )}
       {started && (
       <div className="flex h-full">
-        <div className="hidden w-[280px] shrink-0 lg:block"><ChatSidebar sessions={sessions} activeId={chatSessionId} cartCount={cart?.itemCount || 0} onNewOrder={startNewOrder} /></div>
+        <div className="hidden w-[280px] shrink-0 lg:block"><ChatSidebar sessions={sessions} activeId={chatSessionId} cartCount={cart?.itemCount || 0} onNewOrder={startNewOrder} onSelectSession={openSession} loadingSessionId={sessionLoadingId} /></div>
         {sidebarOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-            <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw]"><ChatSidebar sessions={sessions} activeId={chatSessionId} cartCount={cart?.itemCount || 0} onNewOrder={startNewOrder} /></div>
+            <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw]"><ChatSidebar sessions={sessions} activeId={chatSessionId} cartCount={cart?.itemCount || 0} onNewOrder={startNewOrder} onSelectSession={openSession} loadingSessionId={sessionLoadingId} /></div>
             <button className="absolute right-4 top-4 rounded-full border border-[#e8dcc9] bg-[#fff9f1] p-2 text-[#2f241c] shadow-[0_8px_24px_rgba(47,36,28,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b4423]/20" onClick={() => setSidebarOpen(false)}><X size={18} /></button>
           </div>
         )}

@@ -180,14 +180,24 @@ body {
 
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
+    width: 10px;
+    height: 10px;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(232, 220, 201, 0.55);
+    border-radius: 999px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: var(--color-outline-variant);
-    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(160, 137, 115, 0.95) 0%, rgba(107, 68, 35, 0.92) 100%);
+    border-radius: 999px;
+    border: 2px solid rgba(255, 249, 241, 0.95);
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) rgba(232, 220, 201, 0.55);
+  }
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;

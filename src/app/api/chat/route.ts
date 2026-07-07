@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { chatSessions } from '@/lib/schema';
 import { createChatMessage, getChatMessages } from '@/lib/chat-v3/messages';
 import { SendChatSchema } from '@/lib/chat-v3/schemas';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -9,6 +6,7 @@ import { getChatCart } from '@/lib/ai/tools/cart';
 import { buildChatResponse } from '@/lib/ai/orchestrator';
 import { rememberChatSignals } from '@/lib/chat-v3/memory';
 import { chatOwnershipErrorResponse, requireOwnedChatSession } from '@/lib/chat-v3/ownership';
+import { updateChatSessionTitle } from '@/lib/chat-v3/session-title';
 
 export const runtime = 'nodejs';
 
@@ -45,7 +43,7 @@ export async function POST(req: Request) {
     metadata: { intent: aiResponse.intent, nextAction: aiResponse.nextAction, confidence: aiResponse.confidence },
   });
 
-  await db.update(chatSessions).set({ updatedAt: sql`(datetime('now', 'utc'))` }).where(eq(chatSessions.id, chatSessionId));
+  await updateChatSessionTitle(chatSessionId, parsed.data.message, aiResponse.intent);
 
   return NextResponse.json({ ok: true, userMessage, assistantMessage, response: aiResponse, messages: await getChatMessages(chatSessionId), cart: await getChatCart(chatSessionId) });
 }
