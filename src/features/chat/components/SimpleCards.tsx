@@ -45,7 +45,7 @@ export function AddressConfirmCard({ component, onAction }: { component: Address
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={() => onAction?.('use_saved_address', { addressId: component.addressId || address?.id })} className={primaryButtonClass}><ShieldCheck size={15} /> Pakai alamat</button>
-        <button type="button" onClick={() => onAction?.('request_location')} className={secondaryButtonClass}><Navigation size={15} /> Kirim lokasi baru</button>
+        <button type="button" onClick={() => onAction?.('edit_address')} className={secondaryButtonClass}><Navigation size={15} /> Ubah alamat</button>
       </div>
     </div>
   );

@@ -165,7 +165,7 @@ export function ChatSidebar({
   onNewOrder,
   onSelectSession,
   onToggleCompact,
-  onQuickMessage,
+  onQuickAction,
   loadingSessionId,
 }: {
   sessions: ChatSessionSummary[];
@@ -176,7 +176,7 @@ export function ChatSidebar({
   onNewOrder?: () => void;
   onSelectSession?: (sessionId: string) => void;
   onToggleCompact?: () => void;
-  onQuickMessage?: (message: string) => void;
+  onQuickAction?: (action: string, payload?: Record<string, unknown>) => void;
   loadingSessionId?: string | null;
 }) {
   return (
@@ -230,13 +230,13 @@ export function ChatSidebar({
           label="Keranjang"
           badge={cartCount}
           compact={compact}
-          onClick={() => onQuickMessage?.('Lihat keranjang saya')}
+          onClick={() => onQuickAction?.('show_cart')}
         />
         <SidebarItem
           icon={<LifeBuoy size={16} />}
           label="Bantuan"
           compact={compact}
-          onClick={() => onQuickMessage?.('Saya butuh bantuan untuk pesanan saya')}
+          onClick={() => onQuickAction?.('help_overview')}
         />
       </div>
 

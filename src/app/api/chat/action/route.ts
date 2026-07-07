@@ -37,6 +37,37 @@ export async function POST(req: Request) {
   try {
     if (action === 'refresh_chat') {
       // Client-side refresh after external actions such as payment proof upload.
+    } else if (action === 'show_cart') {
+      const cart = await getChatCart(chatSessionId);
+      await createChatMessage({
+        chatSessionId,
+        role: 'assistant',
+        content: cart.itemCount > 0 ? 'Ini keranjang belanja kakak saat ini.' : 'Keranjang kakak masih kosong. Mau aku bantu pilih produk?',
+        components: cart.itemCount > 0
+          ? [{ type: 'cart_summary', cartId: cart.id }]
+          : [{
+              type: 'quick_replies',
+              options: [
+                { id: 'lihat-produk', label: 'Lihat produk', value: 'Lihat produk', action: 'send_message' },
+                { id: 'rekomendasi', label: 'Rekomendasi pedas', value: 'Rekomendasi keripik pedas', action: 'send_message' },
+              ],
+            }],
+      });
+    } else if (action === 'help_overview') {
+      await createChatMessage({
+        chatSessionId,
+        role: 'assistant',
+        content: 'Aku bisa bantu cek keranjang, ubah alamat, pilih pembayaran, lacak pesanan, atau teruskan ke admin kalau perlu.',
+        components: [{
+          type: 'quick_replies',
+          options: [
+            { id: 'bantuan-keranjang', label: 'Lihat keranjang', value: 'Lihat keranjang saya', action: 'send_message' },
+            { id: 'bantuan-alamat', label: 'Ubah alamat', value: 'Saya mau ubah alamat pengiriman', action: 'send_message' },
+            { id: 'bantuan-lacak', label: 'Lacak pesanan', value: '/pesan/lacak', action: 'tool_action' },
+            { id: 'bantuan-admin', label: 'Hubungi admin', value: 'Saya butuh bantuan admin', action: 'send_message' },
+          ],
+        }],
+      });
     } else if (action === 'add_to_cart') {
       const productId = String(payload.productId || '');
       const variantId = payload.variantId ? String(payload.variantId) : undefined;
@@ -129,7 +160,19 @@ export async function POST(req: Request) {
         components: context.defaultAddress ? [{ type: 'cart_summary', cartId: (await getChatCart(chatSessionId)).id }] : [{ type: 'location_picker', mode: 'both' }],
       });
     } else if (action === 'edit_customer_data') {
-      await createChatMessage({ chatSessionId, role: 'assistant', content: 'Baik kak, isi data baru saat konfirmasi order ya.', components: [{ type: 'location_picker', mode: 'both' }] });
+      await createChatMessage({
+        chatSessionId,
+        role: 'assistant',
+        content: 'Baik kak, kita isi ulang data penerima dan alamatnya dari sini ya.',
+        components: [{ type: 'order_summary', orderDraftId: chatSessionId }],
+      });
+    } else if (action === 'edit_address') {
+      await createChatMessage({
+        chatSessionId,
+        role: 'assistant',
+        content: 'Siap kak, kirim alamat baru atau titik lokasi yang paling akurat ya.',
+        components: [{ type: 'location_picker', mode: 'both' }],
+      });
     } else if (action === 'save_customer_memory_preference') {
       const context = await getCustomerContextForChat(chatSessionId);
       if (!context.customer) return NextResponse.json({ ok: false, error: 'Customer belum terhubung' }, { status: 400 });
