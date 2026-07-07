@@ -34,7 +34,7 @@ export function ChatMessage({
   }
 
   return (
-    <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
         <motion.div
           initial={isFirstAssistant && !reducedMotion ? { opacity: 0, scale: 0.92, y: 10 } : false}
@@ -44,7 +44,7 @@ export function ChatMessage({
               : {}
           }
           transition={{ duration: 0.42, ease: 'easeOut' }}
-          className={`mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl ${
+          className={`mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
             isSystem
               ? 'border border-[#e7dccb] bg-[#fffaf3] text-[#7a6959]'
               : 'bg-[linear-gradient(135deg,#7f9f3e_0%,#67812d_100%)] text-white shadow-[0_12px_30px_rgba(103,129,45,0.22)]'
@@ -54,49 +54,49 @@ export function ChatMessage({
         </motion.div>
       )}
 
-      <div className={`flex max-w-[90%] flex-col gap-3 md:max-w-[78%] ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`flex max-w-[88%] flex-col gap-2 md:max-w-[76%] ${isUser ? 'items-end' : 'items-start'}`}>
         {hasText && (
           <div
             className={`${
               isUser
-                ? 'rounded-[1.6rem] rounded-br-md bg-[#c55a2b] px-4 py-3 text-white shadow-[0_20px_46px_rgba(197,90,43,0.16)]'
+                ? 'rounded-[1.35rem] rounded-br-md bg-[#c55a2b] px-4 py-2.5 text-white shadow-[0_16px_34px_rgba(197,90,43,0.14)]'
                 : isSystem
-                  ? 'rounded-[1.35rem] border border-[#e7dccb] bg-[#f7efe1] px-4 py-3 text-[#665444]'
-                  : 'px-0 py-1 text-[#2f241c]'
+                  ? 'rounded-[1.2rem] border border-[#e7dccb] bg-[#f7efe1] px-3.5 py-2.5 text-[#665444]'
+                  : 'px-0 py-0.5 text-[#2f241c]'
             }`}
           >
-            <p className={`whitespace-pre-wrap text-[15px] leading-7 ${!isUser && !isSystem ? 'md:text-[16px]' : ''}`}>
+            <p className={`whitespace-pre-wrap text-[14px] leading-6 ${!isUser && !isSystem ? 'md:text-[15px]' : ''}`}>
               {message.content}
             </p>
           </div>
         )}
 
         {!isUser && !isSystem && hasText && (
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[#8a7562]">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#8a7562]">
             <button
               type="button"
               onClick={copyMessage}
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 transition hover:bg-[#f8efe2] hover:text-[#2f241c]"
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-[#f8efe2] hover:text-[#2f241c]"
             >
-              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? <Check size={12} /> : <Copy size={12} />}
               {copied ? 'Tersalin' : 'Salin'}
             </button>
             <button
               type="button"
               onClick={() => onSend('Jelaskan lagi dengan lebih ringkas')}
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 transition hover:bg-[#f8efe2] hover:text-[#2f241c]"
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-[#f8efe2] hover:text-[#2f241c]"
             >
-              <RefreshCcw size={13} />
+              <RefreshCcw size={12} />
               Ulang
             </button>
             <button
               type="button"
               onClick={() => setLiked((value) => !value)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 transition hover:bg-[#f8efe2] hover:text-[#2f241c] ${
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-[#f8efe2] hover:text-[#2f241c] ${
                 liked ? 'bg-[#eef6dd] text-[#5d7b20]' : ''
               }`}
             >
-              <ThumbsUp size={13} />
+              <ThumbsUp size={12} />
               {liked ? 'Membantu' : 'Bagus'}
             </button>
           </div>

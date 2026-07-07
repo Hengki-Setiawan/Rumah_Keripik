@@ -42,34 +42,34 @@ export function ChatWindow({
   }, [messages.length, loading]);
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-gutter-stable px-4 pb-10 pt-4 md:px-8 md:pt-6">
-      <div className="mx-auto flex max-w-5xl flex-col">
+    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-gutter-stable px-4 pb-8 pt-2 md:px-6 md:pt-3">
+      <div className="mx-auto flex max-w-4xl flex-col">
         {idle ? (
-          <div className="flex min-h-[calc(100vh-11rem)] items-center justify-center">
+          <div className="flex min-h-[calc(100vh-8.5rem)] items-center justify-center">
             <motion.div
               initial={reducedMotion ? false : { opacity: 0, y: 18 }}
               animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
               transition={{ duration: 0.42, ease: 'easeOut' }}
-              className="w-full max-w-4xl text-center"
+              className="w-full max-w-3xl text-center"
             >
               <motion.div
                 animate={reducedMotion ? {} : { y: [0, -5, 0], rotate: [0, -1, 0] }}
                 transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-[1.6rem] bg-[#c55a2b] text-white shadow-[0_18px_46px_rgba(197,90,43,0.20)]"
+                className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-[1.2rem] bg-[#c55a2b] text-white shadow-[0_14px_32px_rgba(197,90,43,0.18)]"
               >
-                <Sparkles size={24} />
+                <Sparkles size={20} />
               </motion.div>
 
-              <h2 className="text-4xl font-semibold tracking-[-0.065em] text-[#2f241c] md:text-6xl">
+              <h2 className="text-3xl font-semibold tracking-[-0.055em] text-[#2f241c] md:text-5xl">
                 Mau pesan keripik apa hari ini?
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#6f5d4f] md:text-lg">
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#6f5d4f] md:text-base">
                 Pilih rasa, atur jumlah, dan checkout lewat percakapan yang sederhana.
               </p>
 
               {footerSlot}
 
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
                 {starterPrompts.map((item, index) => (
                   <motion.button
                     key={item.label}
@@ -78,7 +78,7 @@ export function ChatWindow({
                     animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.28, delay: 0.08 * index, ease: 'easeOut' }}
                     onClick={() => onSend(item.label)}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] px-4 py-2.5 text-sm font-medium text-[#5f4d3f] shadow-[0_10px_24px_rgba(47,36,28,0.04)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
+                    className="inline-flex items-center gap-2 rounded-full border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] px-3.5 py-2 text-sm font-medium text-[#5f4d3f] shadow-[0_8px_18px_rgba(47,36,28,0.04)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
                   >
                     <span className="text-[#c55a2b]">{item.icon}</span>
                     {item.label}
@@ -88,7 +88,7 @@ export function ChatWindow({
             </motion.div>
           </div>
         ) : (
-          <div ref={listRef} className="mx-auto flex w-full max-w-4xl flex-col gap-8 pb-8 pt-8">
+          <div ref={listRef} className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-6 pt-4">
             {messages.map((message, index) => {
               const isFirstAssistant = message.role === 'assistant' && messages.slice(0, index).every((item) => item.role !== 'assistant');
               return (
@@ -105,10 +105,10 @@ export function ChatWindow({
 
             {loading && (
               <div className="flex items-start gap-3">
-                <div className="grid h-9 w-9 place-items-center rounded-2xl bg-[linear-gradient(135deg,#7f9f3e_0%,#67812d_100%)] text-white shadow-[0_12px_30px_rgba(103,129,45,0.22)]">
-                  <Sparkles size={16} />
+                <div className="grid h-8 w-8 place-items-center rounded-xl bg-[linear-gradient(135deg,#7f9f3e_0%,#67812d_100%)] text-white shadow-[0_10px_22px_rgba(103,129,45,0.2)]">
+                  <Sparkles size={14} />
                 </div>
-                <div className="pt-2 text-sm text-[#6b5a4d]">
+                <div className="pt-1.5 text-sm text-[#6b5a4d]">
                   <span className="inline-flex items-center gap-2">
                     Rumah Keripik AI sedang menjawab
                     <span className="flex gap-1">
