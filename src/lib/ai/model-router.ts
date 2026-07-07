@@ -9,18 +9,18 @@ import type { AIModelTaskConfig, AIProviderConfig, GenerateTextInput, GenerateTe
 
 export const defaultProviderConfigs: AIProviderConfig[] = [
   { id: 'deterministic', name: 'deterministic', enabled: true, apiKeyEnv: '', defaultModel: 'template', supportsToolCalling: false, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 180, priority: 99 },
-  { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'llama-3.3/3.1 fallback chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 220, priority: 1 },
-  { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-2.0-flash', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 220, priority: 2 },
-  { id: 'cerebras', name: 'cerebras', enabled: false, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'llama3.1-8b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 3 },
+  { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-2.0-flash', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
+  { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'qwen-3-32b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
+  { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'llama-3.3/3.1 fallback chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
   { id: 'qwen', name: 'qwen', enabled: false, baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', apiKeyEnv: 'QWEN_API_KEY', defaultModel: 'qwen-plus', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 4 },
 ];
 
 export const defaultTaskConfigs: AIModelTaskConfig[] = [
-  { task: 'intent_detection', primaryProviderId: 'groq', fallbackProviderIds: ['gemini', 'deterministic'], maxInputTokens: 1500, maxOutputTokens: 120, temperature: 0.1, timeoutMs: 8000 },
-  { task: 'structured_chat_response', primaryProviderId: 'groq', fallbackProviderIds: ['gemini', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 220, temperature: 0.15, timeoutMs: 12000 },
-  { task: 'faq_answer', primaryProviderId: 'groq', fallbackProviderIds: ['gemini', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 180, temperature: 0.2, timeoutMs: 12000 },
-  { task: 'memory_extraction', primaryProviderId: 'groq', fallbackProviderIds: ['gemini', 'deterministic'], maxInputTokens: 2500, maxOutputTokens: 180, temperature: 0.1, timeoutMs: 12000 },
-  { task: 'admin_summary', primaryProviderId: 'groq', fallbackProviderIds: ['gemini', 'deterministic'], maxInputTokens: 4000, maxOutputTokens: 260, temperature: 0.2, timeoutMs: 12000 },
+  { task: 'intent_detection', primaryProviderId: 'groq', fallbackProviderIds: ['cerebras', 'gemini', 'deterministic'], maxInputTokens: 1500, maxOutputTokens: 120, temperature: 0.1, timeoutMs: 8000 },
+  { task: 'structured_chat_response', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 3200, maxOutputTokens: 260, temperature: 0.15, timeoutMs: 14000 },
+  { task: 'faq_answer', primaryProviderId: 'cerebras', fallbackProviderIds: ['gemini', 'groq', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 180, temperature: 0.15, timeoutMs: 12000 },
+  { task: 'memory_extraction', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 2500, maxOutputTokens: 180, temperature: 0.1, timeoutMs: 12000 },
+  { task: 'admin_summary', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 4000, maxOutputTokens: 260, temperature: 0.2, timeoutMs: 14000 },
 ];
 
 export async function generateTextWithRouter(input: GenerateTextInput): Promise<GenerateTextResult> {

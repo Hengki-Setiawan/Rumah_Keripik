@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Menu, PackageSearch, Sparkles, X } from 'lucide-react';
+import Link from 'next/link';
+import { LayoutDashboard, Menu, PackageSearch, Sparkles, X } from 'lucide-react';
 import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatComposer } from './ChatComposer';
 import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
@@ -320,6 +321,13 @@ export function ChatShell() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 px-3.5 py-2 text-sm font-medium text-[#6f5d4f] shadow-[0_8px_18px_rgba(47,36,28,0.04)] transition hover:bg-white hover:text-[#2f241c]"
+              >
+                <LayoutDashboard size={15} />
+                <span className="hidden sm:inline">Admin</span>
+              </Link>
               <a
                 href="/pesan/lacak"
                 className="inline-flex items-center gap-2 rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 px-3.5 py-2 text-sm font-medium text-[#2f241c] shadow-[0_8px_18px_rgba(47,36,28,0.04)] transition hover:bg-white"

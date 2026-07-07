@@ -193,15 +193,15 @@ const modules = [
     icon: TrendingUp,
   },
   {
-    href: '/livechat',
+    href: '/hub-komunikasi',
     title: 'Hub Komunikasi',
-    description: 'Buka live chat dan tindak lanjuti percakapan pelanggan lebih cepat.',
+    description: 'Pusat web chat AI, takeover admin, customer context, dan order timeline.',
     icon: MessageSquare,
   },
   {
-    href: '/bot-config',
+    href: '/ai-workspace',
     title: 'Knowledge Base & AI',
-    description: 'Atur basis pengetahuan, respon bot, dan eksperimen AI.',
+    description: 'Kelola knowledge base, router AI, observability, dan audit kemampuan aktif.',
     icon: Bot,
   },
 ];
@@ -236,7 +236,7 @@ export default function DashboardPage() {
       title: 'Aktivitas chat hari ini',
       value: data?.chat_bot_hari_ini ?? 0,
       tone: 'calm',
-      href: '/livechat',
+      href: '/hub-komunikasi',
       description: 'Pantau percakapan pelanggan',
     },
   ];
@@ -416,7 +416,7 @@ export default function DashboardPage() {
               <div className="mt-6 grid gap-3">
                 {[
                   { href: '/transaksi?tab=verifikasi', icon: <ShieldCheck size={16} />, label: 'Cek verifikasi pembayaran' },
-                  { href: '/livechat', icon: <MessageSquare size={16} />, label: 'Buka live chat' },
+                  { href: '/hub-komunikasi', icon: <MessageSquare size={16} />, label: 'Buka hub komunikasi' },
                   { href: '/master-data/produk', icon: <Package size={16} />, label: 'Update stok produk' },
                 ].map((item) => (
                   <Link

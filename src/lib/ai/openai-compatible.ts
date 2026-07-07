@@ -6,6 +6,7 @@ export async function callOpenAICompatibleProvider(provider: AIProviderConfig, i
   const apiKey = provider.apiKeyEnv ? process.env[provider.apiKeyEnv] : undefined;
   if (!provider.baseUrl) throw new Error(`${provider.id} baseUrl belum dikonfigurasi`);
   if (!apiKey) throw new Error(`${provider.apiKeyEnv} tidak ditemukan di environment`);
+  const resolvedModel = resolveProviderModel(provider);
 
   const messages: ChatMessage[] = input.systemPrompt
     ? [{ role: 'system', content: input.systemPrompt }, ...input.messages]
@@ -14,7 +15,7 @@ export async function callOpenAICompatibleProvider(provider: AIProviderConfig, i
   const response = await fetch(`${provider.baseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: provider.defaultModel, messages, max_tokens: maxTokens, temperature }),
+    body: JSON.stringify({ model: resolvedModel, messages, max_tokens: maxTokens, temperature }),
   });
 
   if (!response.ok) {
@@ -26,7 +27,17 @@ export async function callOpenAICompatibleProvider(provider: AIProviderConfig, i
   return {
     text: data.choices?.[0]?.message?.content || '',
     provider: provider.name,
-    model: provider.defaultModel,
+    model: resolvedModel,
     tokensUsed: data.usage?.total_tokens,
   };
+}
+
+function resolveProviderModel(provider: AIProviderConfig) {
+  if (provider.name === 'cerebras') {
+    return process.env.CEREBRAS_MODEL || provider.defaultModel || 'qwen-3-32b';
+  }
+  if (provider.name === 'qwen') {
+    return process.env.QWEN_MODEL || provider.defaultModel || 'qwen-plus';
+  }
+  return provider.defaultModel;
 }

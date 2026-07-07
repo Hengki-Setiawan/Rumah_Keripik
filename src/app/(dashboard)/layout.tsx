@@ -33,7 +33,7 @@ const menuItems = [
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart, activeHrefs: ['/transaksi', '/pembayaran/verifikasi'] },
-  { href: '/livechat', label: 'Live Chat', icon: MessageSquare, activeHrefs: ['/livechat', '/hub-komunikasi'] },
+  { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
   { href: '/ai-workspace', label: 'AI Workspace', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router'] },
   { href: '/feedback-learning', label: 'Feedback', icon: Bot },
 ];
@@ -329,7 +329,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                       {notifs.unread_chats > 0 && (
                         <Link
-                          href="/livechat"
+                          href="/hub-komunikasi"
                           onClick={() => setNotifOpen(false)}
                           className="flex items-center gap-3 rounded-[1.1rem] p-3 transition hover:bg-[#f9efe0]"
                         >
@@ -338,7 +338,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <p className="text-sm font-medium text-[#2f241c]">
                               {notifs.unread_chats} pesan belum dibaca
                             </p>
-                            <p className="text-xs text-[#776454]">Klik untuk buka Live Chat</p>
+                            <p className="text-xs text-[#776454]">Klik untuk buka Hub Komunikasi</p>
                           </div>
                         </Link>
                       )}
@@ -362,7 +362,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               { href: '/dashboard', label: 'Home', icon: Home },
               { href: '/master-data/pelanggan', label: 'Mitra', icon: Users },
               { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
-              { href: '/livechat', label: 'Chat', icon: MessageSquare },
+              { href: '/hub-komunikasi', label: 'Chat', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
               { href: '/ai-workspace', label: 'AI', icon: Bot },
             ].map((item) => {
               const Icon = item.icon;
