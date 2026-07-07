@@ -38,7 +38,7 @@ export function ChatMessage({
           <div
             className={`${
               isUser
-                ? 'rounded-[1.6rem] rounded-br-md bg-[#6b4423] px-4 py-3 text-white shadow-[0_20px_46px_rgba(107,68,35,0.16)]'
+                ? 'rounded-[1.6rem] rounded-br-md bg-[#c55a2b] px-4 py-3 text-white shadow-[0_20px_46px_rgba(197,90,43,0.16)]'
                 : isSystem
                   ? 'rounded-[1.35rem] border border-[#e7dccb] bg-[#f7efe1] px-4 py-3 text-[#665444]'
                   : 'px-0 py-1 text-[#2f241c]'
