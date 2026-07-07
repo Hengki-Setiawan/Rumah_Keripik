@@ -68,7 +68,7 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
   return fallback;
 }
 
-async function loadRouterConfig() {
+export async function loadRouterConfig() {
   try {
     const [providerRow] = await db.select().from(botSetting).where(eq(botSetting.key, 'ai.provider.configs')).limit(1);
     const [taskRow] = await db.select().from(botSetting).where(eq(botSetting.key, 'ai.task.configs')).limit(1);
