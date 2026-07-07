@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Home,
   BarChart3,
@@ -97,8 +97,10 @@ interface KPICardProps {
 function KPICard({ title, value, icon, change, urgent, href, loading }: KPICardProps) {
   const content = (
     <div
-      className={`bg-surface-container-lowest border rounded-2xl p-5 transition-all duration-200 group ${
-        urgent ? 'border-orange-200 bg-orange-50 hover:border-orange-300' : 'border-outline-variant hover:border-outline'
+      className={`group rounded-[1.6rem] border p-5 transition-all duration-200 ${
+        urgent
+          ? 'border-orange-200 bg-[linear-gradient(180deg,#fff7ed_0%,#fff1e1_100%)] hover:border-orange-300'
+          : 'border-outline-variant bg-surface-container-lowest hover:border-outline hover:shadow-[0_16px_36px_rgba(47,36,28,0.06)]'
       }`}
     >
       <div className="flex items-start justify-between mb-3">
@@ -172,14 +174,11 @@ const modules = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { data, loading } = useKPI();
   const worker = useWorkerStatus();
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
-
-  useEffect(() => {
-    setActiveTab(searchParams.get('tab') === 'analytics' ? 'analytics' : 'overview');
-  }, [searchParams]);
+  const activeTab = searchParams.get('tab') === 'analytics' ? 'analytics' : 'overview';
 
   const pendapatanChange = pctChange(data?.pendapatan_hari_ini ?? 0, data?.pendapatan_kemarin ?? 0);
   const orderChange = pctChange(data?.order_hari_ini ?? 0, data?.order_kemarin ?? 0);
@@ -187,13 +186,14 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-semibold tracking-[-0.04em] text-on-surface">Dashboard</h2>
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-on-surface-variant">Ringkasan Operasional</p>
+        <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-on-surface">Dashboard</h2>
         <p className="text-on-surface-variant mt-2 text-sm leading-6">
           Ringkasan penjualan, pesanan, dan aktivitas AI Rumah Keripik hari ini.
         </p>
       </div>
 
-      <div className="flex gap-1 bg-surface-container border border-outline-variant rounded-2xl p-1 w-full md:w-fit">
+      <div className="flex gap-1 rounded-2xl border border-outline-variant bg-surface-container p-1 w-full md:w-fit">
         {[
           { key: 'overview' as const, label: 'Beranda', icon: Home },
           { key: 'analytics' as const, label: 'Analitik', icon: BarChart3 },
@@ -203,7 +203,7 @@ export default function DashboardPage() {
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => router.replace(tab.key === 'analytics' ? '/dashboard?tab=analytics' : '/dashboard')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-label-md text-label-md transition-all ${
                 isActive ? 'bg-surface-container-lowest text-on-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]' : 'text-on-surface-variant hover:text-on-surface'
               }`}
@@ -256,8 +256,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
-            worker?.online ? 'bg-surface-container-lowest border-outline-variant' : 'bg-orange-50 border-orange-200'
+          <div className={`rounded-[1.8rem] border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
+            worker?.online
+              ? 'bg-[linear-gradient(135deg,rgba(255,249,241,0.96)_0%,rgba(237,243,223,0.88)_100%)] border-outline-variant'
+              : 'bg-[linear-gradient(135deg,#fff7ed_0%,#fff1e1_100%)] border-orange-200'
           }`}>
             <div className="flex items-start gap-3">
               <div className={`p-2.5 rounded-xl ${worker?.online ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -297,7 +299,7 @@ export default function DashboardPage() {
                   <Link
                     key={module.href}
                     href={module.href}
-                    className="group bg-surface-container-lowest rounded-2xl border border-outline-variant transition-all duration-200 p-6 hover:border-outline"
+                    className="group rounded-[1.7rem] border border-outline-variant bg-surface-container-lowest p-6 transition-all duration-200 hover:border-outline hover:shadow-[0_16px_36px_rgba(47,36,28,0.06)]"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className={`p-3 rounded-lg ${module.color}`}>

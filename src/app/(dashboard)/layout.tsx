@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -78,20 +78,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifCounts>({ pending_verifikasi: 0, unread_chats: 0 });
   const pathname = usePathname();
-  const [dateStr, setDateStr] = useState('');
-
-  useEffect(() => {
-    setDateStr(
-      new Date().toLocaleDateString('id-ID', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    );
-  }, []);
-
-  const prevCountsRef = useRef({ pending_verifikasi: 0, unread_chats: 0 });
+  const dateStr = new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'Asia/Makassar',
+  }).format(new Date());
 
   useEffect(() => {
     async function fetchNotifs() {
@@ -99,7 +92,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const res = await fetch('/api/admin/notification-counts');
         if (!res.ok) return;
         const data: NotifCounts = await res.json();
-        prevCountsRef.current = data;
         setNotifs(data);
       } catch { /* ignore */ }
     }
@@ -114,12 +106,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      <div className="p-4">
-        <div className="flex items-center gap-3 rounded-2xl px-2 py-2">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-sm font-semibold text-on-primary">RK</div>
-          <div>
-            <h1 className="text-sm font-semibold tracking-[-0.01em] text-on-surface">Rumah Keripik</h1>
-            <p className="text-xs text-on-surface-variant">Admin workspace</p>
+      <div className="border-b border-outline-variant/70 p-4">
+        <div className="rounded-[1.4rem] border border-outline-variant/70 bg-surface-container-lowest px-3 py-3 shadow-[0_12px_28px_rgba(47,36,28,0.05)]">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-on-primary shadow-[0_10px_24px_rgba(107,68,35,0.16)]">RK</div>
+            <div>
+              <h1 className="text-sm font-semibold tracking-[0.12em] text-on-surface">RUMAH KERIPIK</h1>
+              <p className="text-xs text-on-surface-variant">Admin workspace</p>
+            </div>
           </div>
         </div>
       </div>
@@ -135,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => { setSidebarOpen(false); if (navigator.vibrate) navigator.vibrate(10); }}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? 'bg-surface-container text-on-surface shadow-[inset_2px_0_0_#d97706]'
+                  ? 'bg-surface-container-lowest text-on-surface border border-outline-variant shadow-[inset_3px_0_0_#d6a24a,0_10px_24px_rgba(47,36,28,0.05)]'
                   : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
               }`}
             >
@@ -173,7 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <NotificationPoller />
     <div className="flex h-screen overflow-hidden bg-surface">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex w-sidebar-width flex-col bg-surface-container-low border-r border-outline-variant">
+      <aside className="hidden lg:flex w-sidebar-width flex-col bg-[linear-gradient(180deg,rgba(255,249,241,0.95)_0%,rgba(246,239,228,0.92)_100%)] border-r border-outline-variant">
         {sidebarContent}
       </aside>
 
@@ -182,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setSidebarOpen(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <aside
-            className="relative w-72 h-full bg-surface-container-low border-r border-outline-variant shadow-[0_18px_50px_rgba(15,23,42,0.12)] animate-in slide-in-from-left"
+            className="relative h-full w-72 border-r border-outline-variant bg-[linear-gradient(180deg,rgba(255,249,241,0.98)_0%,rgba(246,239,228,0.96)_100%)] shadow-[0_18px_50px_rgba(47,36,28,0.12)] animate-in slide-in-from-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-end p-4">
@@ -198,7 +192,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="bg-surface-container-lowest/90 backdrop-blur px-container-padding h-16 flex items-center justify-between shrink-0 sticky top-0 z-30 border-b border-outline-variant">
+        <header className="bg-surface-container-lowest/92 backdrop-blur px-container-padding h-16 flex items-center justify-between shrink-0 sticky top-0 z-30 border-b border-outline-variant shadow-[0_8px_20px_rgba(47,36,28,0.04)]">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -254,7 +248,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
             </div>
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary font-semibold text-sm overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary font-semibold text-sm overflow-hidden shadow-[0_10px_24px_rgba(107,68,35,0.18)]">
               <span>AP</span>
             </div>
           </div>

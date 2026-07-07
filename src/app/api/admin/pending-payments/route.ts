@@ -54,7 +54,12 @@ export async function GET() {
           total_bayar: row.total_bayar,
           bukti_url: row.bukti_transfer_url,
           waktu_simpan: row.waktu_simpan,
-          channel: row.sumber_order?.toLowerCase() === 'wa' ? 'wa' : 'wa',
+          channel:
+            row.sumber_order?.toLowerCase() === 'telegram'
+              ? 'telegram'
+              : row.sumber_order?.toLowerCase() === 'wa'
+                ? 'wa'
+                : 'web',
           nama_pelanggan: row.nama_pelanggan || row.nama_penerima || 'Tidak diketahui',
           items,
         };

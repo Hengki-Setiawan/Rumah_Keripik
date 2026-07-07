@@ -83,16 +83,7 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
     };
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [period]);
-
-  useEffect(() => {
-    if (!mapInstance || !data.length) return;
-    updateMapLayers();
-  }, [mapInstance, data, mode]);
-
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       const res = await fetch(`/api/analytics/location/heatmap?period=${period}`);
@@ -105,9 +96,9 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
       console.error('[Heatmap] Fetch error:', err);
     }
     setLoading(false);
-  };
+  }
 
-  const updateMapLayers = async () => {
+  async function updateMapLayers() {
     if (!mapInstance) return;
     const L = (await import('leaflet')).default;
 
@@ -145,9 +136,18 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
               : 'Pesanan',
           );
       });
-      markerGroup.addTo(mapInstance);
-    }
-  };
+        markerGroup.addTo(mapInstance);
+      }
+  }
+
+  useEffect(() => {
+    fetchData().catch(() => undefined);
+  }, [period]);
+
+  useEffect(() => {
+    if (!mapInstance || !data.length) return;
+    updateMapLayers().catch(() => undefined);
+  }, [mapInstance, data, mode]);
 
   return (
     <div className="space-y-4">

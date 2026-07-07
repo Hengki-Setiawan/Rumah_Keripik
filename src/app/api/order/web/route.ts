@@ -230,7 +230,7 @@ export async function POST(req: Request) {
         nama_penerima: payload.customer.name,
         alamat_penerima: payload.address.text,
         no_hp_penerima: normalizedPhone,
-        sumber_order: payload.source === 'telegram' ? 'Telegram' : 'Offline',
+        sumber_order: payload.source === 'telegram' ? 'Telegram' : 'WA',
         lat_pengiriman: lat,
         lng_pengiriman: lng,
         order_status: orderStatus,
