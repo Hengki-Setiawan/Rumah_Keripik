@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { chatSessions, customerSessions } from '@/lib/schema';
 import { CUSTOMER_SESSION_COOKIE, ensureCustomerSession, hashCustomerSessionToken } from '@/lib/chat-v3/session';
 
-export async function GET(req: Request) {
+export async function GET() {
   const token = (await cookies()).get(CUSTOMER_SESSION_COOKIE)?.value;
   if (!token) return NextResponse.json({ ok: true, sessions: [] });
 
@@ -26,9 +26,32 @@ export async function GET(req: Request) {
   return NextResponse.json({ ok: true, sessions });
 }
 
-export async function POST(req: Request) {
-  const customerSession = await ensureCustomerSession(req, (await cookies()).get(CUSTOMER_SESSION_COOKIE)?.value);
+export async function POST(request: Request) {
+  const customerSession = await ensureCustomerSession(request, (await cookies()).get(CUSTOMER_SESSION_COOKIE)?.value);
   const { ensureActiveChatSession } = await import('@/lib/chat-v3/session');
   const { chatSession } = await ensureActiveChatSession(customerSession.session.id);
   return NextResponse.json({ ok: true, chatSession: { id: chatSession.id, title: chatSession.title, status: chatSession.status } });
+}
+
+export async function DELETE() {
+  const token = (await cookies()).get(CUSTOMER_SESSION_COOKIE)?.value;
+  if (!token) return NextResponse.json({ ok: true, deleted: 0 });
+
+  const [customerSession] = await db
+    .select()
+    .from(customerSessions)
+    .where(eq(customerSessions.sessionTokenHash, hashCustomerSessionToken(token)))
+    .limit(1);
+  if (!customerSession) return NextResponse.json({ ok: true, deleted: 0 });
+
+  const sessions = await db
+    .select({ id: chatSessions.id })
+    .from(chatSessions)
+    .where(eq(chatSessions.customerSessionId, customerSession.id));
+
+  for (const session of sessions) {
+    await db.delete(chatSessions).where(eq(chatSessions.id, session.id));
+  }
+
+  return NextResponse.json({ ok: true, deleted: sessions.length });
 }

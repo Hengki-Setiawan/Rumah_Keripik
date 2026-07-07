@@ -123,7 +123,20 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
     };
   }
 
-  if (/status|lacak|pesanan/.test(lower)) {
+  if (/(ubah|ganti|edit).*(nama|nomor|wa|whatsapp|penerima|alamat)|^(nama|nomor|alamat) (baru|saya)/.test(lower)) {
+    return {
+      reply: /alamat/.test(lower)
+        ? 'Siap kak, kita ubah alamat pengiriman dulu ya.'
+        : 'Siap kak, kita perbarui data penerima dulu ya.',
+      intent: /alamat/.test(lower) ? 'request_location' : 'ask_customer_data',
+      components: /alamat/.test(lower)
+        ? [{ type: 'location_picker', mode: 'both' }]
+        : [{ type: 'order_summary', orderDraftId: chatSessionId }],
+      confidence: 0.95,
+    };
+  }
+
+  if (/status|lacak|cek pesanan|pesanan saya/.test(lower)) {
     if (customerContext.lastOrder) {
       return {
         reply: 'Ini status pesanan terakhir kak.',

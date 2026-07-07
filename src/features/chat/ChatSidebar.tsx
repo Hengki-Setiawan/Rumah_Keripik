@@ -21,6 +21,7 @@ import {
   PackageSearch,
   ShoppingBag,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 
 export type ChatSessionSummary = {
@@ -166,6 +167,8 @@ export function ChatSidebar({
   onSelectSession,
   onToggleCompact,
   onQuickAction,
+  onDeleteSession,
+  onClearSessions,
   loadingSessionId,
 }: {
   sessions: ChatSessionSummary[];
@@ -177,6 +180,8 @@ export function ChatSidebar({
   onSelectSession?: (sessionId: string) => void;
   onToggleCompact?: () => void;
   onQuickAction?: (action: string, payload?: Record<string, unknown>) => void;
+  onDeleteSession?: (sessionId: string) => void;
+  onClearSessions?: () => void;
   loadingSessionId?: string | null;
 }) {
   return (
@@ -244,7 +249,18 @@ export function ChatSidebar({
         <div className="mt-6 min-h-0 flex-1 overflow-hidden">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a08973]">Riwayat chat</p>
-            <span className="text-[11px] text-[#9b8772]">{sessions.length}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#9b8772]">{sessions.length}</span>
+              {sessions.length > 0 && onClearSessions && (
+                <button
+                  type="button"
+                  onClick={onClearSessions}
+                  className="rounded-full px-2 py-1 text-[11px] font-medium text-[#a45a38] transition hover:bg-[#f7eddf] hover:text-[#8b4222]"
+                >
+                  Hapus semua
+                </button>
+              )}
+            </div>
           </div>
           <div className="h-full overflow-y-auto pr-1 scrollbar-thin [scrollbar-color:#ccaf8f_transparent]">
             <div className="space-y-2 pb-4">
@@ -254,28 +270,44 @@ export function ChatSidebar({
                 </p>
               ) : (
                 sessions.map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    type="button"
-                    onClick={() => onSelectSession?.(session.id)}
-                    disabled={loadingSessionId === session.id}
-                    className={`w-full rounded-[1.15rem] px-3 py-2.5 text-left transition ${
+                    className={`group w-full rounded-[1.15rem] px-3 py-2.5 transition ${
                       activeId === session.id ? 'bg-[#fff9f2]' : 'hover:bg-[#fbf1e4]'
                     } ${loadingSessionId === session.id ? 'cursor-wait opacity-70' : ''}`}
                   >
-                    <p className="truncate text-sm font-semibold text-[#2f241c]">
-                      {session.title || 'Pesanan Baru'}
-                    </p>
-                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#927d6a]">
-                      <span className="rounded-full bg-[#fde8d9] px-2 py-0.5 font-medium text-[#c55a2b]">
-                        {statusLabel(session.status)}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock3 size={11} />
-                        {formatSessionTime(session.updatedAt)}
-                      </span>
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onSelectSession?.(session.id)}
+                        disabled={loadingSessionId === session.id}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <p className="truncate text-sm font-semibold text-[#2f241c]">
+                          {session.title || 'Pesanan Baru'}
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#927d6a]">
+                          <span className="rounded-full bg-[#fde8d9] px-2 py-0.5 font-medium text-[#c55a2b]">
+                            {statusLabel(session.status)}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock3 size={11} />
+                            {formatSessionTime(session.updatedAt)}
+                          </span>
+                        </div>
+                      </button>
+                      {onDeleteSession && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteSession(session.id)}
+                          className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#a08973] opacity-0 transition hover:bg-[#f7eddf] hover:text-[#9f3c21] group-hover:opacity-100"
+                          aria-label="Hapus riwayat chat"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 ))
               )}
             </div>

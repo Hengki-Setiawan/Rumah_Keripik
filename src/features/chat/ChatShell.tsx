@@ -149,7 +149,7 @@ export function ChatShell() {
     setError('');
 
     try {
-      const sessionId = await ensureSession();
+      const sessionId = await ensureSession(isIdle);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -197,6 +197,47 @@ export function ChatShell() {
     }
   }
 
+  async function deleteSession(sessionId: string) {
+    setError('');
+    try {
+      const response = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Riwayat chat gagal dihapus');
+
+      setSessions((current) => current.filter((item) => item.id !== sessionId));
+      if (chatSessionId === sessionId) {
+        setChatSessionId('');
+        setMessages([]);
+        setCart(null);
+        setStarted(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Riwayat chat gagal dihapus');
+    }
+  }
+
+  async function clearSessions() {
+    setError('');
+    try {
+      const response = await fetch('/api/chat/sessions', {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Riwayat chat gagal dihapus');
+
+      setSessions([]);
+      setChatSessionId('');
+      setMessages([]);
+      setCart(null);
+      setStarted(false);
+      setSidebarOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Riwayat chat gagal dihapus');
+    }
+  }
+
   const isIdle = !started && messages.length === 0 && !loading && !sending;
 
   return (
@@ -216,6 +257,8 @@ export function ChatShell() {
             onNewOrder={startNewOrder}
             onSelectSession={openSession}
             onQuickAction={runAction}
+            onDeleteSession={deleteSession}
+            onClearSessions={clearSessions}
             loadingSessionId={sessionLoadingId}
           />
         </motion.div>
@@ -244,6 +287,8 @@ export function ChatShell() {
                   onNewOrder={startNewOrder}
                   onSelectSession={openSession}
                   onQuickAction={runAction}
+                  onDeleteSession={deleteSession}
+                  onClearSessions={clearSessions}
                   loadingSessionId={sessionLoadingId}
                 />
               </motion.div>

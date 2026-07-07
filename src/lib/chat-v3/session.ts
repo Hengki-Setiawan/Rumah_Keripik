@@ -87,6 +87,13 @@ export async function ensureActiveChatSession(customerSessionId: string) {
 
 export async function createChatSession(customerSessionId: string) {
   const chatSessionId = generateIdChatSession();
+  await db
+    .update(chatSessions)
+    .set({
+      status: 'archived',
+      updatedAt: sql`(datetime('now', 'utc'))`,
+    })
+    .where(and(eq(chatSessions.customerSessionId, customerSessionId), eq(chatSessions.status, 'active')));
   await db.insert(chatSessions).values({
     id: chatSessionId,
     customerSessionId,

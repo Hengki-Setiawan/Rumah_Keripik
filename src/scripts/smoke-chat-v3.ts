@@ -44,6 +44,84 @@ async function main() {
   const sessionsData = await sessionsRes.json().catch(() => null);
   results.push({ name: 'owned session list includes chat', status: sessionsRes.status, ok: sessionsRes.status === 200 && sessionsData?.sessions?.some((item: { id: string }) => item.id === chatSessionId) });
 
+  const manualEditRes = await fetch(`${baseUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookieHeader() },
+    body: JSON.stringify({ chatSessionId, message: 'Saya mau ubah alamat pengiriman' }),
+    redirect: 'manual',
+  });
+  const manualEditData = await manualEditRes.json().catch(() => null);
+  results.push({
+    name: 'manual typed address edit understood',
+    status: manualEditRes.status,
+    ok: manualEditRes.status === 200 && manualEditData?.response?.intent === 'request_location',
+    detail: manualEditData?.response?.intent,
+  });
+
+  const helpRes = await fetch(`${baseUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookieHeader() },
+    body: JSON.stringify({ chatSessionId, message: 'Saya butuh bantuan admin' }),
+    redirect: 'manual',
+  });
+  const helpData = await helpRes.json().catch(() => null);
+  results.push({
+    name: 'manual typed admin handoff understood',
+    status: helpRes.status,
+    ok: helpRes.status === 200 && helpData?.response?.intent === 'handoff_to_admin',
+    detail: helpData?.response?.intent,
+  });
+
+  const newSessionRes = await fetch(`${baseUrl}/api/customer/session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookieHeader() },
+    body: JSON.stringify({ forceNew: true }),
+    redirect: 'manual',
+  });
+  captureCookies(newSessionRes);
+  const newSessionData = await newSessionRes.json().catch(() => null);
+  const newChatSessionId = newSessionData?.chatSession?.id;
+  results.push({
+    name: 'force new chat session creates different session',
+    status: newSessionRes.status,
+    ok: newSessionRes.status === 200 && Boolean(newChatSessionId) && newChatSessionId !== chatSessionId,
+    detail: newChatSessionId,
+  });
+
+  const deleteSingleRes = await fetch(`${baseUrl}/api/chat/sessions/${encodeURIComponent(newChatSessionId || '')}`, {
+    method: 'DELETE',
+    headers: { Cookie: cookieHeader() },
+    redirect: 'manual',
+  });
+  const deleteSingleData = await deleteSingleRes.json().catch(() => null);
+  results.push({
+    name: 'single chat history delete works',
+    status: deleteSingleRes.status,
+    ok: deleteSingleRes.status === 200 && deleteSingleData?.ok === true,
+  });
+
+  const clearAllRes = await fetch(`${baseUrl}/api/chat/sessions`, {
+    method: 'DELETE',
+    headers: { Cookie: cookieHeader() },
+    redirect: 'manual',
+  });
+  const clearAllData = await clearAllRes.json().catch(() => null);
+  results.push({
+    name: 'clear all chat history works',
+    status: clearAllRes.status,
+    ok: clearAllRes.status === 200 && clearAllData?.ok === true,
+    detail: String(clearAllData?.deleted ?? ''),
+  });
+
+  const sessionsAfterDeleteRes = await fetch(`${baseUrl}/api/chat/sessions`, { headers: { Cookie: cookieHeader() }, redirect: 'manual' });
+  const sessionsAfterDeleteData = await sessionsAfterDeleteRes.json().catch(() => null);
+  results.push({
+    name: 'chat history empty after clear all',
+    status: sessionsAfterDeleteRes.status,
+    ok: sessionsAfterDeleteRes.status === 200 && Array.isArray(sessionsAfterDeleteData?.sessions) && sessionsAfterDeleteData.sessions.length === 0,
+    detail: String(sessionsAfterDeleteData?.sessions?.length ?? ''),
+  });
+
   const forbiddenStateRes = await fetch(`${baseUrl}/api/chat/state?chatSessionId=${encodeURIComponent(chatSessionId || '')}`, { redirect: 'manual' });
   results.push({ name: 'chat state without cookie denied', status: forbiddenStateRes.status, ok: [302, 307, 401, 403].includes(forbiddenStateRes.status) });
 

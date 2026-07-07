@@ -36,6 +36,22 @@ interface WorkerStatus {
   workers: { worker_id: string; worker_name: string | null; seconds_ago: number | null; online: boolean }[];
 }
 
+interface PublicOrderOpsData {
+  summary: {
+    orders30d: number;
+    chatOrders30d: number;
+  };
+  recentChatOrders: Array<{
+    id: string;
+    code: string | null;
+    recipient: string | null;
+    total: number;
+    paymentStatus: string;
+    orderStatus: string;
+    createdAt: string;
+  }>;
+}
+
 function useKPI() {
   const [data, setData] = useState<KPIData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +83,21 @@ function useWorkerStatus() {
     fetchStatus().catch(() => {});
     const interval = setInterval(() => fetchStatus().catch(() => {}), 15000);
     return () => clearInterval(interval);
+  }, []);
+
+  return data;
+}
+
+function usePublicOrderOps() {
+  const [data, setData] = useState<PublicOrderOpsData | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      const res = await fetch('/api/analytics/public-order-operations');
+      if (res.ok) setData(await res.json());
+    }
+
+    fetchData().catch(() => {});
   }, []);
 
   return data;
@@ -180,6 +211,7 @@ export default function DashboardPage() {
   const searchParams = useSearchParams();
   const { data, loading } = useKPI();
   const worker = useWorkerStatus();
+  const publicOrderOps = usePublicOrderOps();
   const activeTab = searchParams.get('tab') === 'analytics' ? 'analytics' : 'overview';
 
   const pendapatanChange = pctChange(data?.pendapatan_hari_ini ?? 0, data?.pendapatan_kemarin ?? 0);
@@ -427,6 +459,46 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
+            </div>
+          </section>
+
+          <section className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Channel /pesan</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Order yang masuk dari AI chat</h2>
+                <p className="mt-2 text-sm text-[#776454]">
+                  Memastikan channel web chat benar-benar terbaca sebagai sumber order yang terpisah.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#fff1db] px-4 py-2 text-sm font-semibold text-[#c55a2b]">
+                <Bot size={16} />
+                {publicOrderOps?.summary.chatOrders30d ?? 0} order chat / 30 hari
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              {(publicOrderOps?.recentChatOrders || []).map((order) => (
+                <Link
+                  key={order.id}
+                  href="/transaksi"
+                  className="rounded-[1.35rem] border border-[#f0dfca] bg-[#fffaf3] p-4 transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a08973]">
+                    {order.code || order.id}
+                  </p>
+                  <p className="mt-2 truncate text-sm font-semibold text-[#2f241c]">{order.recipient || 'Customer web'}</p>
+                  <p className="mt-1 text-sm text-[#776454]">{formatRupiah(order.total)}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-full bg-[#eef6dd] px-2 py-0.5 font-semibold text-[#5d7b20]">
+                      {order.orderStatus.replace(/_/g, ' ')}
+                    </span>
+                    <span className="rounded-full bg-[#fde8d9] px-2 py-0.5 font-semibold text-[#c55a2b]">
+                      {order.paymentStatus.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                </Link>
+              ))}
             </div>
           </section>
         </>
