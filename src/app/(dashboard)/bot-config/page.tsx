@@ -86,6 +86,12 @@ export default function BotConfigPage() {
     if (nextTab === 'rules' || nextTab === 'kb' || nextTab === 'logs' || nextTab === 'analytics' || nextTab === 'menu') {
       setTab(nextTab);
     }
+    const prefillJudul = searchParams.get('judul');
+    const prefillTeks = searchParams.get('teks');
+    if (nextTab === 'kb' && (prefillJudul || prefillTeks)) {
+      setKbForm((current) => ({ ...current, judul: prefillJudul || current.judul, teks: prefillTeks || current.teks, kategori: 'FAQ' }));
+      setShowKbForm(true);
+    }
   }, [searchParams]);
 
   useEffect(() => {

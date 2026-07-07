@@ -9,6 +9,7 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { scorePaymentProof } from '@/lib/payment-proof-scoring';
 import { applyDuplicateSignalsToVerification, detectPaymentDuplicateSignals } from '@/lib/payment-duplicate';
 import { canUploadPaymentProof, getPaymentProofUploadBlockReason } from '@/lib/order-status-policy';
+import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 
 export async function POST(req: Request) {
   const rate = checkRateLimit(`public-proof-complete:${getClientIp(req)}`, 12, 60_000);
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
     });
   });
 
+  await notifyChatForOrderEvent(parsed.data.orderId, 'payment_uploaded');
   return NextResponse.json({ ok: true, proofId });
 }
 

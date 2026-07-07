@@ -13,6 +13,7 @@ interface Message {
 interface LLMResult {
   text: string;
   provider: 'groq-70b' | 'groq-8b' | 'gemini';
+  model?: string;
   tokensUsed?: number;
 }
 
@@ -106,6 +107,7 @@ export async function callGroqLLM(
       return {
         text,
         provider: i === 0 ? 'groq-70b' : 'groq-8b',
+        model: modelConfig.model,
         tokensUsed: data.usage?.total_tokens,
       };
     } catch (error) {
@@ -176,6 +178,7 @@ async function callGeminiLLM(
     return {
       text,
       provider: 'gemini',
+      model: 'gemini-2.0-flash',
     };
   } catch (error) {
     console.error('❌ Error Gemini:', error);

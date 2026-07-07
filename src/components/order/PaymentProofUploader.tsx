@@ -6,9 +6,10 @@ import { UploadCloud } from 'lucide-react';
 type Props = {
   orderId: string;
   statusToken: string;
+  onUploaded?: () => void;
 };
 
-export function PaymentProofUploader({ orderId, statusToken }: Props) {
+export function PaymentProofUploader({ orderId, statusToken, onUploaded }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [amountClaimed, setAmountClaimed] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,7 +74,8 @@ export function PaymentProofUploader({ orderId, statusToken }: Props) {
 
       setFile(null);
       setAmountClaimed('');
-       setMessage('Bukti pembayaran berhasil diupload. Admin akan cek dan memperbarui status pesanan.');
+      setMessage('Bukti pembayaran berhasil diupload. Admin akan cek dan memperbarui status pesanan.');
+      onUploaded?.();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Upload gagal');
     } finally {

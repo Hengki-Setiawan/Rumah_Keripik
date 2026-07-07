@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { orderStatusHistory, paymentIntent, transaksi } from '@/lib/schema';
 import { isUnauthorizedAdminError, requireAdminActor } from '@/lib/admin-actor';
 import { canRejectCod } from '@/lib/order-status-policy';
+import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -24,5 +25,6 @@ export async function POST(_req: Request, context: RouteContext) {
     if (isUnauthorizedAdminError(error)) return NextResponse.json({ ok: false, error: 'Login admin diperlukan' }, { status: 401 });
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal reject COD' }, { status: 409 });
   }
+  await notifyChatForOrderEvent(id, 'order_cancelled');
   return NextResponse.json({ ok: true });
 }

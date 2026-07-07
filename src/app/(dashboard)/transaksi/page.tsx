@@ -206,6 +206,23 @@ export default function TransaksiHubPage() {
     }
   }
 
+  async function handleOrderStatus(id: string, orderStatus: 'processing' | 'shipping' | 'completed' | 'cancelled') {
+    const labels = { processing: 'diproses', shipping: 'dikirim', completed: 'selesai', cancelled: 'dibatalkan' };
+    if (!confirm(`Tandai order ini ${labels[orderStatus]} dan kirim update ke chat?`)) return;
+    const res = await fetch(`/api/admin/orders/${encodeURIComponent(id)}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderStatus }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      addToast('success', `Status order ${labels[orderStatus]} dan notifikasi chat dikirim`);
+      fetchMainData();
+    } else {
+      addToast('error', data.error || 'Gagal update status order');
+    }
+  }
+
   // Helpers
   function formatDate(ts: string) {
     return new Date(ts + 'Z').toLocaleString('id-ID', { timeZone: 'Asia/Makassar' });
@@ -448,6 +465,21 @@ export default function TransaksiHubPage() {
                                 <FileText size={16} />
                               </a>
                             )}
+                            <button
+                              onClick={() => handleOrderStatus(tx.id_transaksi, 'processing')}
+                              className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700"
+                              title="Tandai diproses + notify chat"
+                            >Proses</button>
+                            <button
+                              onClick={() => handleOrderStatus(tx.id_transaksi, 'shipping')}
+                              className="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-700"
+                              title="Tandai dikirim + notify chat"
+                            >Kirim</button>
+                            <button
+                              onClick={() => handleOrderStatus(tx.id_transaksi, 'completed')}
+                              className="rounded-md bg-green-50 px-2 py-1 text-[10px] font-bold text-green-700"
+                              title="Tandai selesai + notify chat"
+                            >Selesai</button>
                             <button
                               onClick={() => setTrackingTx(trackingTx === tx.id_transaksi ? null : tx.id_transaksi)}
                               className={`p-1.5 rounded-lg transition-colors ${trackingTx === tx.id_transaksi ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'}`}

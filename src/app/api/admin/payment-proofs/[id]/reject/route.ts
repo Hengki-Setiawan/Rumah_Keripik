@@ -5,6 +5,7 @@ import { orderStatusHistory, paymentIntent, paymentProof, transaksi } from '@/li
 import { PaymentProofDecisionSchema } from '@/lib/validators/payment';
 import { isUnauthorizedAdminError, requireAdminActor } from '@/lib/admin-actor';
 import { canRejectPaymentProof } from '@/lib/order-status-policy';
+import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -34,5 +35,6 @@ export async function POST(req: Request, context: RouteContext) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal reject pembayaran' }, { status: 409 });
   }
 
+  await notifyChatForOrderEvent(proof.id_transaksi, 'payment_rejected', { note: parsed.data.note });
   return NextResponse.json({ ok: true });
 }

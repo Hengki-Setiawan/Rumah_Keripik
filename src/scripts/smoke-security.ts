@@ -68,6 +68,35 @@ async function main() {
     },
   });
 
+  checks.push({
+    name: 'chat send rejects missing customer session cookie',
+    run: async () => {
+      const res = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatSessionId: 'CHS-forbidden-smoke', message: 'halo' }),
+        redirect: 'manual',
+      });
+      return { status: res.status, ok: [302, 307, 401, 403, 404].includes(res.status) };
+    },
+  });
+
+  checks.push({
+    name: 'chat state rejects missing customer session cookie',
+    run: async () => {
+      const res = await fetch(`${baseUrl}/api/chat/state?chatSessionId=CHS-forbidden-smoke`, { redirect: 'manual' });
+      return { status: res.status, ok: [302, 307, 401, 403, 404].includes(res.status) };
+    },
+  });
+
+  checks.push({
+    name: 'chat stream rejects missing customer session cookie',
+    run: async () => {
+      const res = await fetch(`${baseUrl}/api/chat/stream?chatSessionId=CHS-forbidden-smoke`, { redirect: 'manual' });
+      return { status: res.status, ok: [302, 307, 401, 403, 404].includes(res.status) };
+    },
+  });
+
   const results = [];
   for (const check of checks) {
     const result = await check.run();

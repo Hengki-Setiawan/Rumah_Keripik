@@ -1,7 +1,7 @@
 import { db } from './db';
 import { produk, transaksi, warungRetail } from './schema';
 import { desc, like } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 
 const MAX_ID_RETRIES = 5;
 
@@ -72,4 +72,52 @@ export function generateOrderStatusToken(): string {
 
 export function generateIdPaymentProof(): string {
   return `PAY-${randomUUID()}`;
+}
+
+export function generateIdCustomerSession(): string {
+  return `CSS-${randomUUID()}`;
+}
+
+export function generateIdChatSession(): string {
+  return `CHS-${randomUUID()}`;
+}
+
+export function generateIdChatMessage(): string {
+  return `CHM-${randomUUID()}`;
+}
+
+export function generateIdChatCart(): string {
+  return `CRT-${randomUUID()}`;
+}
+
+export function generateIdChatCartItem(): string {
+  return `CTI-${randomUUID()}`;
+}
+
+export function generateIdCustomerMemory(): string {
+  return `MEM-${randomUUID()}`;
+}
+
+export function generateIdAiRun(): string {
+  return `AIR-${randomUUID()}`;
+}
+
+export function generateIdAiToolCall(): string {
+  return `AIT-${randomUUID()}`;
+}
+
+export function generateIdRecommendationEvent(): string {
+  return `REC-${randomUUID()}`;
+}
+
+export function generateIdAiLearningEvent(): string {
+  return `AIE-${randomUUID()}`;
+}
+
+export function generateIdAdminAuditLog(): string {
+  return `AUD-${randomUUID()}`;
+}
+
+export function generateSecureSessionToken(): string {
+  return randomBytes(32).toString('base64url');
 }

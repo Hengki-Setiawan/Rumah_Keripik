@@ -12,6 +12,35 @@ export async function requireAdminActor() {
   return actor;
 }
 
+export async function requireAdminRole(permission: 'chat:manage' | 'payment:verify' | 'order:update' | 'audit:read') {
+  const actor = await requireAdminActor();
+  const roleMap = parseRoleMap(process.env.ADMIN_ROLE_MAP);
+  const role = roleMap[actor] || roleMap['*'] || 'owner';
+  const allowed = role === 'owner' || rolePermissions[role]?.includes(permission);
+  if (!allowed) throw new Error('FORBIDDEN_ADMIN_PERMISSION');
+  return { actor, role };
+}
+
 export function isUnauthorizedAdminError(error: unknown) {
   return error instanceof Error && error.message === 'UNAUTHORIZED_ADMIN';
+}
+
+export function isForbiddenAdminPermissionError(error: unknown) {
+  return error instanceof Error && error.message === 'FORBIDDEN_ADMIN_PERMISSION';
+}
+
+const rolePermissions: Record<string, Array<'chat:manage' | 'payment:verify' | 'order:update' | 'audit:read'>> = {
+  operator: ['chat:manage', 'order:update'],
+  finance: ['payment:verify', 'audit:read'],
+  viewer: ['audit:read'],
+};
+
+function parseRoleMap(value?: string) {
+  if (!value) return {} as Record<string, string>;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, string> : {};
+  } catch {
+    return {} as Record<string, string>;
+  }
 }

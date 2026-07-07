@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { createClient } from '@libsql/client';
 import { z } from 'zod';
+import { searchKnowledgeBase } from '@/lib/knowledge/retrieval';
 
 const SearchSchema = z.object({
-  vector: z.array(z.number().finite()).min(1).max(3072),
+  query: z.string().min(1).max(800).optional(),
+  vector: z.array(z.number().finite()).min(1).max(3072).optional(),
   top_k: z.number().int().min(1).max(20).default(3),
-});
+}).refine((value) => value.query || value.vector, { message: 'query atau vector wajib diisi' });
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -16,36 +17,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = SearchSchema.parse(await req.json());
-
-    const client = createClient({
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN!,
-    });
-
-    const vectorStr = `[${body.vector.join(',')}]`;
-
-    const result = await client.execute({
-      sql: `
-        SELECT id, judul, potongan_teks, kategori,
-               vector_distance_cos(vector_embedding, vector(?)) AS distance
-        FROM ai_knowledge_base
-        WHERE is_active = 1 AND vector_embedding IS NOT NULL
-        ORDER BY distance
-        LIMIT ?
-      `,
-      args: [vectorStr, body.top_k],
-    });
-
-    const chunks = result.rows
-      .filter((row) => (row.distance as number) < 0.4)
-      .map((row) => ({
-        id: row.id,
-        judul: row.judul,
-        teks: row.potongan_teks,
-        kategori: row.kategori,
-        score: 1 - (row.distance as number),
-      }));
-
+    const chunks = await searchKnowledgeBase({ query: body.query, vector: body.vector, topK: body.top_k });
     return NextResponse.json({ success: true, chunks });
   } catch (error) {
     console.error('[RAG Search] Error:', error);

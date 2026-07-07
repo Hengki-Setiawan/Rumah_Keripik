@@ -944,7 +944,261 @@ export const deliveryRoutePoint = sqliteTable(
   })
 );
 
+// ─── CHAT V3 — AI CONVERSATIONAL COMMERCE ───────────────────────────────────
+export const customerSessions = sqliteTable(
+  'customer_sessions',
+  {
+    id: text('id').primaryKey(),
+    customerId: text('customer_id').references(() => customerProfile.id_customer),
+    sessionTokenHash: text('session_token_hash').notNull().unique(),
+    anonymousLabel: text('anonymous_label'),
+    userAgentHash: text('user_agent_hash'),
+    ipHash: text('ip_hash'),
+    lastSeenAt: text('last_seen_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    expiresAt: text('expires_at').notNull(),
+    revokedAt: text('revoked_at'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    tokenIdx: index('idx_customer_sessions_token_hash').on(table.sessionTokenHash),
+    customerIdx: index('idx_customer_sessions_customer').on(table.customerId),
+    lastSeenIdx: index('idx_customer_sessions_last_seen').on(table.lastSeenAt),
+  })
+);
+
+export const chatSessions = sqliteTable(
+  'chat_sessions',
+  {
+    id: text('id').primaryKey(),
+    customerId: text('customer_id').references(() => customerProfile.id_customer),
+    customerSessionId: text('customer_session_id')
+      .notNull()
+      .references(() => customerSessions.id, { onDelete: 'cascade' }),
+    title: text('title'),
+    status: text('status', { enum: ['active', 'needs_admin', 'closed', 'archived'] }).notNull().default('active'),
+    aiMode: text('ai_mode', { enum: ['enabled', 'manual', 'paused'] }).notNull().default('enabled'),
+    assignedAdminId: text('assigned_admin_id'),
+    activeOrderId: text('active_order_id').references(() => transaksi.id_transaksi),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    sessionIdx: index('idx_chat_sessions_customer_session').on(table.customerSessionId, table.updatedAt),
+    customerIdx: index('idx_chat_sessions_customer').on(table.customerId),
+    statusIdx: index('idx_chat_sessions_status').on(table.status, table.updatedAt),
+    orderIdx: index('idx_chat_sessions_order').on(table.activeOrderId),
+  })
+);
+
+export const chatMessages = sqliteTable(
+  'chat_messages',
+  {
+    id: text('id').primaryKey(),
+    chatSessionId: text('chat_session_id')
+      .notNull()
+      .references(() => chatSessions.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['user', 'assistant', 'admin', 'system', 'tool'] }).notNull(),
+    content: text('content').notNull().default(''),
+    componentJson: text('component_json'),
+    metadataJson: text('metadata_json'),
+    tokenEstimate: integer('token_estimate'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    sessionTimeIdx: index('idx_chat_messages_session_time').on(table.chatSessionId, table.createdAt),
+    roleIdx: index('idx_chat_messages_role').on(table.role),
+  })
+);
+
+export const chatCarts = sqliteTable(
+  'chat_carts',
+  {
+    id: text('id').primaryKey(),
+    chatSessionId: text('chat_session_id')
+      .notNull()
+      .references(() => chatSessions.id, { onDelete: 'cascade' }),
+    customerId: text('customer_id').references(() => customerProfile.id_customer),
+    status: text('status', { enum: ['active', 'converted', 'abandoned'] }).notNull().default('active'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    sessionStatusIdx: index('idx_chat_carts_session_status').on(table.chatSessionId, table.status),
+    customerIdx: index('idx_chat_carts_customer').on(table.customerId),
+  })
+);
+
+export const chatCartItems = sqliteTable(
+  'chat_cart_items',
+  {
+    id: text('id').primaryKey(),
+    cartId: text('cart_id')
+      .notNull()
+      .references(() => chatCarts.id, { onDelete: 'cascade' }),
+    productId: text('product_id')
+      .notNull()
+      .references(() => produk.id_produk, { onDelete: 'restrict' }),
+    variantId: text('variant_id').references(() => produkVarian.id_varian),
+    quantity: integer('quantity').notNull(),
+    priceSnapshot: integer('price_snapshot').notNull(),
+    note: text('note'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    cartIdx: index('idx_chat_cart_items_cart').on(table.cartId),
+    productUnique: unique('uq_chat_cart_items_cart_product_variant').on(table.cartId, table.productId, table.variantId),
+  })
+);
+
+export const customerMemoryV3 = sqliteTable(
+  'customer_memory_v3',
+  {
+    id: text('id').primaryKey(),
+    customerId: text('customer_id')
+      .notNull()
+      .references(() => customerProfile.id_customer, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    value: text('value').notNull(),
+    confidence: integer('confidence').notNull().default(70),
+    source: text('source', { enum: ['chat', 'order', 'admin', 'system'] }).notNull().default('system'),
+    visibility: text('visibility', { enum: ['ai', 'admin', 'both'] }).notNull().default('both'),
+    reviewedByAdmin: integer('reviewed_by_admin').notNull().default(0),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    customerKeyIdx: index('idx_customer_memory_v3_customer_key').on(table.customerId, table.key),
+  })
+);
+
+export const aiRuns = sqliteTable(
+  'ai_runs',
+  {
+    id: text('id').primaryKey(),
+    chatSessionId: text('chat_session_id').references(() => chatSessions.id, { onDelete: 'set null' }),
+    messageId: text('message_id'),
+    task: text('task').notNull(),
+    provider: text('provider').notNull(),
+    model: text('model').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    latencyMs: integer('latency_ms'),
+    status: text('status', { enum: ['success', 'error', 'fallback'] }).notNull(),
+    errorMessage: text('error_message'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    chatIdx: index('idx_ai_runs_chat').on(table.chatSessionId, table.createdAt),
+    taskIdx: index('idx_ai_runs_task').on(table.task, table.createdAt),
+  })
+);
+
+export const aiToolCalls = sqliteTable(
+  'ai_tool_calls',
+  {
+    id: text('id').primaryKey(),
+    aiRunId: text('ai_run_id').references(() => aiRuns.id, { onDelete: 'cascade' }),
+    chatSessionId: text('chat_session_id').references(() => chatSessions.id, { onDelete: 'set null' }),
+    toolName: text('tool_name').notNull(),
+    inputJson: text('input_json'),
+    outputJson: text('output_json'),
+    status: text('status', { enum: ['success', 'error'] }).notNull().default('success'),
+    latencyMs: integer('latency_ms'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    runIdx: index('idx_ai_tool_calls_run').on(table.aiRunId),
+    chatIdx: index('idx_ai_tool_calls_chat').on(table.chatSessionId, table.createdAt),
+    toolIdx: index('idx_ai_tool_calls_tool').on(table.toolName),
+  })
+);
+
+export const recommendationEvents = sqliteTable(
+  'recommendation_events',
+  {
+    id: text('id').primaryKey(),
+    chatSessionId: text('chat_session_id').references(() => chatSessions.id, { onDelete: 'set null' }),
+    customerId: text('customer_id').references(() => customerProfile.id_customer, { onDelete: 'set null' }),
+    eventType: text('event_type', { enum: ['shown', 'clicked', 'added_to_cart', 'ordered'] }).notNull(),
+    productIdsJson: text('product_ids_json').notNull().default('[]'),
+    selectedProductId: text('selected_product_id').references(() => produk.id_produk, { onDelete: 'set null' }),
+    reason: text('reason'),
+    metadataJson: text('metadata_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    chatIdx: index('idx_recommendation_events_chat').on(table.chatSessionId, table.createdAt),
+    customerIdx: index('idx_recommendation_events_customer').on(table.customerId, table.createdAt),
+    typeIdx: index('idx_recommendation_events_type').on(table.eventType, table.createdAt),
+  })
+);
+
+export const aiLearningEvents = sqliteTable(
+  'ai_learning_events',
+  {
+    id: text('id').primaryKey(),
+    eventType: text('event_type').notNull(),
+    chatSessionId: text('chat_session_id').references(() => chatSessions.id, { onDelete: 'set null' }),
+    customerIdHash: text('customer_id_hash'),
+    intent: text('intent'),
+    productIdsJson: text('product_ids_json').notNull().default('[]'),
+    outcome: text('outcome'),
+    rating: integer('rating'),
+    metadataJson: text('metadata_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    eventIdx: index('idx_ai_learning_events_type').on(table.eventType, table.createdAt),
+    chatIdx: index('idx_ai_learning_events_chat').on(table.chatSessionId, table.createdAt),
+    intentIdx: index('idx_ai_learning_events_intent').on(table.intent, table.createdAt),
+  })
+);
+
+export const adminAuditLog = sqliteTable(
+  'admin_audit_log',
+  {
+    id: text('id').primaryKey(),
+    actor: text('actor').notNull(),
+    action: text('action').notNull(),
+    resourceType: text('resource_type').notNull(),
+    resourceId: text('resource_id'),
+    ipHash: text('ip_hash'),
+    userAgentHash: text('user_agent_hash'),
+    metadataJson: text('metadata_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    actorIdx: index('idx_admin_audit_actor').on(table.actor, table.createdAt),
+    actionIdx: index('idx_admin_audit_action').on(table.action, table.createdAt),
+    resourceIdx: index('idx_admin_audit_resource').on(table.resourceType, table.resourceId, table.createdAt),
+  })
+);
+
 // ─── TYPES ───────────────────────────────────────────────────────────────────
+export type CustomerSession = typeof customerSessions.$inferSelect;
+export type InsertCustomerSession = typeof customerSessions.$inferInsert;
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type InsertChatSession = typeof chatSessions.$inferInsert;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+export type ChatCart = typeof chatCarts.$inferSelect;
+export type InsertChatCart = typeof chatCarts.$inferInsert;
+export type ChatCartItem = typeof chatCartItems.$inferSelect;
+export type InsertChatCartItem = typeof chatCartItems.$inferInsert;
+export type CustomerMemoryV3 = typeof customerMemoryV3.$inferSelect;
+export type InsertCustomerMemoryV3 = typeof customerMemoryV3.$inferInsert;
+export type AiRun = typeof aiRuns.$inferSelect;
+export type InsertAiRun = typeof aiRuns.$inferInsert;
+export type AiToolCall = typeof aiToolCalls.$inferSelect;
+export type InsertAiToolCall = typeof aiToolCalls.$inferInsert;
+export type RecommendationEvent = typeof recommendationEvents.$inferSelect;
+export type InsertRecommendationEvent = typeof recommendationEvents.$inferInsert;
+export type AiLearningEvent = typeof aiLearningEvents.$inferSelect;
+export type InsertAiLearningEvent = typeof aiLearningEvents.$inferInsert;
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertAdminAuditLog = typeof adminAuditLog.$inferInsert;
+
 export type PelangganChatbot = typeof pelangganChatbot.$inferSelect;
 export type InsertPelangganChatbot = typeof pelangganChatbot.$inferInsert;
 

@@ -6,10 +6,72 @@
 
 const EMBEDDING_MODEL = 'models/gemini-embedding-001';
 const EMBEDDING_DIMENSIONS = 3072; // F32, dari Gemini embedding-001
+const DEFAULT_TEXT_MODEL = 'gemini-2.0-flash';
 
 interface EmbeddingResult {
   embedding: number[];
   tokensUsed?: number;
+}
+
+type GeminiChatMessage = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+};
+
+type GeminiTextResult = {
+  text: string;
+  provider: 'gemini';
+  model: string;
+  tokensUsed?: number;
+};
+
+export async function generateGeminiText(
+  messages: GeminiChatMessage[],
+  maxTokens: number = 220,
+  temperature: number = 0.2,
+  systemPrompt?: string,
+  model: string = DEFAULT_TEXT_MODEL
+): Promise<GeminiTextResult> {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey) throw new Error('GEMINI_API_KEY tidak ditemukan di environment');
+
+  const mergedSystemPrompt = [
+    systemPrompt,
+    ...messages.filter((message) => message.role === 'system').map((message) => message.content),
+  ].filter(Boolean).join('\n\n');
+
+  const contents = messages
+    .filter((message) => message.role !== 'system')
+    .map((message) => ({
+      role: message.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: message.content }],
+    }));
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...(mergedSystemPrompt ? { system_instruction: { parts: [{ text: mergedSystemPrompt }] } } : {}),
+        contents,
+        generationConfig: { maxOutputTokens: maxTokens, temperature },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Gemini gagal (${response.status}): ${text.slice(0, 500)}`);
+  }
+
+  const data = await response.json();
+  return {
+    text: data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || '').join('') || '',
+    provider: 'gemini',
+    model,
+    tokensUsed: data.usageMetadata?.totalTokenCount,
+  };
 }
 
 /**

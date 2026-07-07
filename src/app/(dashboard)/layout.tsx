@@ -22,6 +22,9 @@ import {
   ShieldAlert,
   Plus,
   CreditCard,
+  Activity,
+  Route,
+  Brain,
 } from 'lucide-react';
 import { ToastProvider, useToast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/modal';
@@ -37,8 +40,13 @@ const menuItems = [
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/transaksi', label: 'Transaksi & Pengiriman', icon: ShoppingCart },
   { href: '/pembayaran/verifikasi', label: 'Verifikasi Pembayaran', icon: CreditCard },
-  { href: '/livechat', label: 'Hub Komunikasi', icon: MessageSquare },
+  { href: '/hub-komunikasi', label: 'Hub Komunikasi V3', icon: MessageSquare },
+  { href: '/livechat', label: 'Livechat WA/Telegram', icon: MessageSquare },
   { href: '/bot-config', label: 'Knowledge Base & AI', icon: Bot },
+  { href: '/ai-monitor', label: 'AI Monitor', icon: Activity },
+  { href: '/ai-skills', label: 'AI Skills', icon: Brain },
+  { href: '/model-router', label: 'Model Router', icon: Route },
+  { href: '/feedback-learning', label: 'Feedback Learning', icon: Brain },
 ];
 
 function NotificationPoller() {

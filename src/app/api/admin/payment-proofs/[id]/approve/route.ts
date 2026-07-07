@@ -3,8 +3,10 @@ import { and, eq, ne, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { detailTransaksi, orderStatusHistory, paymentIntent, paymentProof, produk, produkVarian, transaksi } from '@/lib/schema';
 import { PaymentProofDecisionSchema } from '@/lib/validators/payment';
-import { isUnauthorizedAdminError, requireAdminActor } from '@/lib/admin-actor';
+import { isForbiddenAdminPermissionError, isUnauthorizedAdminError, requireAdminRole } from '@/lib/admin-actor';
 import { canApprovePaymentProof } from '@/lib/order-status-policy';
+import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
+import { logAdminAudit } from '@/lib/admin-audit';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -20,8 +22,10 @@ export async function POST(req: Request, context: RouteContext) {
   if (!order) return NextResponse.json({ ok: false, error: 'Pesanan tidak ditemukan' }, { status: 404 });
   if (!canApprovePaymentProof(order, proof)) return NextResponse.json({ ok: false, error: 'Bukti pembayaran tidak bisa di-approve pada status saat ini' }, { status: 409 });
 
+  let actor = 'admin';
   try {
-    const actor = await requireAdminActor();
+    const role = await requireAdminRole('payment:verify');
+    actor = role.actor;
     await db.transaction(async (tx) => {
     const [stockDeducted] = await tx
       .select({ id: orderStatusHistory.id })
@@ -57,8 +61,11 @@ export async function POST(req: Request, context: RouteContext) {
     });
   } catch (error) {
     if (isUnauthorizedAdminError(error)) return NextResponse.json({ ok: false, error: 'Login admin diperlukan' }, { status: 401 });
+    if (isForbiddenAdminPermissionError(error)) return NextResponse.json({ ok: false, error: 'Admin tidak punya izin verifikasi pembayaran' }, { status: 403 });
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal approve pembayaran' }, { status: 409 });
   }
 
+  await logAdminAudit({ actor, action: 'approve_payment_proof', resourceType: 'payment_proof', resourceId: id, metadata: { orderId: proof.id_transaksi } });
+  await notifyChatForOrderEvent(proof.id_transaksi, 'payment_verified');
   return NextResponse.json({ ok: true });
 }
