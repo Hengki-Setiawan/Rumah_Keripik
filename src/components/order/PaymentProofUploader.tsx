@@ -84,22 +84,22 @@ export function PaymentProofUploader({ orderId, statusToken, onUploaded }: Props
   }
 
   return (
-    <div className="mt-6 rounded-[1.5rem] border border-[#e0bd82] bg-[#fff8e8] p-5">
+    <div className="mt-6 rounded-[1.5rem] border border-[#e5e7eb] bg-[#f7f7f8] p-5">
       <div className="flex items-center gap-3">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#8d4b00] text-white">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#111827] text-white">
           <UploadCloud size={22} />
         </div>
         <div>
-          <p className="font-black">Upload bukti pembayaran</p>
-          <p className="text-sm text-[#735033]">JPG, PNG, atau WEBP maksimal 5 MB. Pastikan nominal terlihat jelas.</p>
+          <p className="font-semibold">Upload bukti pembayaran</p>
+          <p className="text-sm text-[#6b7280]">JPG, PNG, atau WEBP maksimal 5 MB. Pastikan nominal terlihat jelas.</p>
         </div>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px]">
-        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} className="rounded-xl border border-[#d8b77c] bg-white px-3 py-3" />
-        <input value={amountClaimed} onChange={(event) => setAmountClaimed(event.target.value)} inputMode="numeric" placeholder="Nominal bayar" className="rounded-xl border border-[#d8b77c] bg-white px-3 py-3" />
+        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} className="rounded-xl border border-[#d1d5db] bg-white px-3 py-3 text-sm" />
+        <input value={amountClaimed} onChange={(event) => setAmountClaimed(event.target.value)} inputMode="numeric" placeholder="Nominal bayar" className="rounded-xl border border-[#d1d5db] bg-white px-3 py-3 text-sm outline-none focus:border-[#111827]/30" />
       </div>
-      {message && <p className="mt-3 text-sm font-bold text-[#7a3f00]">{message}</p>}
-      <button onClick={upload} disabled={loading} className="mt-4 rounded-2xl bg-[#1f7a3d] px-5 py-3 font-black text-white transition hover:bg-[#176033] disabled:opacity-60">
+      {message && <p className="mt-3 text-sm font-medium text-[#4b5563]">{message}</p>}
+      <button onClick={upload} disabled={loading} className="mt-4 rounded-2xl bg-[#111827] px-5 py-3 font-medium text-white transition hover:bg-[#374151] disabled:opacity-60">
         {loading ? 'Mengupload...' : 'Upload Bukti'}
       </button>
     </div>

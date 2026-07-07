@@ -35,18 +35,18 @@ interface NotifCounts {
 }
 
 const menuItems = [
-  { href: '/dashboard', label: 'Beranda & Analitik', icon: Home },
+  { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/transaksi', label: 'Transaksi & Pengiriman', icon: ShoppingCart },
   { href: '/pembayaran/verifikasi', label: 'Verifikasi Pembayaran', icon: CreditCard },
-  { href: '/hub-komunikasi', label: 'Hub Komunikasi V3', icon: MessageSquare },
-  { href: '/livechat', label: 'Livechat WA/Telegram', icon: MessageSquare },
-  { href: '/bot-config', label: 'Knowledge Base & AI', icon: Bot },
+  { href: '/hub-komunikasi', label: 'Chat Hub', icon: MessageSquare },
+  { href: '/livechat', label: 'Livechat', icon: MessageSquare },
+  { href: '/bot-config', label: 'Knowledge Base', icon: Bot },
   { href: '/ai-monitor', label: 'AI Monitor', icon: Activity },
   { href: '/ai-skills', label: 'AI Skills', icon: Brain },
   { href: '/model-router', label: 'Model Router', icon: Route },
-  { href: '/feedback-learning', label: 'Feedback Learning', icon: Brain },
+  { href: '/feedback-learning', label: 'Feedback', icon: Brain },
 ];
 
 function NotificationPoller() {
@@ -62,10 +62,10 @@ function NotificationPoller() {
         const data: NotifCounts = await res.json();
 
         if (prev.pending_verifikasi > 0 && data.pending_verifikasi > prev.pending_verifikasi) {
-          addToast('success', `🔔 ${data.pending_verifikasi - prev.pending_verifikasi} pembayaran baru perlu diverifikasi`);
+          addToast('success', `${data.pending_verifikasi - prev.pending_verifikasi} pembayaran baru perlu diverifikasi`);
         }
         if (prev.unread_chats > 0 && data.unread_chats > prev.unread_chats) {
-          addToast('info', `💬 ${data.unread_chats - prev.unread_chats} chat baru masuk`);
+          addToast('info', `${data.unread_chats - prev.unread_chats} chat baru masuk`);
         }
         prev = data;
       } catch { /* ignore */ }
@@ -124,11 +124,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      <div className="p-6">
-        <h1 className="font-headline-sm text-headline-sm font-bold text-primary">Rumah Kripik Admin</h1>
+      <div className="p-4">
+        <div className="flex items-center gap-3 rounded-2xl px-2 py-2">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-sm font-semibold text-on-primary">RK</div>
+          <div>
+            <h1 className="text-sm font-semibold tracking-[-0.01em] text-on-surface">Rumah Keripik</h1>
+            <p className="text-xs text-on-surface-variant">Admin workspace</p>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-1 px-2 pb-4 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 flex flex-col gap-1 px-3 pb-4 overflow-y-auto scrollbar-thin">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -137,16 +143,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 onClick={() => { setSidebarOpen(false); if (navigator.vibrate) navigator.vibrate(10); }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? 'bg-secondary-container text-on-secondary-container'
-                  : 'text-on-surface-variant hover:bg-surface-container-high'
+                  ? 'bg-surface-container text-on-surface shadow-[inset_2px_0_0_#d97706]'
+                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
               }`}
             >
-              <Icon size={20} />
-              <span className="font-label-md text-label-md flex-1">{item.label}</span>
+              <Icon size={18} />
+              <span className="text-sm font-medium flex-1">{item.label}</span>
               {item.href === '/transaksi' && notifs.pending_verifikasi > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-error text-on-error text-[10px] font-bold">
+                <span className="px-1.5 py-0.5 rounded-full bg-error text-on-error text-[10px] font-medium">
                   {notifs.pending_verifikasi}
                 </span>
               )}
@@ -155,13 +161,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         })}
       </nav>
 
-      <div className="p-4 border-t border-outline-variant/30">
+      <div className="p-4 border-t border-outline-variant">
         <button
           onClick={() => setLogoutOpen(true)}
-          className="w-full flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded-xl transition-colors"
         >
-          <LogOut size={20} />
-          <span className="font-label-md text-label-md">Logout</span>
+          <LogOut size={18} />
+          <span className="text-sm font-medium">Logout</span>
         </button>
       </div>
     </div>
@@ -175,9 +181,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ToastProvider>
     <NotificationPoller />
-    <div className="flex h-screen overflow-hidden bg-surface-cream">
+    <div className="flex h-screen overflow-hidden bg-surface">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex w-sidebar-width flex-col bg-surface-container-low border-r border-outline-variant/30">
+      <aside className="hidden lg:flex w-sidebar-width flex-col bg-surface-container-low border-r border-outline-variant">
         {sidebarContent}
       </aside>
 
@@ -186,11 +192,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setSidebarOpen(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <aside
-            className="relative w-72 h-full bg-surface-container-low border-r border-outline-variant/30 shadow-xl animate-in slide-in-from-left"
+            className="relative w-72 h-full bg-surface-container-low border-r border-outline-variant shadow-[0_18px_50px_rgba(15,23,42,0.12)] animate-in slide-in-from-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-end p-4">
-              <button onClick={() => setSidebarOpen(false)} className="p-1 hover:bg-surface-container-high rounded-lg text-on-surface-variant">
+              <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-surface-container rounded-xl text-on-surface-variant">
                 <X size={20} />
               </button>
             </div>
@@ -202,39 +208,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="bg-surface px-container-padding h-16 flex items-center justify-between shrink-0 sticky top-0 z-30">
+        <header className="bg-surface-container-lowest/90 backdrop-blur px-container-padding h-16 flex items-center justify-between shrink-0 sticky top-0 z-30 border-b border-outline-variant">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-1 hover:bg-surface-container rounded-lg text-on-surface-variant"
+              className="lg:hidden p-2 hover:bg-surface-container rounded-xl text-on-surface-variant"
             >
               <Menu size={20} />
             </button>
             <div>
-              <h2 className="font-headline-sm text-headline-sm text-on-surface leading-tight">{currentLabel}</h2>
+              <h2 className="text-lg font-semibold tracking-[-0.02em] text-on-surface leading-tight">{currentLabel}</h2>
               <p className="font-caption text-caption text-on-surface-variant hidden md:block">{dateStr}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="relative">
-              <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2 hover:bg-surface-container rounded-full text-primary transition-colors">
+              <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2 hover:bg-surface-container rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
                 <Bell size={20} />
                 {totalNotif > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 px-1.5 py-0.5 rounded-full bg-error text-on-error text-[10px] font-bold leading-none">
+                  <span className="absolute -top-0.5 -right-0.5 px-1.5 py-0.5 rounded-full bg-error text-on-error text-[10px] font-medium leading-none">
                     {totalNotif > 99 ? '99+' : totalNotif}
                   </span>
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-surface-container-lowest border border-neutral-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                  <div className="p-3 border-b border-outline-variant/20">
-                    <p className="font-label-md text-label-md text-on-surface">Notifikasi</p>
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-[0_16px_44px_rgba(15,23,42,0.10)] z-50 overflow-hidden">
+                  <div className="p-3 border-b border-outline-variant">
+                    <p className="text-sm font-semibold text-on-surface">Notifikasi</p>
                   </div>
                   <div className="p-2 space-y-1">
                     {notifs.pending_verifikasi > 0 ? (
                       <Link href="/transaksi" onClick={() => setNotifOpen(false)}
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container transition-colors">
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container transition-colors">
                         <ShieldAlert size={18} className="text-warning shrink-0" />
                         <div>
                           <p className="text-sm font-medium">{notifs.pending_verifikasi} pembayaran perlu diverifikasi</p>
@@ -246,7 +252,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     )}
                     {notifs.unread_chats > 0 && (
                       <Link href="/livechat" onClick={() => setNotifOpen(false)}
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container transition-colors">
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container transition-colors">
                         <MessageSquare size={18} className="text-primary shrink-0" />
                         <div>
                           <p className="text-sm font-medium">{notifs.unread_chats} pesan belum dibaca</p>
@@ -258,7 +264,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
             </div>
-            <div className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-sm border-2 border-surface-container-highest overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary font-semibold text-sm overflow-hidden">
               <span>AP</span>
             </div>
           </div>
@@ -270,9 +276,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
 
         {/* Bottom Nav - Mobile */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-outline-variant/20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around items-center h-16 px-2 pb-safe">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur border-t border-outline-variant flex justify-around items-center h-16 px-2 pb-safe">
           {[
-            { href: '/', label: 'Home', icon: Home },
+            { href: '/dashboard', label: 'Home', icon: Home },
             { href: '/master-data/pelanggan', label: 'Mitra', icon: Users },
             { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
             { href: '/livechat', label: 'Chat Hub', icon: MessageSquare },
@@ -284,8 +290,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1 rounded-full transition-colors ${
-                  isActive ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'
+                className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-full transition-colors ${
+                  isActive ? 'bg-surface-container text-on-surface' : 'text-on-surface-variant'
                 }`}
               >
                 <Icon size={20} />
@@ -298,7 +304,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* FAB — Tambah Transaksi (Mobile) */}
         <Link
           href="/transaksi?action=baru"
-          className="lg:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full bg-primary text-on-primary shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95"
+          className="lg:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full bg-primary text-on-primary shadow-[0_10px_30px_rgba(15,23,42,0.16)] flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95"
         >
           <Plus size={22} />
         </Link>

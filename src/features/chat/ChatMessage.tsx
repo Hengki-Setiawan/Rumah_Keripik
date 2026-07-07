@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot, UserRound } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatComponentRenderer } from './ChatComponentRenderer';
 
@@ -11,23 +11,18 @@ export function ChatMessage({ message, cart, onSend, onAction }: { message: Chat
   return (
     <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
-        <div className={`mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl ${isSystem ? 'bg-[#fff0c2] text-[#8d4b00]' : 'bg-[#123524] text-white'}`}>
-          <Bot size={18} />
+        <div className={`mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${isSystem ? 'border border-[#e5e7eb] bg-white text-[#6b7280]' : 'bg-[#10a37f] text-white'}`}>
+          <Bot size={16} />
         </div>
       )}
-      <div className={`max-w-[88%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
-        <div className={`rounded-[1.35rem] px-4 py-3 text-sm font-semibold leading-6 shadow-sm ${isUser ? 'rounded-br-sm bg-[#2a1606] text-white' : isSystem ? 'border border-[#e7c88c] bg-[#fff8e8] text-[#5e3d22]' : 'rounded-bl-sm bg-white text-[#2a1606]'}`}>
+      <div className={`max-w-[88%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-3 md:max-w-[78%]`}>
+        <div className={`rounded-[1.35rem] px-4 py-3 text-[15px] leading-7 ${isUser ? 'rounded-br-md bg-[#111827] text-white' : isSystem ? 'rounded-bl-md border border-[#e5e7eb] bg-[#f9fafb] text-[#4b5563]' : 'rounded-bl-md border border-[#e5e7eb] bg-white text-[#111827]'}`}>
           <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
         {message.components.length > 0 && (
           <ChatComponentRenderer components={message.components} cart={cart} onSend={onSend} onAction={onAction} />
         )}
       </div>
-      {isUser && (
-        <div className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#ffe1aa] text-[#7a3f00]">
-          <UserRound size={18} />
-        </div>
-      )}
     </div>
   );
 }

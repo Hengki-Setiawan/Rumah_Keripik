@@ -55,8 +55,8 @@ export default function AdminGuidePage() {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {sections.map((section) => (
-          <section key={section.title} className="rounded-2xl border bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-black">{section.title}</h2>
+          <section key={section.title} className="rounded-2xl border border-outline-variant bg-white p-5">
+            <h2 className="text-xl font-semibold tracking-[-0.02em]">{section.title}</h2>
             <ol className="mt-4 space-y-3 text-sm text-on-surface-variant">
               {section.steps.map((step, index) => <li key={step} className="rounded-xl bg-neutral-50 p-3"><b>{index + 1}.</b> {step}</li>)}
             </ol>

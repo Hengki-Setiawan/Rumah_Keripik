@@ -12,10 +12,10 @@ export default function OpsSmokePage() {
       <div><h1 className="font-headline-lg text-headline-lg text-on-surface">Operational Smoke Checklist</h1><p className="text-on-surface-variant">Checklist ringkas sebelum staging/production. Dokumen lengkap ada di SMOKE_TEST.md.</p></div>
       <div className="grid gap-4 md:grid-cols-2">
         {groups.map((group) => (
-          <section key={group.title} className="rounded-2xl border bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-black">{group.title}</h2>
+          <section key={group.title} className="rounded-2xl border border-outline-variant bg-white p-5">
+            <h2 className="text-xl font-semibold tracking-[-0.02em]">{group.title}</h2>
             <div className="mt-4 space-y-2">
-              {group.items.map((item) => <label key={item} className="flex items-center gap-3 rounded-xl bg-neutral-50 p-3 text-sm font-bold"><input type="checkbox" className="h-4 w-4" /> {item}</label>)}
+              {group.items.map((item) => <label key={item} className="flex items-center gap-3 rounded-xl bg-neutral-50 p-3 text-sm font-medium"><input type="checkbox" className="h-4 w-4" /> {item}</label>)}
             </div>
           </section>
         ))}

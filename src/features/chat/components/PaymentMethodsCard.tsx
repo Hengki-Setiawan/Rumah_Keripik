@@ -20,19 +20,19 @@ export function PaymentMethodsCard({ component, onAction }: { component: Payment
       })
       .catch(() => undefined);
     return () => { cancelled = true; };
-  }, [component.methodIds.join('|')]);
+  }, [component.methodIds]);
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {methods.map((method) => (
-        <button key={method.id} type="button" onClick={() => onAction('select_payment_method', { methodId: method.id })} className="rounded-[1.3rem] border border-[#e8c98d] bg-white p-4 text-left shadow-sm">
-          {method.type === 'cod' ? <Truck className="mb-2 text-[#8d4b00]" /> : <Store className="mb-2 text-[#8d4b00]" />}
-          <p className="font-black text-[#2a1606]">{method.label}</p>
-          <p className="mt-1 text-xs font-bold text-[#735033]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Pembayaran dicek manual admin')}</p>
-          {method.accountNumber && <p className="mt-2 text-xs font-bold text-[#2a1606]">{method.bankName}: {method.accountNumber}</p>}
+        <button key={method.id} type="button" onClick={() => onAction('select_payment_method', { methodId: method.id })} className="rounded-2xl border border-[#e5e7eb] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-[#d1d5db] hover:bg-[#f7f7f8]">
+          {method.type === 'cod' ? <Truck className="mb-2 text-[#6b7280]" /> : <Store className="mb-2 text-[#6b7280]" />}
+          <p className="font-semibold text-[#111827]">{method.label}</p>
+          <p className="mt-1 text-xs leading-5 text-[#6b7280]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Pembayaran dicek manual admin')}</p>
+          {method.accountNumber && <p className="mt-2 text-xs font-medium text-[#111827]">{method.bankName}: {method.accountNumber}</p>}
         </button>
       ))}
-      {methods.length === 0 && <div className="rounded-3xl bg-white p-4 text-sm font-bold text-[#735033]">Metode pembayaran belum tersedia.</div>}
+      {methods.length === 0 && <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 text-sm text-[#6b7280]">Metode pembayaran belum tersedia.</div>}
     </div>
   );
 }

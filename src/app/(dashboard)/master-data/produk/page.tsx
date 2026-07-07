@@ -123,17 +123,6 @@ export default function ProdukPage() {
     );
   });
 
-  const productGradients = [
-    'from-amber-200 to-orange-300',
-    'from-yellow-200 to-amber-300',
-    'from-green-200 to-emerald-300',
-    'from-rose-200 to-pink-300',
-    'from-purple-200 to-violet-300',
-    'from-sky-200 to-blue-300',
-    'from-teal-200 to-cyan-300',
-    'from-red-200 to-rose-300',
-  ];
-
   if (loading) {
     return (
       <div>
@@ -192,27 +181,26 @@ export default function ProdukPage() {
           const isLowStock = product.stok_gudang_utama > 0 && product.stok_gudang_utama <= 10;
           const isOutStock = product.stok_gudang_utama === 0;
           const isBestSeller = idx === 0 && product.is_active;
-          const gradient = productGradients[idx % productGradients.length];
           return (
             <div
               key={product.id_produk}
-              className={`group bg-surface-container-lowest border border-neutral-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col ${
+              className={`group bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden transition-all duration-200 hover:border-outline flex flex-col ${
                 !product.is_active ? 'opacity-60 grayscale-[0.5]' : ''
               }`}
             >
-              <div className={`relative h-48 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-                <Package size={72} className="text-white/40" />
-                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-primary font-mono text-[11px] font-bold shadow-sm">
+              <div className="relative flex h-40 items-center justify-center border-b border-outline-variant bg-surface-container-low">
+                <Package size={42} className="text-on-surface-variant/35" />
+                <div className="absolute left-3 top-3 rounded-full border border-outline-variant bg-white px-2.5 py-1 font-mono text-[11px] font-medium text-on-surface-variant">
                   {product.id_produk}
                 </div>
                 {isBestSeller && (
-                  <div className="absolute top-3 right-3 bg-secondary px-2 py-1 rounded text-white font-label-md text-[10px] uppercase tracking-wider">
+                  <div className="absolute right-3 top-3 rounded-full bg-secondary-container px-2.5 py-1 text-[10px] font-medium text-on-secondary-container">
                     Best Seller
                   </div>
                 )}
                 {!product.is_active && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <span className="bg-white text-on-surface font-label-md px-3 py-1 rounded-full border border-neutral-200">
+                    <span className="bg-white text-on-surface font-medium text-xs px-3 py-1 rounded-full border border-neutral-200">
                       Nonaktif
                     </span>
                   </div>
@@ -221,9 +209,9 @@ export default function ProdukPage() {
 
               <div className="p-stack-md flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-headline-sm text-headline-sm text-on-surface">{product.nama_produk}</h3>
+                  <h3 className="font-semibold text-lg tracking-[-0.02em] text-on-surface">{product.nama_produk}</h3>
                   <div className="text-right">
-                    <p className="font-headline-sm text-headline-sm text-primary">
+                    <p className="text-lg font-semibold tracking-[-0.02em] text-primary">
                       {formatRupiahDesign(product.harga_jual)}
                     </p>
                     <p className="font-caption text-caption text-on-surface-variant italic">per bungkus</p>
@@ -235,19 +223,19 @@ export default function ProdukPage() {
                 )}
 
                 <div className="flex items-center gap-2 mb-stack-md">
-                  <Package size={16} className="text-secondary" />
+                  <Package size={16} className="text-on-surface-variant" />
                   <span className="font-body-md text-body-md">
-                    Stok: <span className={`font-bold ${isOutStock ? 'text-error' : isLowStock ? 'text-error' : 'text-on-surface'}`}>
+                    Stok: <span className={`font-semibold ${isOutStock ? 'text-error' : isLowStock ? 'text-error' : 'text-on-surface'}`}>
                       {product.stok_gudang_utama} pcs
                     </span>
                   </span>
                   {isLowStock && (
-                    <span className="ml-auto flex items-center text-[10px] text-error font-bold bg-error-container px-1.5 py-0.5 rounded">
+                    <span className="ml-auto flex items-center rounded-full bg-error-container px-2 py-0.5 text-[10px] font-medium text-error">
                       <AlertCircle size={12} className="mr-1" /> Low
                     </span>
                   )}
                   {!isLowStock && !isOutStock && product.stok_gudang_utama > 0 && (
-                    <span className="ml-auto flex items-center text-[10px] text-neutral-500 font-bold bg-surface-container-high px-1.5 py-0.5 rounded">
+                    <span className="ml-auto flex items-center rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-medium text-neutral-500">
                       <TrendingUp size={12} className="mr-1" /> Stable
                     </span>
                   )}
@@ -313,14 +301,14 @@ export default function ProdukPage() {
           setEditingId(null);
           setFormData({ nama_produk: '', deskripsi: '', harga_jual: 0, stok_gudang_utama: 0, kategori_id: '', image_url: '', cloudinary_public_id: '', sort_order: 0 });
         }}
-        className="fixed bottom-20 right-6 lg:hidden w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-50"
+        className="fixed bottom-20 right-6 lg:hidden w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_10px_30px_rgba(15,23,42,0.16)] flex items-center justify-center active:scale-90 transition-transform z-50"
       >
         <Plus size={28} />
       </button>
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-surface-container-lowest rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface-container-lowest rounded-2xl shadow-[0_18px_60px_rgba(15,23,42,0.12)] w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-outline-variant/20">
               <h2 className="font-headline-md text-headline-md text-on-surface">
                 {editingId ? 'Edit Produk' : 'Tambah Produk Baru'}

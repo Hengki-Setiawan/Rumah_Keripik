@@ -82,6 +82,10 @@ export async function ensureActiveChatSession(customerSessionId: string) {
     return { chatSession: existing, isNew: false };
   }
 
+  return createChatSession(customerSessionId);
+}
+
+export async function createChatSession(customerSessionId: string) {
   const chatSessionId = generateIdChatSession();
   await db.insert(chatSessions).values({
     id: chatSessionId,

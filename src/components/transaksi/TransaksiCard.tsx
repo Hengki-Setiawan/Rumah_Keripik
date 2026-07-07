@@ -26,12 +26,12 @@ interface TransaksiCardProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  Lunas: 'bg-green-100 text-green-700',
-  Piutang: 'bg-red-100 text-red-700',
+  Lunas: 'bg-emerald-50 text-emerald-700',
+  Piutang: 'bg-red-50 text-red-700',
   Tidak_Lunas: 'bg-gray-100 text-gray-700',
-  Menunggu_Bayar: 'bg-yellow-100 text-yellow-700',
-  Menunggu_Verifikasi: 'bg-orange-100 text-orange-700',
-  Dibatalkan: 'bg-red-50 text-red-400',
+  Menunggu_Bayar: 'bg-amber-50 text-amber-700',
+  Menunggu_Verifikasi: 'bg-orange-50 text-orange-700',
+  Dibatalkan: 'bg-red-50 text-red-500',
 };
 
 export function TransaksiCard({ tx, onShowMap, isMapOpen }: TransaksiCardProps) {
@@ -51,11 +51,11 @@ export function TransaksiCard({ tx, onShowMap, isMapOpen }: TransaksiCardProps) 
   const hasLocation = !!(tx.lat_pengiriman && tx.lng_pengiriman);
 
   return (
-    <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 transition hover:border-outline">
       {/* Top Row */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
-          <p className="font-mono text-xs font-bold text-primary truncate">#{tx.id_transaksi}</p>
+          <p className="font-mono text-xs font-semibold text-on-surface truncate">#{tx.id_transaksi}</p>
           {tx.kode_pesanan && (
             <p className="text-[10px] text-on-surface-variant/65 uppercase tracking-wide">
               {tx.kode_pesanan}
@@ -64,17 +64,17 @@ export function TransaksiCard({ tx, onShowMap, isMapOpen }: TransaksiCardProps) 
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
               STATUS_STYLES[tx.status_pembayaran] ?? 'bg-gray-100 text-gray-600'
             }`}
           >
             {tx.status_pembayaran.replace(/_/g, ' ')}
           </span>
           <span
-            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+            className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-medium ${
               tx.tipe_penjualan === 'Online_WA'
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-orange-100 text-orange-700'
+                ? 'bg-blue-50 text-blue-700'
+                : 'bg-gray-100 text-gray-700'
             }`}
           >
             {tx.tipe_penjualan === 'Online_WA' ? (
@@ -91,13 +91,13 @@ export function TransaksiCard({ tx, onShowMap, isMapOpen }: TransaksiCardProps) 
       <div className="flex items-center gap-2 mb-2">
         {tx.nama_pelanggan ? (
           <>
-            <User size={14} className="text-green-600 shrink-0" />
+            <User size={14} className="text-on-surface-variant shrink-0" />
             <span className="text-sm font-semibold text-on-surface">{tx.nama_pelanggan}</span>
           </>
         ) : tx.nama_warung ? (
           <>
-            <Store size={14} className="text-purple-600 shrink-0" />
-            <span className="text-sm font-semibold text-purple-900">{tx.nama_warung}</span>
+            <Store size={14} className="text-on-surface-variant shrink-0" />
+            <span className="text-sm font-semibold text-on-surface">{tx.nama_warung}</span>
           </>
         ) : (
           <span className="text-sm text-outline/50 italic">Walk-in Customer</span>
@@ -110,7 +110,7 @@ export function TransaksiCard({ tx, onShowMap, isMapOpen }: TransaksiCardProps) 
           <Clock size={11} />
           <span>{formatDate(tx.waktu_simpan)}</span>
         </div>
-        <span className="font-bold text-sm text-on-surface">{formatRupiah(tx.total_bayar)}</span>
+        <span className="font-semibold text-sm text-on-surface">{formatRupiah(tx.total_bayar)}</span>
       </div>
 
       {/* Expanded: alamat penerima */}
@@ -145,7 +145,7 @@ export function TransaksiCard({ tx, onShowMap, isMapOpen }: TransaksiCardProps) 
             className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-colors ml-auto ${
               isMapOpen
                 ? 'bg-primary text-on-primary'
-                : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
             }`}
           >
             <MapPin size={13} />

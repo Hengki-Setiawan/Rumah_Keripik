@@ -42,7 +42,7 @@ export default function PublicOrderingAnalyticsPage() {
         <h1 className="font-headline-lg text-headline-lg text-on-surface">Public Ordering Analytics</h1>
         <p className="text-on-surface-variant">Funnel /pesan, payment proof, OCR queue, dan event operasional 30 hari terakhir.</p>
       </div>
-      {message && <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-700">{message}</p>}
+      {message && <p className="rounded-xl border border-outline-variant bg-white p-3 text-sm font-medium text-on-surface-variant">{message}</p>}
 
       {ops && (
         <section className="grid gap-3 md:grid-cols-4">
@@ -53,16 +53,16 @@ export default function PublicOrderingAnalyticsPage() {
         </section>
       )}
 
-      <section className="rounded-2xl border bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-black">Funnel /pesan</h2>
+      <section className="rounded-2xl border border-outline-variant bg-white p-5">
+        <h2 className="text-xl font-semibold tracking-[-0.02em]">Funnel /pesan</h2>
         <div className="mt-4 space-y-3">
           {funnel.map((row) => (
             <div key={row.eventType} className="grid gap-3 rounded-xl bg-neutral-50 p-3 text-sm md:grid-cols-[240px_1fr_90px] md:items-center">
-              <p className="font-black">{row.eventType.replace(/_/g, ' ')}</p>
+              <p className="font-semibold">{row.eventType.replace(/_/g, ' ')}</p>
               <div className="h-3 overflow-hidden rounded-full bg-neutral-200">
                 <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, row.count * 8)}%` }} />
               </div>
-              <p className="text-right font-black">{row.count}</p>
+              <p className="text-right font-semibold">{row.count}</p>
               <p className="text-xs text-on-surface-variant md:col-span-3">Conversion dari step sebelumnya: {row.conversionFromPrevious == null ? '-' : `${row.conversionFromPrevious}%`}</p>
             </div>
           ))}
@@ -71,12 +71,12 @@ export default function PublicOrderingAnalyticsPage() {
       </section>
 
       {ops && (
-        <section className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-black">Recent Operational Events</h2>
+        <section className="rounded-2xl border border-outline-variant bg-white p-5">
+          <h2 className="text-xl font-semibold tracking-[-0.02em]">Recent Operational Events</h2>
           <div className="mt-4 space-y-2">
             {ops.recentEvents.map((event) => (
-              <div key={`${event.eventType}-${event.createdAt}`} className="rounded-xl border p-3 text-sm">
-                <p className="font-black">{event.eventType.replace(/_/g, ' ')}</p>
+              <div key={`${event.eventType}-${event.createdAt}`} className="rounded-xl border border-outline-variant p-3 text-sm">
+                <p className="font-semibold">{event.eventType.replace(/_/g, ' ')}</p>
                 <p className="text-xs text-on-surface-variant">{new Date(event.createdAt).toLocaleString('id-ID')}</p>
               </div>
             ))}
@@ -88,5 +88,5 @@ export default function PublicOrderingAnalyticsPage() {
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-2xl border bg-white p-5 shadow-sm"><p className="text-xs font-black uppercase text-on-surface-variant">{label}</p><p className="mt-2 text-3xl font-black text-primary">{value}</p></div>;
+  return <div className="rounded-2xl border border-outline-variant bg-white p-5"><p className="text-xs font-medium text-on-surface-variant">{label}</p><p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-primary">{value}</p></div>;
 }

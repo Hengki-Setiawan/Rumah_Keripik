@@ -14,14 +14,14 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }: Mo
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className={`bg-surface-container-lowest rounded-xl shadow-xl w-full ${width} mx-4 max-h-[90vh] overflow-y-auto animate-[fadeIn_0.2s_ease-out]`}
+        className={`bg-surface-container-lowest rounded-2xl shadow-[0_18px_60px_rgba(15,23,42,0.12)] w-full ${width} mx-4 max-h-[90vh] overflow-y-auto animate-[fadeIn_0.2s_ease-out]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b border-outline-variant/20">
           <h2 className="font-headline-md text-headline-md text-on-surface">{title}</h2>
-          <button onClick={onClose} className="p-1 hover:bg-surface-container rounded-lg text-on-surface-variant transition-colors">
+          <button onClick={onClose} className="p-1 hover:bg-surface-container rounded-lg text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
             <X size={20} />
           </button>
         </div>
@@ -57,9 +57,9 @@ export function ConfirmModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-surface-container-lowest rounded-xl shadow-xl w-full max-w-sm mx-4 animate-[fadeIn_0.2s_ease-out]"
+        className="bg-surface-container-lowest rounded-2xl shadow-[0_18px_60px_rgba(15,23,42,0.12)] w-full max-w-sm mx-4 animate-[fadeIn_0.2s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 text-center">

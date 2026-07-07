@@ -18,11 +18,11 @@ export function ResolveFailedConversationButton({ id }: { id: number }) {
     if (res.ok) setDone(true);
   }
 
-  if (done) return <span className="rounded-xl bg-green-100 px-4 py-2 text-sm font-black text-green-800">Resolved</span>;
+  if (done) return <span className="rounded-xl bg-green-50 px-4 py-2 text-sm font-medium text-green-700">Resolved</span>;
   return (
     <div className="min-w-56 space-y-2">
-      <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Catatan resolusi" className="min-h-20 w-full rounded-xl border p-2 text-sm" />
-      <button onClick={resolve} disabled={loading} className="w-full rounded-xl bg-neutral-950 px-4 py-2 text-sm font-black text-white disabled:opacity-60">{loading ? 'Menyimpan...' : 'Mark Resolved'}</button>
+      <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Catatan resolusi" className="min-h-20 w-full rounded-xl border border-outline-variant p-2 text-sm outline-none focus:border-primary/40" />
+      <button onClick={resolve} disabled={loading} className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-medium text-on-primary disabled:opacity-60">{loading ? 'Menyimpan...' : 'Mark Resolved'}</button>
     </div>
   );
 }

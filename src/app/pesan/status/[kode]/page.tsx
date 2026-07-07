@@ -37,16 +37,16 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
   const canUploadProof = Boolean(order.status_token && canUploadPaymentProof(order, proofs));
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_10%_10%,rgba(245,158,11,0.22),transparent_28%),linear-gradient(135deg,#fff8e7,#ffe4ad,#f7c96e)] px-5 py-8 text-[#231305]">
-      <section className="mx-auto max-w-4xl rounded-[2rem] border border-[#e0bd82] bg-white/90 p-6 shadow-2xl shadow-[#8d4b00]/15 backdrop-blur md:p-10">
-        <p className="text-sm font-black uppercase tracking-[0.25em] text-[#8d4b00]">Status Pesanan</p>
+    <main className="min-h-screen bg-[#fafafa] px-5 py-8 text-[#111827]">
+      <section className="mx-auto max-w-4xl rounded-[2rem] border border-[#e5e7eb] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] md:p-10">
+        <p className="text-sm font-medium text-[#6b7280]">Status pesanan</p>
         <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-4xl font-black tracking-[-0.04em]">{decodedCode}</h1>
-            <p className="mt-2 text-[#6b4a2e]">Pantau status pesanan dan pembayaran dari halaman web ini.</p>
-            <p className="mt-3 rounded-2xl bg-[#fff4d6] px-4 py-3 text-sm font-bold text-[#735033]">{getCustomerStatusMessage(order)}</p>
+            <h1 className="text-4xl font-semibold tracking-[-0.04em]">{decodedCode}</h1>
+            <p className="mt-2 text-[#6b7280]">Pantau status pesanan dan pembayaran dari halaman web ini.</p>
+            <p className="mt-3 rounded-2xl bg-[#f3f4f6] px-4 py-3 text-sm text-[#4b5563]">{getCustomerStatusMessage(order)}</p>
           </div>
-          <Link href="/pesan" className="rounded-2xl bg-[#8d4b00] px-5 py-3 text-center font-black text-white">Pesan lagi</Link>
+          <Link href="/pesan" className="rounded-2xl bg-[#111827] px-5 py-3 text-center font-medium text-white transition hover:bg-[#374151]">Pesan lagi</Link>
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -55,57 +55,57 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
           <StatusCard label="Total" value={formatRupiah(order.total_bayar)} />
         </div>
 
-        <section className="mt-6 rounded-3xl border border-[#ecd3a7] bg-[#fffaf0] p-5">
-          <h2 className="text-xl font-black">Ringkasan Item</h2>
+        <section className="mt-6 rounded-3xl border border-[#e5e7eb] bg-[#f7f7f8] p-5">
+          <h2 className="text-xl font-semibold">Ringkasan item</h2>
           <div className="mt-4 space-y-3">
             {items.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl bg-white p-4">
                 <div>
-                  <p className="font-black">{item.nama_produk_snapshot || item.id_produk}</p>
-                  {item.nama_varian_snapshot && <p className="text-sm text-[#795735]">{item.nama_varian_snapshot}</p>}
-                  <p className="text-sm text-[#795735]">Qty {item.qty_terjual}</p>
+                  <p className="font-medium">{item.nama_produk_snapshot || item.id_produk}</p>
+                  {item.nama_varian_snapshot && <p className="text-sm text-[#6b7280]">{item.nama_varian_snapshot}</p>}
+                  <p className="text-sm text-[#6b7280]">Qty {item.qty_terjual}</p>
                 </div>
-                <p className="font-black">{formatRupiah(item.subtotal)}</p>
+                <p className="font-semibold">{formatRupiah(item.subtotal)}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-6 rounded-3xl border border-[#ecd3a7] bg-white p-5">
-          <h2 className="text-xl font-black">Timeline pesanan</h2>
-          <p className="mt-2 text-sm font-bold text-[#735033]">Riwayat ini membantu kamu melihat proses pesanan dan pembayaran.</p>
+        <section className="mt-6 rounded-3xl border border-[#e5e7eb] bg-white p-5">
+          <h2 className="text-xl font-semibold">Timeline pesanan</h2>
+          <p className="mt-2 text-sm text-[#6b7280]">Riwayat ini membantu kamu melihat proses pesanan dan pembayaran.</p>
           <div className="mt-5 space-y-3">
             {history.length > 0 ? history.map((entry) => (
-              <div key={entry.id} className="rounded-2xl border border-[#ecd3a7] bg-[#fffdf6] p-4">
+              <div key={entry.id} className="rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="font-black text-[#2a1606]">{formatTimelineEvent(entry.event_type)}</p>
-                    <p className="mt-1 text-sm font-bold text-[#735033]">
+                    <p className="font-semibold text-[#111827]">{formatTimelineEvent(entry.event_type)}</p>
+                    <p className="mt-1 text-sm text-[#6b7280]">
                       {[entry.order_status, entry.payment_status].filter(Boolean).map((value) => value!.replace(/_/g, ' ')).join(' / ')}
                     </p>
-                    {entry.note && <p className="mt-2 text-sm text-[#735033]">{entry.note}</p>}
+                    {entry.note && <p className="mt-2 text-sm text-[#6b7280]">{entry.note}</p>}
                   </div>
-                  <p className="text-xs font-bold text-[#8c6a4c]">{new Date(entry.created_at).toLocaleString('id-ID')}</p>
+                  <p className="text-xs font-medium text-[#9ca3af]">{new Date(entry.created_at).toLocaleString('id-ID')}</p>
                 </div>
               </div>
             )) : (
-              <p className="rounded-2xl bg-[#fff8e8] p-4 text-sm font-bold text-[#735033]">Timeline detail belum tersedia. Status utama tetap bisa dilihat dari kartu di atas.</p>
+              <p className="rounded-2xl bg-[#f3f4f6] p-4 text-sm text-[#6b7280]">Timeline detail belum tersedia. Status utama tetap bisa dilihat dari kartu di atas.</p>
             )}
           </div>
         </section>
 
-        <section className="mt-6 rounded-3xl border border-[#ecd3a7] bg-white p-5">
-          <h2 className="text-xl font-black">Bukti Pembayaran</h2>
-          <p className="mt-2 text-[#6b4a2e]">
+        <section className="mt-6 rounded-3xl border border-[#e5e7eb] bg-white p-5">
+          <h2 className="text-xl font-semibold">Bukti pembayaran</h2>
+          <p className="mt-2 text-[#6b7280]">
             {latestProof ? `Bukti pembayaran terakhir berstatus ${latestProof.status}.` : 'Belum ada bukti pembayaran yang diupload.'}
           </p>
           {hasPendingProof && order.payment_status !== 'verified' && (
-            <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+            <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               Bukti pembayaran sedang menunggu verifikasi admin. Upload ulang tersedia jika bukti ditolak.
             </p>
           )}
           {latestProof?.status === 'rejected' && latestProof.admin_note && (
-            <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+            <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               Alasan penolakan: {latestProof.admin_note}
             </p>
           )}
@@ -116,23 +116,23 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
             </>
           )}
           {!isPaymentVerified(order) && !canUploadProof && (
-            <p className="mt-3 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800">
+            <p className="mt-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
               {order.payment_method === 'cod' ? 'Pesanan COD menunggu konfirmasi admin.' : 'Jika sudah membayar dan perlu bantuan, hubungi admin melalui kanal yang tersedia.'}
             </p>
           )}
           {isPaymentVerified(order) && (
-            <Link href={`/dokumen/order/${encodeURIComponent(order.id_transaksi)}/receipt`} className="mt-4 inline-block rounded-2xl bg-[#1f7a3d] px-5 py-3 font-black text-white">
+            <Link href={`/dokumen/order/${encodeURIComponent(order.id_transaksi)}/receipt`} className="mt-4 inline-block rounded-2xl bg-[#16a34a] px-5 py-3 font-medium text-white">
               Lihat bukti pembayaran
             </Link>
           )}
         </section>
 
-        <section className="mt-6 rounded-3xl border border-[#ecd3a7] bg-[#fff8e8] p-5">
-          <h2 className="text-xl font-black">Butuh bantuan?</h2>
-          <p className="mt-2 text-sm font-bold leading-6 text-[#735033]">Simpan kode pesanan ini. Jika ada kendala pembayaran atau pengiriman, admin Rumah Keripik bisa membantu mengecek berdasarkan kode pesanan.</p>
+        <section className="mt-6 rounded-3xl border border-[#e5e7eb] bg-[#f7f7f8] p-5">
+          <h2 className="text-xl font-semibold">Butuh bantuan?</h2>
+          <p className="mt-2 text-sm leading-6 text-[#6b7280]">Simpan kode pesanan ini. Jika ada kendala pembayaran atau pengiriman, admin Rumah Keripik bisa membantu mengecek berdasarkan kode pesanan.</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Link href="/pesan/lacak" className="rounded-2xl border border-[#d8b77c] bg-white px-5 py-3 text-center font-black text-[#7a3f00] transition hover:bg-[#fff4d6]">Lacak pesanan lain</Link>
-            <Link href="/pesan" className="rounded-2xl bg-[#8d4b00] px-5 py-3 text-center font-black text-white transition hover:bg-[#6f3900]">Buat pesanan lagi</Link>
+            <Link href="/pesan/lacak" className="rounded-2xl border border-[#e5e7eb] bg-white px-5 py-3 text-center font-medium text-[#111827] transition hover:bg-[#f3f4f6]">Lacak pesanan lain</Link>
+            <Link href="/pesan" className="rounded-2xl bg-[#111827] px-5 py-3 text-center font-medium text-white transition hover:bg-[#374151]">Buat pesanan lagi</Link>
           </div>
         </section>
       </section>
@@ -151,9 +151,9 @@ function parseInstruction(value: string | null | undefined) {
 
 function StatusCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl bg-[#2a1606] p-5 text-white">
-      <p className="text-sm font-bold text-white/60">{label}</p>
-      <p className="mt-2 break-words text-xl font-black">{value.replace(/_/g, ' ')}</p>
+    <div className="rounded-3xl bg-[#111827] p-5 text-white">
+      <p className="text-sm text-white/60">{label}</p>
+      <p className="mt-2 break-words text-xl font-semibold">{value.replace(/_/g, ' ')}</p>
     </div>
   );
 }
@@ -167,11 +167,11 @@ function formatTimelineEvent(value: string) {
 
 function StatusShell({ title, message }: { title: string; message: string }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-[#fff8e7] p-6 text-[#231305]">
-      <section className="max-w-lg rounded-3xl bg-white p-8 text-center shadow-xl">
-        <h1 className="text-3xl font-black">{title}</h1>
-        <p className="mt-3 text-[#6b4a2e]">{message}</p>
-        <Link href="/pesan" className="mt-6 inline-block rounded-2xl bg-[#8d4b00] px-5 py-3 font-black text-white">Kembali pesan keripik</Link>
+    <main className="grid min-h-screen place-items-center bg-[#fafafa] p-6 text-[#111827]">
+      <section className="max-w-lg rounded-3xl border border-[#e5e7eb] bg-white p-8 text-center shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+        <h1 className="text-3xl font-semibold tracking-[-0.03em]">{title}</h1>
+        <p className="mt-3 text-[#6b7280]">{message}</p>
+        <Link href="/pesan" className="mt-6 inline-block rounded-2xl bg-[#111827] px-5 py-3 font-medium text-white">Kembali pesan keripik</Link>
       </section>
     </main>
   );

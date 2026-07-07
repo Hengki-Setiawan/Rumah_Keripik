@@ -18,6 +18,13 @@ type DetailData = {
   ocrJob: { status: string; result_json: string | null; error_message: string | null; updated_at: string } | null;
 };
 
+type OcrPayload = {
+  summary?: string;
+  extractedAmount?: number | null;
+  score?: number;
+  warnings?: string[];
+};
+
 export default function PaymentProofDetailPage({ params }: PageProps) {
   const [id, setId] = useState('');
   const [data, setData] = useState<DetailData | null>(null);
@@ -60,67 +67,67 @@ export default function PaymentProofDetailPage({ params }: PageProps) {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-black">Detail Bukti Pembayaran</h1>
+          <h1 className="text-3xl font-semibold tracking-[-0.04em]">Detail Bukti Pembayaran</h1>
           <p className="text-on-surface-variant">Admin wajib cek detail sebelum approve/reject.</p>
         </div>
-        <Link href="/pembayaran/verifikasi" className="rounded-xl border px-4 py-2 font-bold">Kembali</Link>
+        <Link href="/pembayaran/verifikasi" className="rounded-xl border border-outline-variant bg-white px-4 py-2 text-sm font-medium transition hover:bg-surface-container">Kembali</Link>
       </div>
-      {message && <p className="rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-700">{message}</p>}
+      {message && <p className="rounded-xl border border-outline-variant bg-surface-container-lowest p-3 text-sm font-medium text-on-surface-variant">{message}</p>}
 
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <a href={data.proof.secure_url} target="_blank" rel="noreferrer" className="overflow-hidden rounded-2xl border bg-white p-3 shadow-sm">
+        <a href={data.proof.secure_url} target="_blank" rel="noreferrer" className="overflow-hidden rounded-2xl border border-outline-variant bg-white p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={data.proof.secure_url} alt="Bukti pembayaran" className="max-h-[620px] w-full rounded-xl object-contain" />
         </a>
-        <section className="space-y-4 rounded-2xl border bg-white p-5 shadow-sm">
+        <section className="space-y-4 rounded-2xl border border-outline-variant bg-white p-5">
           <div>
             <p className="text-sm text-on-surface-variant">Order</p>
-            <h2 className="text-2xl font-black">{data.order?.kode_pesanan || data.order?.id_transaksi || '-'}</h2>
+            <h2 className="text-2xl font-semibold tracking-[-0.03em]">{data.order?.kode_pesanan || data.order?.id_transaksi || '-'}</h2>
             <p className="mt-1 text-sm">Penerima: {data.order?.nama_penerima || '-'}</p>
-            <p className="font-black">Total: {formatRupiah(data.order?.total_bayar || 0)}</p>
+            <p className="font-semibold">Total: {formatRupiah(data.order?.total_bayar || 0)}</p>
             {data.proof.amount_claimed != null && <p className="text-sm">Nominal klaim: {formatRupiah(data.proof.amount_claimed)}</p>}
           </div>
 
-          <div className={`rounded-xl p-4 ${data.verification.level === 'safe' ? 'bg-green-50 text-green-800' : data.verification.level === 'warning' ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-800'}`}>
-            <p className="font-black">Skor bantu: {data.verification.score}/100</p>
+          <div className={`rounded-xl border p-4 ${data.verification.level === 'safe' ? 'border-green-100 bg-green-50/70 text-green-800' : data.verification.level === 'warning' ? 'border-orange-100 bg-orange-50/70 text-orange-800' : 'border-red-100 bg-red-50/70 text-red-800'}`}>
+            <p className="font-semibold">Skor bantu: {data.verification.score}/100</p>
             {data.verification.warnings.length > 0 && <p className="mt-1 text-sm">{data.verification.warnings.join(', ')}</p>}
           </div>
           {data.duplicateSignals.length > 0 && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-              <p className="font-black">Sinyal Duplikat/Reupload</p>
+              <p className="font-semibold">Sinyal Duplikat/Reupload</p>
               <div className="mt-2 space-y-1">
                 {data.duplicateSignals.map((signal) => <p key={`${signal.type}-${signal.message}`}>[{signal.severity}] {signal.message}</p>)}
               </div>
             </div>
           )}
 
-          <div className="rounded-xl border p-4">
-            <p className="font-black">OCR Assist</p>
+          <div className="rounded-xl border border-outline-variant p-4">
+            <p className="font-semibold">OCR Assist</p>
             {!data.ocrJob && <p className="mt-1 text-sm text-on-surface-variant">Job OCR belum ditemukan untuk bukti ini.</p>}
             {data.ocrJob && (
               <div className="mt-2 space-y-2 text-sm">
                 <p>Status job: <b>{data.ocrJob.status}</b></p>
-                {data.ocrJob.error_message && <p className="rounded-lg bg-red-50 p-2 font-bold text-red-700">{data.ocrJob.error_message}</p>}
+                {data.ocrJob.error_message && <p className="rounded-lg bg-red-50 p-2 font-medium text-red-700">{data.ocrJob.error_message}</p>}
                 {data.ocrJob.result_json && <OcrSummary raw={data.ocrJob.result_json} />}
               </div>
             )}
             {data.ocrResult && <PersistedOcrSummary result={data.ocrResult} />}
           </div>
 
-          <div className="rounded-xl border p-4">
-            <p className="font-black">Item</p>
+          <div className="rounded-xl border border-outline-variant p-4">
+            <p className="font-semibold">Item</p>
             <div className="mt-2 space-y-2">
               {data.items.map((item) => <div key={item.id} className="flex justify-between gap-4 text-sm"><span>{item.nama_produk_snapshot || '-'} {item.nama_varian_snapshot || ''} x{item.qty_terjual}</span><b>{formatRupiah(item.subtotal)}</b></div>)}
             </div>
           </div>
 
-          <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Catatan admin" className="min-h-24 w-full rounded-xl border p-3" />
-          <select value={reasonCode} onChange={(event) => setReasonCode(event.target.value as typeof reasonCode)} className="w-full rounded-xl border p-3">
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Catatan admin" className="min-h-24 w-full rounded-xl border border-outline-variant p-3 outline-none focus:border-primary/40" />
+          <select value={reasonCode} onChange={(event) => setReasonCode(event.target.value as typeof reasonCode)} className="w-full rounded-xl border border-outline-variant p-3 outline-none focus:border-primary/40">
             {PAYMENT_REJECT_REASONS.map((reason) => <option key={reason} value={reason}>{reason.replace(/_/g, ' ')}</option>)}
           </select>
           <div className="grid gap-3 md:grid-cols-2">
-            <button disabled={data.proof.status !== 'pending'} onClick={() => decide('approve')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-black text-white disabled:opacity-40"><CheckCircle size={18} /> Approve</button>
-            <button disabled={data.proof.status !== 'pending'} onClick={() => decide('reject')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 font-black text-white disabled:opacity-40"><XCircle size={18} /> Reject</button>
+            <button disabled={data.proof.status !== 'pending'} onClick={() => decide('approve')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-medium text-white transition hover:bg-green-700 disabled:opacity-40"><CheckCircle size={18} /> Approve</button>
+            <button disabled={data.proof.status !== 'pending'} onClick={() => decide('reject')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 font-medium text-white transition hover:bg-red-700 disabled:opacity-40"><XCircle size={18} /> Reject</button>
           </div>
         </section>
       </div>
@@ -133,7 +140,7 @@ function PersistedOcrSummary({ result }: { result: NonNullable<DetailData['ocrRe
   const keywords = parseArray(result.status_keywords_json);
   return (
     <div className="mt-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
-      <p className="font-black">OCR tersimpan: {result.engine}</p>
+      <p className="font-semibold">OCR tersimpan: {result.engine}</p>
       {result.summary && <p className="mt-1">{result.summary}</p>}
       {result.extracted_amount != null && <p>Nominal OCR: <b>{formatRupiah(result.extracted_amount)}</b></p>}
       {result.reference_number && <p>Referensi: <b>{result.reference_number}</b></p>}
@@ -154,9 +161,9 @@ function parseArray(value: string) {
 }
 
 function OcrSummary({ raw }: { raw: string }) {
-  let parsed: any = null;
+  let parsed: OcrPayload = {};
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(raw) as OcrPayload;
   } catch {
     return <pre className="max-h-40 overflow-auto rounded-lg bg-neutral-100 p-2 text-xs">{raw}</pre>;
   }

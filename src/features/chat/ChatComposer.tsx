@@ -15,7 +15,7 @@ export function ChatComposer({ disabled, onSend }: { disabled?: boolean; onSend:
   }
 
   return (
-    <form onSubmit={submit} className="flex items-end gap-3 rounded-[1.6rem] border border-[#e7c88c] bg-white p-2 shadow-xl shadow-[#8d4b00]/10">
+    <form onSubmit={submit} className="flex items-end gap-2 rounded-[1.6rem] border border-[#e5e7eb] bg-white p-2 shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition focus-within:border-[#cfd3d8] focus-within:ring-2 focus-within:ring-[#111827]/5">
       <textarea
         value={message}
         onChange={(event) => setMessage(event.target.value)}
@@ -26,13 +26,13 @@ export function ChatComposer({ disabled, onSend }: { disabled?: boolean; onSend:
           }
         }}
         rows={1}
-        placeholder="Tulis kebutuhanmu, contoh: keripik buat keluarga budget 100 ribu..."
-        className="max-h-32 min-h-12 flex-1 resize-none rounded-[1.2rem] bg-[#fff8e8] px-4 py-3 text-sm font-semibold text-[#2a1606] outline-none placeholder:text-[#8c6a4c]"
+        placeholder="Tanya stok, harga, atau tulis pesananmu..."
+        className="max-h-32 min-h-12 flex-1 resize-none rounded-[1.2rem] bg-transparent px-4 py-3 text-[15px] text-[#111827] outline-none placeholder:text-[#9ca3af]"
       />
       <button
         type="submit"
         disabled={disabled || !message.trim()}
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-[1.1rem] bg-[#2a1606] text-white transition hover:bg-[#6f3900] disabled:cursor-not-allowed disabled:bg-[#c9b9a3]"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#111827] text-white transition hover:bg-[#374151] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20 disabled:cursor-not-allowed disabled:bg-[#d1d5db]"
         aria-label="Kirim pesan"
       >
         {disabled ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}

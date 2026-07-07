@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { CUSTOMER_SESSION_COOKIE, ensureActiveChatSession, ensureCustomerSession, getCustomerSessionMaxAge } from '@/lib/chat-v3/session';
+import { createChatSession, CUSTOMER_SESSION_COOKIE, ensureActiveChatSession, ensureCustomerSession, getCustomerSessionMaxAge } from '@/lib/chat-v3/session';
 import { getChatMessages } from '@/lib/chat-v3/messages';
 import { getChatCart } from '@/lib/ai/tools/cart';
 import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
@@ -12,10 +12,13 @@ export async function POST(req: Request) {
   const rate = checkRateLimit(`customer-session:${getClientIp(req)}`, 120, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak request session. Coba lagi sebentar.' }, { status: 429 });
 
+  const payload = await req.json().catch(() => ({})) as { forceNew?: boolean };
   const cookieStore = await cookies();
   const existingToken = cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value;
   const customerSession = await ensureCustomerSession(req, existingToken);
-  const { chatSession, isNew } = await ensureActiveChatSession(customerSession.session.id);
+  const { chatSession, isNew } = payload.forceNew
+    ? await createChatSession(customerSession.session.id)
+    : await ensureActiveChatSession(customerSession.session.id);
   const [messages, cart, customerContext] = await Promise.all([
     getChatMessages(chatSession.id),
     getChatCart(chatSession.id),

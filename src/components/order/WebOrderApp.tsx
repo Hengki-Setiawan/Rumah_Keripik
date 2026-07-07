@@ -364,30 +364,29 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#fff7df] text-[#241306]">
+    <main className="min-h-screen overflow-hidden bg-[#fafafa] text-[#111827]">
       <section className="relative px-5 pb-36 pt-6 md:px-10 lg:px-16 lg:pb-28">
-        <div className="absolute inset-0 -z-0 bg-[radial-gradient(circle_at_15%_15%,rgba(245,158,11,0.28),transparent_28%),radial-gradient(circle_at_85%_5%,rgba(34,197,94,0.20),transparent_24%),linear-gradient(135deg,#fff8df_0%,#fff1c4_45%,#f6df9d_100%)]" />
-        <div className="absolute right-8 top-20 -z-0 h-48 w-48 rounded-full bg-[#c2410c]/10 blur-3xl" />
+        <div className="absolute inset-0 -z-0 bg-[#fafafa]" />
 
-        <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-full border border-[#e8c98d] bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
+        <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-full border border-[#e5e7eb] bg-white/90 px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-[#8d4b00] text-lg font-black text-white">RK</div>
+            <div className="grid h-11 w-11 place-items-center rounded-full bg-[#111827] text-lg font-semibold text-white">RK</div>
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.24em] text-[#8d4b00]">Rumah Keripik</p>
-              <p className="text-xs text-[#6b4a2e]">Pesan cepat, admin langsung cek</p>
+              <p className="text-sm font-semibold tracking-[-0.01em] text-[#111827]">Rumah Keripik</p>
+              <p className="text-xs text-[#6b7280]">Pesan cepat, admin langsung cek</p>
             </div>
           </div>
-          <nav aria-label="Navigasi pemesanan" className="hidden items-center gap-4 text-sm font-black text-[#7a3f00] lg:flex">
-            <a href="#produk" className="transition hover:text-[#2a1606]">Produk</a>
-            <a href="#cara-pesan" className="transition hover:text-[#2a1606]">Cara Pesan</a>
-            <a href="#pembayaran" className="transition hover:text-[#2a1606]">Pembayaran</a>
-            <a href="#faq" className="transition hover:text-[#2a1606]">FAQ</a>
-            <a href="/pesan/lacak" className="transition hover:text-[#2a1606]">Lacak</a>
+          <nav aria-label="Navigasi pemesanan" className="hidden items-center gap-4 text-sm font-medium text-[#6b7280] lg:flex">
+            <a href="#produk" className="transition hover:text-[#111827]">Produk</a>
+            <a href="#cara-pesan" className="transition hover:text-[#111827]">Cara Pesan</a>
+            <a href="#pembayaran" className="transition hover:text-[#111827]">Pembayaran</a>
+            <a href="#faq" className="transition hover:text-[#111827]">FAQ</a>
+            <a href="/pesan/lacak" className="transition hover:text-[#111827]">Lacak</a>
           </nav>
-          <a href="/pesan/lacak" className="rounded-full border border-[#e0bd82] bg-white/80 px-4 py-2 text-sm font-black text-[#7a3f00] md:hidden">
+          <a href="/pesan/lacak" className="rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#111827] md:hidden">
             Lacak
           </a>
-          <div className="hidden items-center gap-2 rounded-full bg-[#1f7a3d]/10 px-4 py-2 text-sm font-bold text-[#1f7a3d] md:flex">
+          <div className="hidden items-center gap-2 rounded-full bg-[#ecfdf5] px-4 py-2 text-sm font-medium text-[#047857] md:flex">
             <CheckCircle2 size={16} />
             Stok mengikuti katalog aktif
           </div>
@@ -396,56 +395,56 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
         <div className="relative z-10 mx-auto mt-10 grid max-w-7xl gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="space-y-7">
             <div className="max-w-2xl">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#e5bf7b] bg-white/70 px-4 py-2 text-sm font-bold text-[#8d4b00]">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#111827]">
                 <Sparkles size={16} />
                 Mini web pemesanan baru
               </div>
-              <h1 className="text-4xl font-black leading-tight tracking-[-0.04em] text-[#2a1606] md:text-6xl">
+              <h1 className="text-4xl font-semibold leading-tight tracking-[-0.05em] text-[#111827] md:text-6xl">
                 Pilih keripik, isi alamat, admin langsung proses.
               </h1>
-              <p className="mt-5 text-lg leading-8 text-[#654327]">
+              <p className="mt-5 text-lg leading-8 text-[#6b7280]">
                 Form ini dibuat singkat supaya kamu tidak perlu chat panjang. Pesanan masuk ke tim Rumah Keripik, dicek admin, dan statusnya bisa dilacak.
               </p>
             </div>
 
-            <div id="cara-pesan" className="scroll-mt-8 grid gap-3 rounded-[2rem] border border-[#e7c88c] bg-white/70 p-3 shadow-xl shadow-[#8d4b00]/10 backdrop-blur sm:grid-cols-[1.15fr_0.85fr] sm:items-center">
-              <div className="overflow-hidden rounded-[1.5rem] bg-[#f5d180]">
+            <div id="cara-pesan" className="scroll-mt-8 grid gap-3 rounded-[2rem] border border-[#e5e7eb] bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:grid-cols-[1.15fr_0.85fr] sm:items-center">
+              <div className="overflow-hidden rounded-[1.5rem] bg-[#f3f4f6]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={heroImage.url} alt={heroImage.alt} loading="eager" className="h-48 w-full object-cover sm:h-64" />
               </div>
               <div className="space-y-3 p-3">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#9a5b08]">Cara pesan</p>
-                <div className="grid gap-2 text-sm font-bold text-[#654327]">
-                  <span className="rounded-2xl bg-[#fff4d6] px-4 py-3">1. Pilih produk dan varian favorit.</span>
-                  <span className="rounded-2xl bg-[#fff4d6] px-4 py-3">2. Isi alamat tanpa perlu login.</span>
-                  <span className="rounded-2xl bg-[#fff4d6] px-4 py-3">3. Admin cek pembayaran dan proses pesanan.</span>
+                <p className="text-xs font-medium text-[#9ca3af]">Cara pesan</p>
+                <div className="grid gap-2 text-sm text-[#4b5563]">
+                  <span className="rounded-2xl bg-[#f3f4f6] px-4 py-3">1. Pilih produk dan varian favorit.</span>
+                  <span className="rounded-2xl bg-[#f3f4f6] px-4 py-3">2. Isi alamat tanpa perlu login.</span>
+                  <span className="rounded-2xl bg-[#f3f4f6] px-4 py-3">3. Admin cek pembayaran dan proses pesanan.</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-3 text-sm font-bold text-[#654327] sm:grid-cols-3">
-              <div className="rounded-3xl border border-[#e7c88c] bg-white/75 p-4">
-                <p className="font-black text-[#2a1606]">Tanpa login</p>
+            <div className="grid gap-3 text-sm text-[#6b7280] sm:grid-cols-3">
+              <div className="rounded-3xl border border-[#e5e7eb] bg-white p-4">
+                <p className="font-semibold text-[#111827]">Tanpa login</p>
                 <p className="mt-1">Pilih keripik, isi data, langsung buat pesanan.</p>
               </div>
-              <div className="rounded-3xl border border-[#e7c88c] bg-white/75 p-4">
-                <p className="font-black text-[#2a1606]">Pembayaran aman</p>
+              <div className="rounded-3xl border border-[#e5e7eb] bg-white p-4">
+                <p className="font-semibold text-[#111827]">Pembayaran aman</p>
                 <p className="mt-1">Transfer, QRIS, e-wallet, atau COD sesuai pilihan aktif.</p>
               </div>
-              <div className="rounded-3xl border border-[#e7c88c] bg-white/75 p-4">
-                <p className="font-black text-[#2a1606]">Bisa dilacak</p>
+              <div className="rounded-3xl border border-[#e5e7eb] bg-white p-4">
+                <p className="font-semibold text-[#111827]">Bisa dilacak</p>
                 <p className="mt-1">Status pesanan tersedia setelah checkout selesai.</p>
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-[#e7c88c] bg-white/75 p-5 shadow-xl shadow-[#8d4b00]/10 backdrop-blur">
+            <div className="rounded-[2rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <div className="mb-4 flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#123524] text-white">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#10a37f] text-white">
                   <Bot size={20} />
                 </div>
                 <div>
-                  <p className="font-black">Asisten Pilih Rasa</p>
-                  <p className="text-sm text-[#735033]" aria-live="polite">{helperText}</p>
+                  <p className="font-semibold">Asisten pilih rasa</p>
+                  <p className="text-sm text-[#6b7280]" aria-live="polite">{helperText}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -454,35 +453,35 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                     key={prompt}
                     type="button"
                     onClick={() => applyPrompt(prompt)}
-                    className="rounded-full border border-[#e0bd82] bg-[#fff9ec] px-4 py-2 text-sm font-bold text-[#7a3f00] transition hover:-translate-y-0.5 hover:bg-[#ffe1aa]"
+                    className="rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#111827] transition hover:bg-[#f3f4f6]"
                   >
                     {prompt}
                   </button>
                 ))}
               </div>
               <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]">
-                <input value={assistantText} onChange={(event) => setAssistantText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') askAssistant(); }} placeholder="Tanya tentang rasa, pembayaran, COD, atau pengiriman..." className="rounded-2xl border border-[#e0bd82] bg-white px-4 py-3 text-sm font-bold outline-none focus:border-[#8d4b00]" />
-                <button type="button" onClick={askAssistant} disabled={assistantLoading} className="rounded-2xl bg-[#123524] px-5 py-3 text-sm font-black text-white disabled:opacity-60">{assistantLoading ? 'Menjawab...' : 'Tanya'}</button>
+                <input value={assistantText} onChange={(event) => setAssistantText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') askAssistant(); }} placeholder="Tanya tentang rasa, pembayaran, COD, atau pengiriman..." className="rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 text-sm outline-none focus:border-[#111827]/30" />
+                <button type="button" onClick={askAssistant} disabled={assistantLoading} className="rounded-2xl bg-[#111827] px-5 py-3 text-sm font-medium text-white disabled:opacity-60">{assistantLoading ? 'Menjawab...' : 'Tanya'}</button>
               </div>
             </div>
 
             {categories.length > 0 && (
               <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-                <button type="button" onClick={() => setSelectedCategory('all')} aria-pressed={selectedCategory === 'all'} aria-label="Tampilkan semua kategori" className={`shrink-0 rounded-full px-4 py-2 text-sm font-black ${selectedCategory === 'all' ? 'bg-[#2a1606] text-white' : 'border border-[#e0bd82] bg-white/80 text-[#7a3f00]'}`}>Semua</button>
+                <button type="button" onClick={() => setSelectedCategory('all')} aria-pressed={selectedCategory === 'all'} aria-label="Tampilkan semua kategori" className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium ${selectedCategory === 'all' ? 'bg-[#111827] text-white' : 'border border-[#e5e7eb] bg-white text-[#111827]'}`}>Semua</button>
                 {categories.map((category) => (
-                  <button key={category.id} type="button" onClick={() => setSelectedCategory(category.id)} aria-pressed={selectedCategory === category.id} aria-label={`Tampilkan kategori ${category.name}`} className={`shrink-0 rounded-full px-4 py-2 text-sm font-black ${selectedCategory === category.id ? 'bg-[#2a1606] text-white' : 'border border-[#e0bd82] bg-white/80 text-[#7a3f00]'}`}>{category.name}</button>
+                  <button key={category.id} type="button" onClick={() => setSelectedCategory(category.id)} aria-pressed={selectedCategory === category.id} aria-label={`Tampilkan kategori ${category.name}`} className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium ${selectedCategory === category.id ? 'bg-[#111827] text-white' : 'border border-[#e5e7eb] bg-white text-[#111827]'}`}>{category.name}</button>
                 ))}
               </div>
             )}
 
             <section id="produk" className="scroll-mt-8 grid gap-4 sm:grid-cols-2">
               {visibleProducts.length === 0 && (
-                <div className="rounded-[1.8rem] border border-dashed border-[#d7b276] bg-white/80 p-6 text-center sm:col-span-2">
-                  <ShoppingBag className="mx-auto mb-3 text-[#b9781a]" />
-                  <p className="font-black text-[#2a1606]">Produk belum tersedia di pilihan ini.</p>
-                  <p className="mt-2 text-sm font-bold text-[#735033]">Coba pilih kategori lain atau kembali ke semua produk.</p>
+                <div className="rounded-[1.8rem] border border-dashed border-[#d1d5db] bg-white p-6 text-center sm:col-span-2">
+                  <ShoppingBag className="mx-auto mb-3 text-[#9ca3af]" />
+                  <p className="font-semibold text-[#111827]">Produk belum tersedia di pilihan ini.</p>
+                  <p className="mt-2 text-sm text-[#6b7280]">Coba pilih kategori lain atau kembali ke semua produk.</p>
                   {selectedCategory !== 'all' && (
-                    <button type="button" onClick={() => setSelectedCategory('all')} className="mt-4 rounded-2xl bg-[#8d4b00] px-5 py-3 text-sm font-black text-white">
+                    <button type="button" onClick={() => setSelectedCategory('all')} className="mt-4 rounded-2xl bg-[#111827] px-5 py-3 text-sm font-medium text-white">
                       Lihat semua produk
                     </button>
                   )}
@@ -507,25 +506,25 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
             </section>
           </div>
 
-          <aside id="checkout" className="scroll-mt-5 rounded-[2rem] border border-[#e5bf7b] bg-[#fffdf6] p-5 shadow-2xl shadow-[#8d4b00]/15 lg:sticky lg:top-5">
+          <aside id="checkout" className="scroll-mt-5 rounded-[2rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] lg:sticky lg:top-5">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="text-sm font-black uppercase tracking-[0.22em] text-[#9a5b08]">Checkout Aman</p>
-                <h2 className="text-2xl font-black">Keranjang kamu</h2>
-                <p className="mt-1 text-sm font-bold text-[#735033]">Pesanan dicek admin sebelum diproses.</p>
+                <p className="text-sm font-medium text-[#6b7280]">Checkout aman</p>
+                <h2 className="text-2xl font-semibold tracking-[-0.03em]">Keranjang kamu</h2>
+                <p className="mt-1 text-sm text-[#6b7280]">Pesanan dicek admin sebelum diproses.</p>
               </div>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#8d4b00] text-white">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#111827] text-white">
                 <ShoppingBag />
               </div>
             </div>
 
-            <div className="mb-5 grid grid-cols-3 gap-2 text-center text-xs font-black">
+            <div className="mb-5 grid grid-cols-3 gap-2 text-center text-xs font-medium">
               {['Produk', 'Data', 'Bayar'].map((label, index) => (
                 <button
                   key={label}
                   type="button"
                   onClick={() => setStep((index + 1) as 1 | 2 | 3)}
-                  className={`rounded-full px-3 py-2 ${step === index + 1 ? 'bg-[#2a1606] text-white' : 'bg-[#f4e6c5] text-[#765236]'}`}
+                  className={`rounded-full px-3 py-2 ${step === index + 1 ? 'bg-[#111827] text-white' : 'bg-[#f3f4f6] text-[#6b7280]'}`}
                 >
                   {label}
                 </button>
@@ -535,22 +534,22 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
             {step === 1 && (
               <div className="space-y-4">
                 {cartDetails.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-[#d7b276] bg-[#fff8e8] p-6 text-center">
-                    <ShoppingBag className="mx-auto mb-3 text-[#b9781a]" />
-                    <p className="font-bold text-[#735033]">Keranjang masih kosong.</p>
-                    <p className="mt-1 text-sm text-[#8c6a4c]">Pilih produk dulu dari katalog.</p>
+                  <div className="rounded-3xl border border-dashed border-[#d1d5db] bg-[#f7f7f8] p-6 text-center">
+                    <ShoppingBag className="mx-auto mb-3 text-[#9ca3af]" />
+                    <p className="font-medium text-[#4b5563]">Keranjang masih kosong.</p>
+                    <p className="mt-1 text-sm text-[#6b7280]">Pilih produk dulu dari katalog.</p>
                   </div>
                 ) : (
                   cartDetails.map((item) => (
-                    <div key={item.id_produk} className="flex items-center justify-between gap-3 rounded-3xl bg-[#fff4d6] p-4">
+                    <div key={item.id_produk} className="flex items-center justify-between gap-3 rounded-3xl bg-[#f7f7f8] p-4">
                       <div>
-                        <p className="font-black">{item.product.nama_produk}</p>
-                        {item.variant && <p className="text-xs font-bold text-[#735033]">{item.variant.nama_varian}</p>}
-                        <p className="text-sm text-[#735033]">
+                        <p className="font-medium">{item.product.nama_produk}</p>
+                        {item.variant && <p className="text-xs text-[#6b7280]">{item.variant.nama_varian}</p>}
+                        <p className="text-sm text-[#6b7280]">
                           {item.qty} x {formatRupiah(item.unitPrice)}
                         </p>
                       </div>
-                      <p className="font-black text-[#8d4b00]">{formatRupiah(item.subtotal)}</p>
+                      <p className="font-semibold text-[#111827]">{formatRupiah(item.subtotal)}</p>
                     </div>
                   ))
                 )}
@@ -558,7 +557,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                   type="button"
                   disabled={!canContinueToData()}
                   onClick={() => setStep(2)}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2a1606] px-5 py-4 font-black text-white disabled:cursor-not-allowed disabled:bg-[#b9a98f]"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#111827] px-5 py-4 font-medium text-white disabled:cursor-not-allowed disabled:bg-[#d1d5db]"
                 >
                   Lanjut isi data penerima <ChevronRight size={18} />
                 </button>
@@ -568,35 +567,35 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
             {step === 2 && (
               <div className="space-y-4">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-black text-[#5e3d22]">Nama penerima</span>
+                  <span className="mb-2 block text-sm font-medium text-[#374151]">Nama penerima</span>
                   <input
                     value={customer.name}
                     onChange={(event) => setCustomer({ ...customer, name: event.target.value })}
-                    className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]"
+                    className="w-full rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 outline-none focus:border-[#111827]/30"
                     placeholder="Contoh: Hengki Setiawan"
                     autoComplete="name"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-black text-[#5e3d22]">Nomor kontak</span>
+                  <span className="mb-2 block text-sm font-medium text-[#374151]">Nomor kontak</span>
                   <input
                     value={customer.phone}
                     onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
-                    className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]"
+                    className="w-full rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 outline-none focus:border-[#111827]/30"
                     placeholder="Contoh: 08123456789"
                     inputMode="tel"
                     autoComplete="tel"
                   />
                 </label>
                 <div>
-                  <span className="mb-2 block text-sm font-black text-[#5e3d22]">Tipe pelanggan</span>
+                  <span className="mb-2 block text-sm font-medium text-[#374151]">Tipe pelanggan</span>
                   <div className="grid grid-cols-3 gap-2">
                     {(['konsumen', 'warung', 'reseller'] as const).map((type) => (
                       <button
                         key={type}
                         type="button"
                         onClick={() => setCustomer({ ...customer, type })}
-                        className={`rounded-2xl border px-3 py-3 text-sm font-black capitalize ${customer.type === type ? 'border-[#8d4b00] bg-[#ffe2aa]' : 'border-[#dfbd83] bg-white'}`}
+                        className={`rounded-2xl border px-3 py-3 text-sm font-medium capitalize ${customer.type === type ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#d1d5db] bg-white text-[#374151]'}`}
                       >
                         {type}
                       </button>
@@ -604,11 +603,11 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                   </div>
                 </div>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-black text-[#5e3d22]">Alamat lengkap</span>
-                  <p className="mb-2 text-xs font-bold text-[#8c6a4c]">Tulis alamat lengkap agar admin bisa mengonfirmasi ongkir dan pengiriman.</p>
+                  <span className="mb-2 block text-sm font-medium text-[#374151]">Alamat lengkap</span>
+                  <p className="mb-2 text-xs text-[#6b7280]">Tulis alamat lengkap agar admin bisa mengonfirmasi ongkir dan pengiriman.</p>
                   {savedAddresses.length > 0 && (
-                    <div className="mb-3 space-y-2 rounded-2xl border border-[#dfbd83] bg-[#fff8e8] p-3">
-                      <p className="text-xs font-black uppercase tracking-widest text-[#8d4b00]">Alamat tersimpan dari sesi ini</p>
+                    <div className="mb-3 space-y-2 rounded-2xl border border-[#e5e7eb] bg-[#f7f7f8] p-3">
+                      <p className="text-xs font-medium text-[#6b7280]">Alamat tersimpan dari sesi ini</p>
                       {savedAddresses.map((saved) => (
                         <button
                           key={saved.id}
@@ -617,7 +616,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                             setCustomer((current) => ({ ...current, name: saved.recipientName || current.name, phone: saved.phone || current.phone }));
                             setAddress({ text: saved.addressText, note: saved.courierNote || saved.landmark || '', mapsLink: '', lat: saved.latitude || '', lng: saved.longitude || '' });
                           }}
-                          className="block w-full rounded-xl bg-white px-3 py-2 text-left text-sm font-bold text-[#735033] shadow-sm"
+                          className="block w-full rounded-xl border border-[#e5e7eb] bg-white px-3 py-2 text-left text-sm font-medium text-[#374151]"
                         >
                           {saved.addressText}
                         </button>
@@ -627,17 +626,17 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                   <textarea
                     value={address.text}
                     onChange={(event) => setAddress({ ...address, text: event.target.value })}
-                    className="min-h-24 w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]"
+                    className="min-h-24 w-full rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 outline-none focus:border-[#111827]/30"
                     placeholder="Nama jalan, nomor rumah, kelurahan, kecamatan, kota"
                     autoComplete="street-address"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-black text-[#5e3d22]">Link Google Maps atau patokan</span>
+                  <span className="mb-2 block text-sm font-medium text-[#374151]">Link Google Maps atau patokan</span>
                   <input
                     value={address.mapsLink}
                     onChange={(event) => updateMapsLink(event.target.value)}
-                    className="w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]"
+                    className="w-full rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 outline-none focus:border-[#111827]/30"
                     placeholder="Tempel link maps jika ada"
                     inputMode="url"
                   />
@@ -646,20 +645,20 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                   <input
                     value={address.note}
                     onChange={(event) => setAddress({ ...address, note: event.target.value })}
-                    className="rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]"
+                    className="rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 outline-none focus:border-[#111827]/30"
                     placeholder="Patokan rumah, catatan kurir"
                     autoComplete="off"
                   />
                   <button
                     type="button"
                     onClick={useBrowserLocation}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#123524] px-4 py-3 font-black text-white"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3 font-medium text-[#111827] hover:bg-[#f3f4f6]"
                   >
                     <LocateFixed size={18} /> Ambil titik
                   </button>
                 </div>
                 {(address.lat && address.lng) && (
-                  <div className="flex items-center gap-2 rounded-2xl bg-[#e9f8dd] px-4 py-3 text-sm font-bold text-[#256f31]">
+                  <div className="flex items-center gap-2 rounded-2xl bg-[#ecfdf5] px-4 py-3 text-sm font-medium text-[#15803d]">
                     <MapPin size={16} />
                     Koordinat tersimpan: {address.lat.slice(0, 10)}, {address.lng.slice(0, 10)}
                   </div>
@@ -667,7 +666,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2a1606] px-5 py-4 font-black text-white"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#111827] px-5 py-4 font-medium text-white"
                 >
                   Lanjut pilih pembayaran <ChevronRight size={18} />
                 </button>
@@ -688,26 +687,26 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                       type="button"
                       disabled={disabled}
                       onClick={() => setPaymentMethodId(method.id)}
-                      className={`rounded-3xl border p-4 text-left ${paymentMethodId === method.id ? 'border-[#8d4b00] bg-[#ffe1aa]' : 'border-[#dfbd83] bg-white'} disabled:cursor-not-allowed disabled:opacity-45`}
+                      className={`rounded-3xl border p-4 text-left transition ${paymentMethodId === method.id ? 'border-[#111827] bg-[#f3f4f6]' : 'border-[#e5e7eb] bg-white hover:bg-[#f7f7f8]'} disabled:cursor-not-allowed disabled:opacity-45`}
                     >
                       {method.type === 'cod' ? <Truck className="mb-2" /> : <Store className="mb-2" />}
-                      <p className="font-black">{method.label}</p>
-                      <p className="text-xs text-[#735033]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Pembayaran dicek manual oleh admin')}</p>
-                      {disabledByMin && <p className="mt-2 text-xs font-black text-red-700">Minimal {formatRupiah(method.minOrderTotal || 0)}</p>}
-                      {disabledByMax && <p className="mt-2 text-xs font-black text-red-700">Maksimal {formatRupiah(method.maxOrderTotal || 0)}</p>}
+                      <p className="font-semibold">{method.label}</p>
+                      <p className="text-xs text-[#6b7280]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Pembayaran dicek manual oleh admin')}</p>
+                      {disabledByMin && <p className="mt-2 text-xs font-medium text-red-700">Minimal {formatRupiah(method.minOrderTotal || 0)}</p>}
+                      {disabledByMax && <p className="mt-2 text-xs font-medium text-red-700">Maksimal {formatRupiah(method.maxOrderTotal || 0)}</p>}
                     </button>
                       );
                     })()
                   ))}
                 </div>
                 {paymentMethods.length === 0 && (
-                  <div className="rounded-3xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+                  <div className="rounded-3xl border border-[#e5e7eb] bg-white p-4 text-sm text-[#6b7280]">
                     Metode pembayaran sedang belum tersedia. Hubungi admin Rumah Keripik untuk melanjutkan pesanan.
                   </div>
                 )}
                 {paymentMethods.find((method) => method.id === paymentMethodId)?.qrisImageUrl && (
-                  <div className="rounded-3xl border border-[#dfbd83] bg-white p-4 text-sm font-bold text-[#735033]">
-                    <p className="mb-2 font-black text-[#2a1606]">QRIS statis</p>
+                  <div className="rounded-3xl border border-[#e5e7eb] bg-white p-4 text-sm text-[#6b7280]">
+                    <p className="mb-2 font-semibold text-[#111827]">QRIS statis</p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={paymentMethods.find((method) => method.id === paymentMethodId)?.qrisImageUrl || ''} alt="QRIS" className="mx-auto max-h-56 rounded-2xl object-contain" />
                     <p className="mt-2">Pastikan nominal sesuai total sebelum upload bukti.</p>
@@ -716,32 +715,32 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                 {(() => {
                   const method = paymentMethods.find((entry) => entry.id === paymentMethodId);
                   if (!method || method.type === 'qris' || method.type === 'cod') return null;
-                  return <div className="rounded-3xl border border-[#dfbd83] bg-white p-4 text-sm text-[#735033]"><p className="font-black text-[#2a1606]">Instruksi {method.label}</p>{method.bankName && <p>Bank: {method.bankName}</p>}{method.accountNumber && <p>No: <b>{method.accountNumber}</b></p>}{method.accountName && <p>Nama: {method.accountName}</p>}</div>;
+                   return <div className="rounded-3xl border border-[#e5e7eb] bg-white p-4 text-sm text-[#6b7280]"><p className="font-semibold text-[#111827]">Instruksi {method.label}</p>{method.bankName && <p>Bank: {method.bankName}</p>}{method.accountNumber && <p>No: <b>{method.accountNumber}</b></p>}{method.accountName && <p>Nama: {method.accountName}</p>}</div>;
                 })()}
                   <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
-                  className="min-h-20 w-full rounded-2xl border border-[#dfbd83] bg-white px-4 py-3 outline-none focus:border-[#8d4b00]"
+                  className="min-h-20 w-full rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 outline-none focus:border-[#111827]/30"
                   placeholder="Catatan pesanan, contoh: jangan terlalu pedas atau kirim sore"
                 />
-                <div className="rounded-3xl bg-[#2a1606] p-5 text-white">
+                <div className="rounded-3xl bg-[#111827] p-5 text-white">
                   <div className="mb-3 flex justify-between text-sm text-white/75">
                     <span>Total item</span>
                     <span>{totalQty} pcs</span>
                   </div>
                   <div className="flex items-end justify-between">
-                    <span className="font-bold text-white/80">Total produk</span>
-                    <span className="text-3xl font-black">{formatRupiah(total)}</span>
+                    <span className="font-medium text-white/80">Total produk</span>
+                    <span className="text-3xl font-semibold tracking-[-0.03em]">{formatRupiah(total)}</span>
                   </div>
                   <p className="mt-3 text-xs leading-5 text-white/70">
                     Ongkir dan verifikasi final akan dikonfirmasi admin sesuai alamat pengiriman.
                   </p>
                 </div>
-                <div className="rounded-3xl border border-[#dfbd83] bg-[#fff8e8] p-4 text-sm font-bold text-[#735033]">
+                <div className="rounded-3xl border border-[#e5e7eb] bg-[#f7f7f8] p-4 text-sm text-[#6b7280]">
                   Setelah pesanan dibuat, kamu bisa melihat status pesanan dari halaman sukses atau menu lacak pesanan.
                 </div>
                 {error && (
-                  <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                  <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                     {error}
                   </div>
                 )}
@@ -749,23 +748,23 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                   type="button"
                   disabled={isPending || paymentMethods.length === 0}
                   onClick={submitOrder}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#8d4b00] px-5 py-4 text-lg font-black text-white transition hover:bg-[#6f3900] disabled:cursor-wait disabled:bg-[#b9a98f]"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#111827] px-5 py-4 text-lg font-medium text-white transition hover:bg-[#374151] disabled:cursor-wait disabled:bg-[#d1d5db]"
                 >
                   {isPending ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
                   Buat Pesanan
                 </button>
                 {paymentMethods.length === 0 && (
-                  <p className="text-center text-xs font-bold text-[#8c6a4c]">Pesanan belum bisa dibuat sampai metode pembayaran tersedia.</p>
+                  <p className="text-center text-xs text-[#6b7280]">Pesanan belum bisa dibuat sampai metode pembayaran tersedia.</p>
                 )}
               </div>
             )}
           </aside>
         </div>
-        <section id="faq" className="relative z-10 mx-auto mt-10 max-w-7xl scroll-mt-8 rounded-[2rem] border border-[#e7c88c] bg-white/80 p-6 shadow-xl shadow-[#8d4b00]/10 backdrop-blur md:p-8">
+        <section id="faq" className="relative z-10 mx-auto mt-10 max-w-7xl scroll-mt-8 rounded-[2rem] border border-[#e5e7eb] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)] md:p-8">
           <div className="mb-6 max-w-2xl">
-            <p className="text-sm font-black uppercase tracking-[0.22em] text-[#9a5b08]">FAQ</p>
-            <h2 className="mt-2 text-3xl font-black tracking-[-0.03em] text-[#2a1606]">Pertanyaan sebelum pesan</h2>
-            <p className="mt-2 text-sm font-bold text-[#735033]">Jawaban singkat agar kamu paham cara pesan, pembayaran, dan pelacakan.</p>
+            <p className="text-sm font-medium text-[#6b7280]">FAQ</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[#111827]">Pertanyaan sebelum pesan</h2>
+            <p className="mt-2 text-sm text-[#6b7280]">Jawaban singkat agar kamu paham cara pesan, pembayaran, dan pelacakan.</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <FaqItem question="Apakah harus login untuk pesan?" answer="Tidak. Kamu bisa memilih produk dan checkout tanpa membuat akun." />
@@ -777,14 +776,14 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
           </div>
         </section>
 
-        <footer className="relative z-10 mx-auto mt-8 max-w-7xl rounded-[2rem] border border-[#e7c88c] bg-[#2a1606] p-6 text-white shadow-xl shadow-[#2a1606]/20 md:p-8">
+        <footer className="relative z-10 mx-auto mt-8 max-w-7xl rounded-[2rem] border border-[#111827] bg-[#111827] p-6 text-white md:p-8">
           <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] md:items-start">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.24em] text-[#ffd98a]">Rumah Keripik</p>
-              <h2 className="mt-2 text-2xl font-black">Camilan renyah rumahan yang bisa dipesan online.</h2>
-              <p className="mt-3 max-w-xl text-sm font-bold leading-6 text-white/70">Produk, stok, harga, dan metode pembayaran mengikuti data aktif Rumah Keripik. Admin akan membantu konfirmasi jika ada detail yang perlu dicek.</p>
+              <p className="text-sm font-medium text-white/60">Rumah Keripik</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">Camilan renyah rumahan yang bisa dipesan online.</h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">Produk, stok, harga, dan metode pembayaran mengikuti data aktif Rumah Keripik. Admin akan membantu konfirmasi jika ada detail yang perlu dicek.</p>
             </div>
-            <div className="grid gap-2 text-sm font-black text-white/80 sm:grid-cols-2">
+            <div className="grid gap-2 text-sm font-medium text-white/80 sm:grid-cols-2">
               <a href="#produk" className="rounded-2xl bg-white/10 px-4 py-3 transition hover:bg-white/15">Produk</a>
               <a href="#cara-pesan" className="rounded-2xl bg-white/10 px-4 py-3 transition hover:bg-white/15">Cara Pesan</a>
               <a href="/pesan/lacak" className="rounded-2xl bg-white/10 px-4 py-3 transition hover:bg-white/15">Lacak Pesanan</a>
@@ -794,13 +793,13 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
         </footer>
 
         {totalQty > 0 && (
-          <div className="fixed inset-x-3 bottom-3 z-40 rounded-[1.4rem] border border-[#e5bf7b] bg-[#2a1606] p-3 text-white shadow-2xl shadow-[#2a1606]/30 lg:hidden">
+          <div className="fixed inset-x-3 bottom-3 z-40 rounded-[1.4rem] border border-[#111827] bg-[#111827] p-3 text-white shadow-[0_10px_30px_rgba(0,0,0,0.24)] lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-bold text-white/65">{totalQty} item di keranjang</p>
-                <p className="text-lg font-black">{formatRupiah(total)}</p>
+                <p className="text-xs text-white/65">{totalQty} item di keranjang</p>
+                <p className="text-lg font-semibold">{formatRupiah(total)}</p>
               </div>
-              <button type="button" onClick={scrollToCheckout} aria-label="Lihat ringkasan keranjang dan checkout" className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#2a1606]">
+              <button type="button" onClick={scrollToCheckout} aria-label="Lihat ringkasan keranjang dan checkout" className="rounded-2xl bg-white px-4 py-3 text-sm font-medium text-[#111827]">
                 Checkout
               </button>
             </div>
@@ -813,9 +812,9 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
 
 function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
-    <div className="rounded-3xl border border-[#ecd3a7] bg-[#fff8e8] p-5">
-      <h3 className="font-black text-[#2a1606]">{question}</h3>
-      <p className="mt-2 text-sm font-bold leading-6 text-[#735033]">{answer}</p>
+    <div className="rounded-3xl border border-[#e5e7eb] bg-[#f7f7f8] p-5">
+      <h3 className="font-semibold text-[#111827]">{question}</h3>
+      <p className="mt-2 text-sm leading-6 text-[#6b7280]">{answer}</p>
     </div>
   );
 }
@@ -844,25 +843,25 @@ function ProductCard({
   const imageAlt = primaryVariant?.image_url || product.image_url ? product.nama_produk : placeholder.alt;
 
   return (
-    <article className="group rounded-[1.8rem] border border-[#e8c98d] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-[#8d4b00]/10">
-      <div className="mb-5 flex h-40 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[linear-gradient(135deg,#ffe8ad,#ffd06a)] shadow-inner">
+    <article className="group rounded-[1.8rem] border border-[#e5e7eb] bg-white p-5 transition hover:border-[#d1d5db]">
+      <div className="mb-5 flex h-40 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[#f3f4f6]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={imageUrl} alt={imageAlt} loading="lazy" className="h-full w-full object-cover" />
       </div>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-[#2a1606]">{product.nama_produk}</h2>
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#79583b]">
+          <h2 className="text-xl font-semibold text-[#111827]">{product.nama_produk}</h2>
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#6b7280]">
             {product.deskripsi || 'Keripik renyah pilihan Rumah Keripik.'}
           </p>
         </div>
-        <span className="rounded-full bg-[#fff0c2] px-3 py-1 text-xs font-black text-[#8d4b00]">
+        <span className="rounded-full bg-[#f3f4f6] px-3 py-1 text-xs font-medium text-[#6b7280]">
           {product.kategori_nama || product.id_produk}
         </span>
       </div>
       {product.variants && product.variants.length > 0 && (
-        <div className="mt-4 rounded-2xl bg-[#fff8e8] p-3 text-sm font-bold text-[#79583b]">
-          <p className="mb-2 text-xs uppercase tracking-widest text-[#8d4b00]">Pilih Varian</p>
+        <div className="mt-4 rounded-2xl bg-[#f7f7f8] p-3 text-sm text-[#6b7280]">
+          <p className="mb-2 text-xs font-medium text-[#6b7280]">Pilih varian</p>
           <div className="flex flex-wrap gap-2">
             {product.variants.map((variant) => (
               <button
@@ -872,7 +871,7 @@ function ProductCard({
                 onClick={() => onSelectVariant(variant.id_varian)}
                 aria-pressed={selectedVariantId === variant.id_varian}
                 aria-label={`Pilih varian ${variant.nama_varian} untuk ${product.nama_produk}`}
-                className={`rounded-full px-3 py-1.5 text-xs font-black ${selectedVariantId === variant.id_varian ? 'bg-[#2a1606] text-white' : 'bg-white text-[#7a3f00]'} disabled:cursor-not-allowed disabled:opacity-40`}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium ${selectedVariantId === variant.id_varian ? 'bg-[#111827] text-white' : 'bg-white text-[#374151]'} disabled:cursor-not-allowed disabled:opacity-40`}
               >
                 {variant.nama_varian} - {formatRupiah(variant.harga_jual)}
               </button>
@@ -882,19 +881,19 @@ function ProductCard({
       )}
       <div className="mt-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-2xl font-black text-[#8d4b00]">{formatRupiah(displayPrice)}</p>
-          <p className={`text-sm font-bold ${soldOut ? 'text-red-600' : 'text-[#287243]'}`}>
+          <p className="text-2xl font-semibold tracking-[-0.03em] text-[#111827]">{formatRupiah(displayPrice)}</p>
+          <p className={`text-sm font-medium ${soldOut ? 'text-red-600' : 'text-[#16a34a]'}`}>
             {soldOut ? 'Stok habis' : `Stok ${displayStock}`}
           </p>
-          {soldOut && <p className="mt-1 text-xs font-bold text-red-600">Pilih varian lain jika tersedia.</p>}
+          {soldOut && <p className="mt-1 text-xs font-medium text-red-600">Pilih varian lain jika tersedia.</p>}
         </div>
         {qty > 0 ? (
-          <div className="flex items-center gap-2 rounded-full bg-[#2a1606] p-1 text-white">
+          <div className="flex items-center gap-2 rounded-full bg-[#111827] p-1 text-white">
             <button type="button" onClick={onRemove} aria-label={`Kurangi ${product.nama_produk} dari keranjang`} className="grid h-10 w-10 place-items-center rounded-full bg-white/10">
               <Minus size={16} />
             </button>
-            <span className="min-w-6 text-center font-black">{qty}</span>
-            <button type="button" onClick={onAdd} aria-label={`Tambah ${product.nama_produk} ke keranjang`} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[#2a1606]">
+            <span className="min-w-6 text-center font-semibold">{qty}</span>
+            <button type="button" onClick={onAdd} aria-label={`Tambah ${product.nama_produk} ke keranjang`} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[#111827]">
               <Plus size={16} />
             </button>
           </div>
@@ -904,7 +903,7 @@ function ProductCard({
             disabled={soldOut}
             onClick={onAdd}
             aria-label={soldOut ? `${product.nama_produk} stok habis` : `Tambah ${product.nama_produk} ke keranjang`}
-            className="min-h-11 rounded-full bg-[#8d4b00] px-5 py-3 text-sm font-black text-white transition hover:bg-[#6f3900] disabled:cursor-not-allowed disabled:bg-[#c9b9a3]"
+            className="min-h-11 rounded-full bg-[#111827] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#374151] disabled:cursor-not-allowed disabled:bg-[#d1d5db]"
           >
             {soldOut ? 'Habis' : 'Tambah'}
           </button>

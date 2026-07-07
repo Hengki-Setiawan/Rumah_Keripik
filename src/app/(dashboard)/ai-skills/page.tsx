@@ -21,8 +21,8 @@ export default function AiSkillsPage() {
         {skills.map((skill) => {
           const Icon = skill.icon;
           return (
-            <article key={skill.title} className="rounded-xl border border-neutral-200 bg-surface-container-lowest p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-container text-primary"><Icon size={22} /></div><span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black text-green-700">{skill.status}</span></div>
+            <article key={skill.title} className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+              <div className="mb-4 flex items-center justify-between gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-container text-primary"><Icon size={22} /></div><span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">{skill.status}</span></div>
               <h2 className="font-headline-sm text-headline-sm text-on-surface">{skill.title}</h2>
               <dl className="mt-4 space-y-2 text-sm"><Info label="Input" value={skill.input} /><Info label="Output" value={skill.output} /><Info label="Provider" value={skill.provider} /></dl>
             </article>
@@ -33,4 +33,4 @@ export default function AiSkillsPage() {
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs font-bold uppercase text-on-surface-variant">{label}</dt><dd className="mt-0.5 font-semibold text-on-surface">{value}</dd></div>; }
+function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs font-medium text-on-surface-variant">{label}</dt><dd className="mt-0.5 font-semibold text-on-surface">{value}</dd></div>; }

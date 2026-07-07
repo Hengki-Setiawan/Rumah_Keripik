@@ -171,9 +171,9 @@ export function AnalyticsHub() {
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
             {publicFunnel.map((step, index) => (
               <div key={step.eventType} className="rounded-xl border border-outline-variant/40 bg-surface-container-low p-4">
-                <p className="text-xs font-black uppercase text-on-surface-variant">Step {index + 1}</p>
-                <p className="mt-1 min-h-10 text-sm font-bold text-on-surface">{step.eventType.replace(/^WEB_/, '').replace(/_/g, ' ')}</p>
-                <p className="mt-3 text-2xl font-black text-primary">{step.count}</p>
+                <p className="text-xs font-medium text-on-surface-variant">Step {index + 1}</p>
+                <p className="mt-1 min-h-10 text-sm font-semibold text-on-surface">{step.eventType.replace(/^WEB_/, '').replace(/_/g, ' ')}</p>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-primary">{step.count}</p>
                 <p className="mt-1 text-xs text-on-surface-variant">
                   Konversi: {step.conversionFromPrevious == null ? '-' : `${step.conversionFromPrevious}%`}
                 </p>
@@ -187,7 +187,7 @@ export function AnalyticsHub() {
         <div className="grid gap-gutter lg:grid-cols-3">
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
             <p className="text-sm text-on-surface-variant">Order public 30 hari</p>
-            <p className="mt-2 text-3xl font-black text-primary">{publicOps.summary.orders30d}</p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-primary">{publicOps.summary.orders30d}</p>
           </div>
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
             <p className="text-sm text-on-surface-variant">Bukti pembayaran</p>

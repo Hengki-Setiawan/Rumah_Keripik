@@ -11,10 +11,8 @@ import { VerifikasiAntrian } from '@/components/transaksi/VerifikasiAntrian';
 import { DeliveryZonesManager } from '@/components/dashboard/DeliveryZonesManager';
 import dynamic from 'next/dynamic';
 import {
-  TrendingUp,
   Plus,
   X,
-  AlertCircle,
   DollarSign,
   CheckCircle,
   ShoppingCart,
@@ -230,7 +228,7 @@ export default function TransaksiHubPage() {
 
   function getStatusClass(status: string) {
     if (status === 'Lunas') return 'bg-green-100 text-green-700';
-    if (status === 'Menunggu_Verifikasi') return 'bg-orange-100 text-orange-700';
+    if (status === 'Menunggu_Verifikasi') return 'bg-orange-50 text-orange-700 ring-1 ring-orange-100';
     if (status === 'Menunggu_Bayar') return 'bg-blue-100 text-blue-700';
     if (status === 'Piutang') return 'bg-red-100 text-red-700';
     if (status === 'Dibatalkan') return 'bg-gray-200 text-gray-600';
@@ -263,7 +261,7 @@ export default function TransaksiHubPage() {
         {activeTab !== 'catat' && activeTab !== 'zona' && (
           <button
             onClick={() => setActiveTab('catat')}
-            className="bg-primary hover:opacity-90 text-on-primary px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-label-md transition-all shrink-0 shadow-sm"
+            className="bg-primary hover:opacity-90 text-on-primary px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all shrink-0"
           >
             <Plus size={18} /> Catat Transaksi Offline
           </button>
@@ -272,26 +270,26 @@ export default function TransaksiHubPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter">
-        <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5">
           <p className="text-sm text-on-surface-variant">Total Tagihan Piutang</p>
-          <p className="text-3xl font-bold text-error mt-2">
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-error">
             {formatRupiah(piutang.reduce((s, p) => s + p.total_bayar, 0))}
           </p>
           <p className="text-xs text-on-surface-variant/70 mt-1">Dari {piutang.length} tagihan belum lunas</p>
         </div>
-        <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5">
           <p className="text-sm text-on-surface-variant">Total Transaksi</p>
-          <p className="text-3xl font-bold text-on-surface mt-2">{totalCount}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-on-surface">{totalCount}</p>
           <p className="text-xs text-on-surface-variant/70 mt-1">Termasuk penjualan online & offline</p>
         </div>
-        <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5">
           <p className="text-sm text-on-surface-variant">Piutang Aktif</p>
-          <p className="text-3xl font-bold text-tertiary mt-2">{piutang.length}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-on-surface">{piutang.length}</p>
           <p className="text-xs text-on-surface-variant/70 mt-1">Butuh penagihan / follow-up segera</p>
         </div>
-        <div className="bg-surface-container-lowest border border-orange-200 rounded-xl p-5 shadow-sm">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5">
           <p className="text-sm text-on-surface-variant">Profil / Order Pending</p>
-          <p className="text-3xl font-bold text-orange-700 mt-2">{drafts.length}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-on-surface">{drafts.length}</p>
           <p className="text-xs text-on-surface-variant/70 mt-1">Pelanggan masih di flow chatbot</p>
         </div>
       </div>
@@ -331,17 +329,17 @@ export default function TransaksiHubPage() {
       {activeTab === 'riwayat' && (
         <div className="space-y-4">
           {drafts.length > 0 && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+              <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Clock size={16} className="text-orange-700" />
-                <h3 className="font-bold text-orange-900">Antrian Chatbot Belum Selesai</h3>
+                <Clock size={16} className="text-on-surface-variant" />
+                <h3 className="font-semibold text-on-surface">Antrian Chatbot Belum Selesai</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {drafts.slice(0, 6).map((draft) => (
-                  <div key={draft.id} className="bg-white/80 border border-orange-100 rounded-lg p-3">
+                    <div key={draft.id} className="rounded-xl border border-outline-variant bg-surface-container-low p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-sm text-on-surface">{draft.nama_pelanggan || 'Pelanggan Chatbot'}</p>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white text-on-surface-variant font-medium">
                         {formatStatus(draft.status)}
                       </span>
                     </div>
@@ -390,12 +388,12 @@ export default function TransaksiHubPage() {
               {[1, 2, 3].map(i => <div key={i} className="h-16 bg-surface-container rounded-xl" />)}
             </div>
           ) : filteredTransactions.length === 0 ? (
-            <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl p-12 text-center shadow-sm">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-12 text-center">
               <ShoppingCart size={48} className="mx-auto mb-3 text-outline-variant" />
               <p className="font-body-md text-on-surface-variant">Belum ada transaksi terekam</p>
             </div>
           ) : (
-            <div className="bg-surface-container-lowest border border-neutral-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-surface-container">
@@ -438,15 +436,15 @@ export default function TransaksiHubPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-on-surface-variant text-sm whitespace-nowrap">{formatDate(tx.waktu_simpan)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-sm text-on-surface">{formatRupiah(tx.total_bayar)}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-sm text-on-surface">{formatRupiah(tx.total_bayar)}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full font-label-md text-[10px] font-bold ${getStatusClass(tx.status_pembayaran)}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium ${getStatusClass(tx.status_pembayaran)}`}>
                             {formatStatus(tx.status_pembayaran)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-label-md text-[10px] font-bold ${
-                            tx.tipe_penjualan === 'Online_WA' ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700'
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium ${
+                            tx.tipe_penjualan === 'Online_WA' ? 'bg-blue-50 text-blue-700' : 'bg-neutral-100 text-neutral-700'
                           }`}>
                             {tx.tipe_penjualan === 'Online_WA' ? <Smartphone size={10} /> : <FileText size={10} />}
                             {tx.tipe_penjualan === 'Online_WA' ? 'ONLINE' : 'OFFLINE'}
@@ -467,17 +465,17 @@ export default function TransaksiHubPage() {
                             )}
                             <button
                               onClick={() => handleOrderStatus(tx.id_transaksi, 'processing')}
-                              className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700"
+                               className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700"
                               title="Tandai diproses + notify chat"
                             >Proses</button>
                             <button
                               onClick={() => handleOrderStatus(tx.id_transaksi, 'shipping')}
-                              className="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-700"
+                               className="rounded-md bg-neutral-100 px-2 py-1 text-[10px] font-medium text-neutral-700"
                               title="Tandai dikirim + notify chat"
                             >Kirim</button>
                             <button
                               onClick={() => handleOrderStatus(tx.id_transaksi, 'completed')}
-                              className="rounded-md bg-green-50 px-2 py-1 text-[10px] font-bold text-green-700"
+                               className="rounded-md bg-green-50 px-2 py-1 text-[10px] font-medium text-green-700"
                               title="Tandai selesai + notify chat"
                             >Selesai</button>
                             <button

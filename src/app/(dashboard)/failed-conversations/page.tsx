@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { failedConversation } from '@/lib/schema';
 import { ResolveFailedConversationButton } from '@/components/admin/ResolveFailedConversationButton';
@@ -21,15 +21,15 @@ export default async function FailedConversationsPage() {
       </div>
       <div className="grid gap-4">
         {rows.map((row) => (
-          <section key={row.id} className="rounded-2xl border bg-white p-5 shadow-sm">
+          <section key={row.id} className="rounded-2xl border border-outline-variant bg-white p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-black uppercase">{row.channel}</span>
-                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase text-amber-800">{row.reason}</span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${row.resolved ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{row.resolved ? 'resolved' : 'open'}</span>
+                  <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-on-surface-variant">{row.channel}</span>
+                  <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700">{row.reason}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${row.resolved ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{row.resolved ? 'resolved' : 'open'}</span>
                 </div>
-                <p className="mt-3 font-black">{row.user_message}</p>
+                <p className="mt-3 font-semibold text-on-surface">{row.user_message}</p>
                 <p className="mt-1 text-sm text-on-surface-variant">State: {row.current_state || '-'}</p>
                 {row.admin_note && <p className="mt-2 rounded-xl bg-neutral-50 p-3 text-sm">Admin note: {row.admin_note}</p>}
               </div>
@@ -37,12 +37,12 @@ export default async function FailedConversationsPage() {
             </div>
           </section>
         ))}
-        {rows.length === 0 && <p className="rounded-2xl border bg-white p-6 text-center text-on-surface-variant">Belum ada failed conversation.</p>}
+        {rows.length === 0 && <p className="rounded-2xl border border-outline-variant bg-white p-6 text-center text-on-surface-variant">Belum ada failed conversation.</p>}
       </div>
     </div>
   );
 }
 
 function Summary({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-xl border bg-white p-4"><p className="text-xs font-black uppercase text-on-surface-variant">{label}</p><p className="text-3xl font-black text-primary">{value}</p></div>;
+  return <div className="rounded-2xl border border-outline-variant bg-white p-4"><p className="text-xs font-medium text-on-surface-variant">{label}</p><p className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-primary">{value}</p></div>;
 }
