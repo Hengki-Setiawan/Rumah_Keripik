@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { Loader2, Plus, SendHorizonal, Sparkles } from 'lucide-react';
+import { Loader2, SendHorizonal, Sparkles } from 'lucide-react';
 
 export function ChatComposer({
   disabled,
@@ -30,13 +30,9 @@ export function ChatComposer({
       }`}
     >
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          aria-label="Lampirkan atau tambah konteks"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#7a6657] transition hover:bg-[#f7eddf] hover:text-[#2f241c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c55a2b]/15"
-        >
-          {idle ? <Sparkles size={16} className="text-[#c55a2b]" /> : <Plus size={18} />}
-        </button>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#c55a2b]">
+          <Sparkles size={16} />
+        </span>
 
         <div className="min-w-0 flex-1">
           <textarea

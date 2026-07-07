@@ -95,15 +95,15 @@ function SidebarLink({
     <Link
       href={item.href}
       onClick={onNavigate}
-      className={`group flex items-center gap-3 rounded-[1.15rem] px-2.5 py-2.5 transition-all ${
+      className={`group flex items-center gap-3 rounded-[1rem] px-2 py-2 transition-all ${
         isActive
-          ? 'bg-[#fff9f2] text-[#2f241c] shadow-[0_14px_30px_rgba(47,36,28,0.06)]'
+          ? 'bg-[#fff9f2] text-[#2f241c] shadow-[0_10px_22px_rgba(47,36,28,0.05)]'
           : 'text-[#756252] hover:bg-[#f9efe0] hover:text-[#2f241c]'
       } ${compact ? 'justify-center px-2' : ''}`}
       title={compact ? item.label : undefined}
     >
-      <span className={`grid h-9 w-9 place-items-center rounded-2xl ${isActive ? 'bg-[#fde8d9] text-[#c55a2b]' : 'group-hover:bg-[#f3e7d8]'}`}>
-        <Icon size={17} />
+      <span className={`grid h-8 w-8 place-items-center rounded-xl ${isActive ? 'bg-[#fde8d9] text-[#c55a2b]' : 'group-hover:bg-[#f3e7d8]'}`}>
+        <Icon size={16} />
       </span>
       {!compact && (
         <>
@@ -163,32 +163,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const sidebarContent = (compact = false) => (
     <div className={`flex h-full flex-col ${compact ? 'items-center' : ''}`}>
-      <div className={`flex items-center ${compact ? 'w-full flex-col gap-3 px-1' : 'justify-between px-1'} pb-4`}>
-        <div className={`flex items-center gap-3 ${compact ? 'flex-col' : ''}`}>
-          <div className="relative grid h-11 w-11 place-items-center rounded-[1.35rem] bg-[#c55a2b] text-sm font-semibold text-white shadow-[0_18px_40px_rgba(197,90,43,0.24)]">
-            RK
-            <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-[#7f9f3e]" />
-          </div>
-          {!compact && (
-            <div>
-              <p className="text-sm font-semibold tracking-[-0.02em] text-[#2f241c]">Rumah Keripik</p>
-              <p className="text-xs text-[#7a6758]">Operations workspace</p>
+      <div className={`flex ${compact ? 'w-full flex-col items-center gap-2 px-1' : 'items-center justify-between px-1'} pb-4`}>
+        {compact ? (
+          <>
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#c55a2b] text-white shadow-[0_14px_32px_rgba(197,90,43,0.22)]">
+              <Bot size={16} />
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((value) => !value)}
+              className="hidden lg:grid h-8 w-8 place-items-center rounded-xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c]"
+              aria-label="Buka sidebar"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#c55a2b] text-white shadow-[0_14px_32px_rgba(197,90,43,0.22)]">
+                <Bot size={16} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold tracking-[-0.02em] text-[#2f241c]">Rumah Keripik</p>
+                <p className="text-xs text-[#7a6758]">Operations workspace</p>
+              </div>
+            </div>
 
-        <button
-          type="button"
-          onClick={() => setSidebarCollapsed((value) => !value)}
-          className={`hidden lg:grid h-9 w-9 place-items-center rounded-2xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c] ${compact ? 'mx-auto' : ''}`}
-          aria-label={compact ? 'Buka sidebar' : 'Ciutkan sidebar'}
-        >
-          {compact ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
-        </button>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((value) => !value)}
+              className="hidden lg:grid h-8 w-8 place-items-center rounded-xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c]"
+              aria-label="Ciutkan sidebar"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          </>
+        )}
       </div>
 
       {!compact && (
-        <div className="mb-4 rounded-[1.5rem] border border-[#f0dfca] bg-[#fffaf3]/92 p-4 shadow-[0_14px_34px_rgba(47,36,28,0.04)]">
+        <div className="mb-4 rounded-[1.25rem] border border-[#f0dfca] bg-[#fffaf3]/92 p-3.5 shadow-[0_10px_24px_rgba(47,36,28,0.04)]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#a08973]">Workspace</p>
           <p className="mt-2 text-sm leading-6 text-[#776454]">
             Penjualan, live chat, dan modul AI dalam satu shell yang lebih ringan.
@@ -209,18 +224,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ))}
       </nav>
 
-      <div className={`pt-4 ${compact ? 'w-full' : ''}`}>
-        <button
-          onClick={() => setLogoutOpen(true)}
-          className={`flex items-center gap-3 rounded-[1.15rem] px-2.5 py-2.5 text-[#756252] transition hover:bg-[#f9efe0] hover:text-[#2f241c] ${compact ? 'w-full justify-center px-2' : 'w-full'}`}
-          title={compact ? 'Logout' : undefined}
-        >
-          <span className="grid h-9 w-9 place-items-center rounded-2xl">
-            <LogOut size={17} />
-          </span>
-          {!compact && <span className="text-sm font-medium">Logout</span>}
-        </button>
-      </div>
+        <div className={`pt-4 ${compact ? 'w-full' : ''}`}>
+          <button
+            onClick={() => setLogoutOpen(true)}
+            className={`flex items-center gap-3 rounded-[1rem] px-2 py-2 text-[#756252] transition hover:bg-[#f9efe0] hover:text-[#2f241c] ${compact ? 'w-full justify-center px-2' : 'w-full'}`}
+            title={compact ? 'Logout' : undefined}
+          >
+            <span className="grid h-8 w-8 place-items-center rounded-xl">
+              <LogOut size={16} />
+            </span>
+            {!compact && <span className="text-sm font-medium">Logout</span>}
+          </button>
+        </div>
     </div>
   );
 
@@ -229,8 +244,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <NotificationPoller />
       <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.12),transparent_20%),linear-gradient(180deg,#faf6ef_0%,#fffaf4_100%)]">
         <aside
-          className={`hidden lg:block shrink-0 border-r border-[#f0dfca] bg-[linear-gradient(180deg,rgba(255,252,247,0.96)_0%,rgba(248,240,229,0.92)_100%)] px-2.5 py-4 backdrop-blur-xl transition-[width] duration-300 ${
-            sidebarCollapsed ? 'w-[72px]' : 'w-[272px]'
+          className={`hidden lg:block shrink-0 border-r border-[#f0dfca] bg-[linear-gradient(180deg,rgba(255,252,247,0.96)_0%,rgba(248,240,229,0.92)_100%)] px-2 py-3 backdrop-blur-xl transition-[width] duration-300 ${
+            sidebarCollapsed ? 'w-[64px]' : 'w-[236px]'
           }`}
         >
           {sidebarContent(sidebarCollapsed)}
@@ -240,7 +255,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setSidebarOpen(false)}>
             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
             <aside
-              className="relative h-full w-[272px] max-w-[84vw] border-r border-[#f0dfca] bg-[linear-gradient(180deg,rgba(255,252,247,0.98)_0%,rgba(248,240,229,0.96)_100%)] px-2.5 py-4 shadow-[0_24px_70px_rgba(47,36,28,0.16)]"
+              className="relative h-full w-[236px] max-w-[82vw] border-r border-[#f0dfca] bg-[linear-gradient(180deg,rgba(255,252,247,0.98)_0%,rgba(248,240,229,0.96)_100%)] px-2 py-3 shadow-[0_24px_70px_rgba(47,36,28,0.16)]"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="mb-3 flex justify-end">

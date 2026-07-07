@@ -20,6 +20,7 @@ import {
   MessageSquarePlus,
   PackageSearch,
   ShoppingBag,
+  Sparkles,
 } from 'lucide-react';
 
 export type ChatSessionSummary = {
@@ -182,9 +183,23 @@ export function ChatSidebar({
         compact ? 'items-center' : ''
       }`}
     >
-      <div className={`flex items-center ${compact ? 'w-full justify-center' : 'justify-between gap-2 px-1'}`}>
+      <div className={`flex ${compact ? 'w-full flex-col items-center gap-2' : 'items-center justify-between gap-2 px-1'}`}>
         {compact ? (
-          <div className="h-9 w-9 rounded-xl bg-[#c55a2b]" />
+          <>
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#c55a2b] text-white shadow-[0_12px_28px_rgba(197,90,43,0.2)]">
+              <Sparkles size={16} />
+            </div>
+            {!mobile && (
+              <button
+                type="button"
+                onClick={onToggleCompact}
+                className="grid h-8 w-8 place-items-center rounded-xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c]"
+                aria-label="Buka sidebar"
+              >
+                <ChevronRight size={16} />
+              </button>
+            )}
+          </>
         ) : (
           <>
             <div>
@@ -202,17 +217,6 @@ export function ChatSidebar({
               </button>
             )}
           </>
-        )}
-
-        {compact && !mobile && (
-          <button
-            type="button"
-            onClick={onToggleCompact}
-            className="absolute left-[44px] top-3 grid h-8 w-8 place-items-center rounded-xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c]"
-            aria-label="Buka sidebar"
-          >
-            <ChevronRight size={16} />
-          </button>
         )}
       </div>
 
@@ -266,24 +270,7 @@ export function ChatSidebar({
         </div>
       )}
 
-      {compact && sessions.length > 0 && (
-        <div className="mt-auto flex flex-col items-center gap-2 pb-1">
-          {sessions.slice(0, 2).map((session) => (
-            <RailTooltip key={session.id} label={session.title || 'Pesanan Baru'}>
-              <button
-                type="button"
-                onClick={() => onSelectSession?.(session.id)}
-                disabled={loadingSessionId === session.id}
-                className={`grid h-9 w-9 place-items-center rounded-xl text-xs font-semibold transition ${
-                  activeId === session.id ? 'bg-[#fff9f2] text-[#c55a2b]' : 'text-[#816f60] hover:bg-[#fbf1e4]'
-                }`}
-              >
-                {(session.title || 'P').slice(0, 1).toUpperCase()}
-              </button>
-            </RailTooltip>
-          ))}
-        </div>
-      )}
+      {compact && <div className="mt-auto h-2 w-full" />}
     </aside>
   );
 }
