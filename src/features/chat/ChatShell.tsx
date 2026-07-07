@@ -215,6 +215,7 @@ export function ChatShell() {
             onToggleCompact={() => setSidebarCollapsed((value) => !value)}
             onNewOrder={startNewOrder}
             onSelectSession={openSession}
+            onQuickMessage={sendMessage}
             loadingSessionId={sessionLoadingId}
           />
         </motion.div>
@@ -242,6 +243,7 @@ export function ChatShell() {
                   mobile
                   onNewOrder={startNewOrder}
                   onSelectSession={openSession}
+                  onQuickMessage={sendMessage}
                   loadingSessionId={sessionLoadingId}
                 />
               </motion.div>

@@ -7,6 +7,13 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
+function maskPhone(value: string | null | undefined) {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 4) return value;
+  return `${digits.slice(0, 4)}****${digits.slice(-2)}`;
+}
+
 export async function GET(req: Request) {
   const rate = checkRateLimit(`order-track:${getClientIp(req)}`, 30, 60_000);
   if (!rate.ok) {
@@ -77,6 +84,8 @@ export async function GET(req: Request) {
       payment_status: order.payment_status,
       payment_method: order.payment_method,
       nama_penerima: order.nama_penerima,
+      no_hp_penerima: maskPhone(order.no_hp_penerima),
+      alamat_penerima: order.alamat_penerima,
       waktu_simpan: order.waktu_simpan,
       updated_at: order.updated_at,
     },

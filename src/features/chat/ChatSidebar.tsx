@@ -118,7 +118,7 @@ function SidebarItem({
   compact,
   onClick,
 }: SidebarItemProps) {
-  const className = `group flex items-center gap-3 rounded-[1rem] px-2 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c55a2b]/15 ${
+  const className = `group flex w-full items-center gap-3 rounded-[1rem] px-2 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c55a2b]/15 ${
     active
       ? 'bg-[#fff9f2] text-[#2f241c]'
       : 'text-[#715f50] hover:bg-[#f9efe0] hover:text-[#2f241c]'
@@ -165,6 +165,7 @@ export function ChatSidebar({
   onNewOrder,
   onSelectSession,
   onToggleCompact,
+  onQuickMessage,
   loadingSessionId,
 }: {
   sessions: ChatSessionSummary[];
@@ -175,6 +176,7 @@ export function ChatSidebar({
   onNewOrder?: () => void;
   onSelectSession?: (sessionId: string) => void;
   onToggleCompact?: () => void;
+  onQuickMessage?: (message: string) => void;
   loadingSessionId?: string | null;
 }) {
   return (
@@ -223,8 +225,19 @@ export function ChatSidebar({
       <div className={`mt-5 grid w-full gap-2 ${compact ? 'justify-items-center' : ''}`}>
         <SidebarItem icon={<MessageSquarePlus size={16} />} label="Pesanan baru" active={!activeId} compact={compact} onClick={onNewOrder} />
         <SidebarItem icon={<PackageSearch size={16} />} label="Lacak pesanan" href="/pesan/lacak" compact={compact} />
-        <SidebarItem icon={<ShoppingBag size={16} />} label="Keranjang" href="#chat-cart" badge={cartCount} compact={compact} />
-        <SidebarItem icon={<LifeBuoy size={16} />} label="Bantuan" href="#bantuan" compact={compact} />
+        <SidebarItem
+          icon={<ShoppingBag size={16} />}
+          label="Keranjang"
+          badge={cartCount}
+          compact={compact}
+          onClick={() => onQuickMessage?.('Lihat keranjang saya')}
+        />
+        <SidebarItem
+          icon={<LifeBuoy size={16} />}
+          label="Bantuan"
+          compact={compact}
+          onClick={() => onQuickMessage?.('Saya butuh bantuan untuk pesanan saya')}
+        />
       </div>
 
       {!compact && (
