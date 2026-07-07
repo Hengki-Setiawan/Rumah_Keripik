@@ -4,19 +4,19 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Home,
-  BarChart3,
-  Package,
-  MessageSquare,
-  TrendingUp,
-  Bot,
-  Users,
-  ShieldCheck,
-  Bell,
-  Cpu,
-  ArrowUpRight,
   ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  Bell,
+  Bot,
+  Cpu,
+  Home,
+  MessageSquare,
   Minus,
+  Package,
+  ShieldCheck,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 import { AnalyticsHub } from '@/components/dashboard/AnalyticsHub';
 
@@ -66,7 +66,7 @@ function useWorkerStatus() {
     }
 
     fetchStatus().catch(() => {});
-    const interval = setInterval(() => fetchStatus().catch(() => {}), 15_000);
+    const interval = setInterval(() => fetchStatus().catch(() => {}), 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -84,92 +84,87 @@ function pctChange(current: number, prev: number): number | null {
   return ((current - prev) / prev) * 100;
 }
 
-interface KPICardProps {
-  title: string;
+function MetricPill({
+  label,
+  value,
+  change,
+  icon,
+  loading,
+}: {
+  label: string;
   value: string;
-  icon: React.ReactNode;
   change?: number | null;
-  urgent?: boolean;
-  href?: string;
+  icon: React.ReactNode;
   loading?: boolean;
-}
-
-function KPICard({ title, value, icon, change, urgent, href, loading }: KPICardProps) {
-  const content = (
-    <div
-      className={`group rounded-[1.6rem] border p-5 transition-all duration-200 ${
-        urgent
-          ? 'border-orange-200 bg-[linear-gradient(180deg,#fff7ed_0%,#fff1e1_100%)] hover:border-orange-300'
-          : 'border-outline-variant bg-surface-container-lowest hover:border-outline hover:shadow-[0_16px_36px_rgba(47,36,28,0.06)]'
-      }`}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className={`p-2.5 rounded-xl ${urgent ? 'bg-orange-100 text-orange-600' : 'bg-surface-container text-on-surface-variant'}`}>
+}) {
+  return (
+    <div className="rounded-[1.6rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-4 shadow-[0_16px_36px_rgba(47,36,28,0.05)] backdrop-blur">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f4ead9] text-[#6b4423]">
           {icon}
         </div>
-        {href && <ArrowUpRight size={16} className="text-on-surface-variant/40 group-hover:text-on-surface group-hover:opacity-100 transition-all opacity-0" />}
+        {change !== undefined && change !== null && (
+          <div
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+              change > 0
+                ? 'bg-emerald-50 text-emerald-700'
+                : change < 0
+                  ? 'bg-rose-50 text-rose-600'
+                  : 'bg-[#f3ebdc] text-[#756252]'
+            }`}
+          >
+            {change > 0 ? <ArrowUpRight size={12} /> : change < 0 ? <ArrowDownRight size={12} /> : <Minus size={12} />}
+            {change > 0 ? '+' : ''}
+            {change.toFixed(1)}%
+          </div>
+        )}
       </div>
 
       {loading ? (
         <div className="space-y-2 animate-pulse">
-          <div className="h-7 bg-surface-container rounded w-2/3" />
-          <div className="h-3 bg-surface-container rounded w-1/2" />
+          <div className="h-7 w-2/3 rounded bg-[#efe4d3]" />
+          <div className="h-3 w-1/2 rounded bg-[#f3ebdc]" />
         </div>
       ) : (
         <>
-          <p className={`text-2xl font-semibold tracking-[-0.03em] mb-0.5 ${urgent ? 'text-orange-700' : 'text-on-surface'}`}>{value}</p>
-          <p className="text-xs text-on-surface-variant font-medium">{title}</p>
-          {change !== undefined && change !== null && (
-            <div className={`flex items-center gap-0.5 mt-1.5 text-[11px] font-semibold ${
-              change > 0 ? 'text-green-600' : change < 0 ? 'text-red-500' : 'text-on-surface-variant'
-            }`}>
-              {change > 0 ? <ArrowUpRight size={12} /> : change < 0 ? <ArrowDownRight size={12} /> : <Minus size={12} />}
-              {change > 0 ? '+' : ''}{change.toFixed(1)}% vs kemarin
-            </div>
-          )}
+          <p className="text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">{value}</p>
+          <p className="mt-1 text-sm text-[#776454]">{label}</p>
         </>
       )}
     </div>
   );
-
-  return href ? <Link href={href}>{content}</Link> : content;
 }
 
 const modules = [
   {
     href: '/master-data/produk',
     title: 'Manajemen Produk',
-    description: 'CRUD produk, manajemen stok, dan pengaturan harga.',
+    description: 'Kelola stok, harga, dan katalog tanpa buka terlalu banyak halaman.',
     icon: Package,
-    color: 'bg-surface-container text-on-surface-variant',
   },
   {
     href: '/master-data/pelanggan',
     title: 'Pelanggan & Mitra',
-    description: 'Kelola pelanggan chatbot, warung grosir, dan peta distribusi.',
+    description: 'Pantau pelanggan chatbot, reseller, dan relasi warung.',
     icon: Users,
-    color: 'bg-surface-container text-on-surface-variant',
   },
   {
     href: '/transaksi',
-    title: 'Transaksi & Pengiriman',
-    description: 'Kelola penjualan, piutang, verifikasi, dan zona pengiriman.',
+    title: 'Transaksi',
+    description: 'Verifikasi pembayaran, order masuk, dan alur pengiriman.',
     icon: TrendingUp,
-    color: 'bg-surface-container text-on-surface-variant',
   },
   {
     href: '/livechat',
     title: 'Hub Komunikasi',
-    description: 'Pantau live chat dan tindak lanjuti percakapan pelanggan.',
+    description: 'Buka live chat dan tindak lanjuti percakapan pelanggan lebih cepat.',
     icon: MessageSquare,
-    color: 'bg-surface-container text-on-surface-variant',
   },
   {
     href: '/bot-config',
     title: 'Knowledge Base & AI',
-    description: 'Kelola basis pengetahuan, auto reply, log, dan analitik bot.',
+    description: 'Atur basis pengetahuan, respon bot, dan eksperimen AI.',
     icon: Bot,
-    color: 'bg-surface-container text-on-surface-variant',
   },
 ];
 
@@ -185,152 +180,184 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-on-surface-variant">Ringkasan Operasional</p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-on-surface">Dashboard</h2>
-        <p className="text-on-surface-variant mt-2 text-sm leading-6">
-          Ringkasan penjualan, pesanan, dan aktivitas AI Rumah Keripik hari ini.
-        </p>
-      </div>
+      <section className="relative overflow-hidden rounded-[2.2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top,rgba(214,162,74,0.18),transparent_34%),linear-gradient(135deg,rgba(255,251,245,0.95)_0%,rgba(246,239,228,0.90)_100%)] p-6 shadow-[0_24px_70px_rgba(47,36,28,0.08)] md:p-8">
+        <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[#fff0cb]/60 blur-3xl" />
+        <div className="relative grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <div className="mb-4 flex w-fit items-center gap-2 rounded-full border border-[#eadfce] bg-[#fffaf3]/88 px-4 py-2 text-xs font-medium text-[#6f5d4f]">
+              <span className="h-2 w-2 rounded-full bg-[#7a963a]" />
+              Ringkasan operasional hari ini
+            </div>
+            <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.06em] text-[#2f241c] md:text-5xl">
+              Dashboard yang lebih ringan,
+              <br className="hidden md:block" /> tapi tetap tajam untuk operasional UMKM.
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#6f5d4f] md:text-base">
+              Fokus ke hal yang paling penting: pendapatan, order, chat pelanggan, dan status worker AI. Tampilan dibuat lebih frameless supaya terasa seperti workspace modern.
+            </p>
 
-      <div className="flex gap-1 rounded-2xl border border-outline-variant bg-surface-container p-1 w-full md:w-fit">
-        {[
-          { key: 'overview' as const, label: 'Beranda', icon: Home },
-          { key: 'analytics' as const, label: 'Analitik', icon: BarChart3 },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => router.replace(tab.key === 'analytics' ? '/dashboard?tab=analytics' : '/dashboard')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-label-md text-label-md transition-all ${
-                isActive ? 'bg-surface-container-lowest text-on-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]' : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <Icon size={16} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={() => router.replace('/dashboard')}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
+                  activeTab === 'overview'
+                    ? 'bg-[#111111] text-white shadow-[0_14px_34px_rgba(17,17,17,0.14)]'
+                    : 'border border-[#eadfce] bg-[#fffaf3] text-[#2f241c]'
+                }`}
+              >
+                <Home size={16} />
+                Beranda
+              </button>
+              <button
+                onClick={() => router.replace('/dashboard?tab=analytics')}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
+                  activeTab === 'analytics'
+                    ? 'bg-[#111111] text-white shadow-[0_14px_34px_rgba(17,17,17,0.14)]'
+                    : 'border border-[#eadfce] bg-[#fffaf3] text-[#2f241c]'
+                }`}
+              >
+                <BarChart3 size={16} />
+                Analitik
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+            <MetricPill
+              label="Pendapatan Hari Ini"
+              value={data ? formatRupiah(data.pendapatan_hari_ini) : '-'}
+              change={pendapatanChange}
+              icon={<TrendingUp size={20} />}
+              loading={loading}
+            />
+            <MetricPill
+              label="Order Hari Ini"
+              value={data ? String(data.order_hari_ini) : '-'}
+              change={orderChange}
+              icon={<Package size={20} />}
+              loading={loading}
+            />
+          </div>
+        </div>
+      </section>
 
       {activeTab === 'analytics' ? (
         <AnalyticsHub />
       ) : (
         <>
-          <div>
-            <h3 className="mb-3 text-sm font-medium text-on-surface-variant">Ringkasan hari ini</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <KPICard
-                title="Pendapatan Hari Ini"
-                value={data ? formatRupiah(data.pendapatan_hari_ini) : '-'}
-                icon={<TrendingUp size={20} />}
-                change={pendapatanChange}
-                href="/dashboard?tab=analytics"
-                loading={loading}
-              />
-              <KPICard
-                title="Order Hari Ini"
-                value={data ? String(data.order_hari_ini) : '-'}
-                icon={<Package size={20} />}
-                change={orderChange}
-                href="/transaksi"
-                loading={loading}
-              />
-              <KPICard
-                title="Chat Bot Hari Ini"
-                value={data ? String(data.chat_bot_hari_ini) : '-'}
-                icon={<MessageSquare size={20} />}
-                href="/livechat"
-                loading={loading}
-              />
-              <KPICard
-                title="Menunggu Verifikasi"
-                value={data ? String(data.pending_verifikasi) : '-'}
-                icon={<Bell size={20} />}
-                urgent={(data?.pending_verifikasi ?? 0) > 0}
-                href="/transaksi?tab=verifikasi"
-                loading={loading}
-              />
-            </div>
-          </div>
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricPill
+              label="Chat Bot Hari Ini"
+              value={data ? String(data.chat_bot_hari_ini) : '-'}
+              icon={<MessageSquare size={20} />}
+              loading={loading}
+            />
+            <MetricPill
+              label="Menunggu Verifikasi"
+              value={data ? String(data.pending_verifikasi) : '-'}
+              icon={<Bell size={20} />}
+              loading={loading}
+            />
+            <MetricPill
+              label="Pendapatan Hari Ini"
+              value={data ? formatRupiah(data.pendapatan_hari_ini) : '-'}
+              change={pendapatanChange}
+              icon={<TrendingUp size={20} />}
+              loading={loading}
+            />
+            <MetricPill
+              label="Order Hari Ini"
+              value={data ? String(data.order_hari_ini) : '-'}
+              change={orderChange}
+              icon={<Package size={20} />}
+              loading={loading}
+            />
+          </section>
 
-          <div className={`rounded-[1.8rem] border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
-            worker?.online
-              ? 'bg-[linear-gradient(135deg,rgba(255,249,241,0.96)_0%,rgba(237,243,223,0.88)_100%)] border-outline-variant'
-              : 'bg-[linear-gradient(135deg,#fff7ed_0%,#fff1e1_100%)] border-orange-200'
-          }`}>
-            <div className="flex items-start gap-3">
-              <div className={`p-2.5 rounded-xl ${worker?.online ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
-                <Cpu size={20} />
+          <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-[2rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Local AI Worker</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">
+                    {worker?.online ? 'Online dan siap proses job' : 'Sedang offline sementara'}
+                  </h2>
+                  <p className="mt-3 max-w-xl text-sm leading-7 text-[#776454]">
+                    {worker?.online
+                      ? 'Komputer lokal sedang menangani job berat. Sistem cloud tetap menyimpan antrian agar aman.'
+                      : 'Antrian tetap aman tersimpan. Begitu worker aktif lagi, proses berat akan lanjut otomatis.'}
+                  </p>
+                </div>
+                <div className={`grid h-12 w-12 place-items-center rounded-2xl ${worker?.online ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                  <Cpu size={22} />
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-on-surface">Local AI Worker</p>
-                <p className="text-sm text-on-surface-variant mt-0.5">
-                  {worker?.online
-                    ? 'Online. Job berat diproses dari komputer lokal.'
-                    : 'Offline. Job tetap aman tersimpan di Turso dan akan diproses saat worker hidup.'}
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-lg font-semibold text-on-surface">{worker?.counts.pending ?? '-'}</p>
-                <p className="text-[11px] text-on-surface-variant">Pending</p>
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-on-surface">{worker?.counts.processing ?? '-'}</p>
-                <p className="text-[11px] text-on-surface-variant">Proses</p>
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-on-surface">{worker?.counts.failed ?? '-'}</p>
-                <p className="text-[11px] text-on-surface-variant">Gagal</p>
-              </div>
-            </div>
-          </div>
 
-          <div>
-            <h3 className="mb-3 text-sm font-medium text-on-surface-variant">Modul sistem</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+              <div className="mt-6 grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Pending', value: worker?.counts.pending ?? '-' },
+                  { label: 'Proses', value: worker?.counts.processing ?? '-' },
+                  { label: 'Gagal', value: worker?.counts.failed ?? '-' },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-[1.4rem] bg-[#fffaf3] p-4 text-center">
+                    <p className="text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">{item.value}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#9b8772]">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Aksi cepat</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Langsung ke pekerjaan penting</h2>
+              <div className="mt-6 grid gap-3">
+                {[
+                  { href: '/transaksi?tab=verifikasi', icon: <ShieldCheck size={16} />, label: 'Cek verifikasi pembayaran' },
+                  { href: '/livechat', icon: <MessageSquare size={16} />, label: 'Buka live chat' },
+                  { href: '/master-data/produk', icon: <Package size={16} />, label: 'Update stok produk' },
+                ].map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-3 rounded-[1.4rem] border border-[#eadfce] bg-[#fffaf3] px-4 py-4 text-sm font-medium text-[#2f241c] transition hover:-translate-y-0.5 hover:border-[#d8c1a6] hover:bg-white"
+                  >
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#f4ead9] text-[#6b4423]">
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Modul sistem</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Workspace operasional</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {modules.map((module) => {
                 const Icon = module.icon;
                 return (
                   <Link
                     key={module.href}
                     href={module.href}
-                    className="group rounded-[1.7rem] border border-outline-variant bg-surface-container-lowest p-6 transition-all duration-200 hover:border-outline hover:shadow-[0_16px_36px_rgba(47,36,28,0.06)]"
+                    className="group rounded-[1.8rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur transition hover:-translate-y-1 hover:border-[#d8c1a6] hover:bg-white"
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`p-3 rounded-lg ${module.color}`}>
+                    <div className="mb-4 flex items-start justify-between">
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#f4ead9] text-[#6b4423]">
                         <Icon size={20} />
                       </div>
-                      <span className="text-xs font-medium text-on-surface-variant transition-colors opacity-0 group-hover:opacity-100">
-                        Buka {'->'}
-                      </span>
+                      <span className="text-sm text-[#9b8772] transition group-hover:text-[#2f241c]">Buka</span>
                     </div>
-                    <h3 className="mb-2 text-lg font-semibold tracking-[-0.02em] text-on-surface">{module.title}</h3>
-                    <p className="text-sm leading-6 text-on-surface-variant">{module.description}</p>
+                    <h3 className="text-lg font-semibold tracking-[-0.03em] text-[#2f241c]">{module.title}</h3>
+                    <p className="mt-2 text-sm leading-7 text-[#776454]">{module.description}</p>
                   </Link>
                 );
               })}
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link href="/transaksi?tab=verifikasi" className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-xl text-sm font-medium text-on-surface hover:bg-surface-container transition-all">
-              <ShieldCheck size={16} className="text-on-surface-variant" />
-              Cek Verifikasi Pembayaran
-            </Link>
-            <Link href="/livechat" className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-xl text-sm font-medium text-on-surface hover:bg-surface-container transition-all">
-              <MessageSquare size={16} className="text-on-surface-variant" />
-              Live Chat
-            </Link>
-            <Link href="/master-data/produk" className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-xl text-sm font-medium text-on-surface hover:bg-surface-container transition-all">
-              <Package size={16} className="text-on-surface-variant" />
-              Update Stok Produk
-            </Link>
-          </div>
+          </section>
         </>
       )}
     </div>

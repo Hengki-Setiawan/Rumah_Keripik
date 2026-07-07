@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowRight, Menu, PackageSearch, ShieldCheck, ShoppingBag, Sparkles, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+  ArrowRight,
+  Menu,
+  PackageSearch,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatComposer } from './ChatComposer';
 import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
@@ -15,6 +24,7 @@ export function ChatShell() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [error, setError] = useState('');
   const [started, setStarted] = useState(false);
   const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
@@ -184,136 +194,230 @@ export function ChatShell() {
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(214,162,74,0.15),transparent_28%),radial-gradient(circle_at_right,rgba(111,138,58,0.10),transparent_24%),linear-gradient(180deg,#f7f0e4_0%,#f8f2e9_100%)] text-[#2f241c]">
-      {!started && (
-        <OpeningScreen loading={loading} error={error} onStart={startNewOrder} />
-      )}
-      {started && (
-      <div className="flex h-full">
-        <div className="hidden w-[280px] shrink-0 lg:block"><ChatSidebar sessions={sessions} activeId={chatSessionId} cartCount={cart?.itemCount || 0} onNewOrder={startNewOrder} onSelectSession={openSession} loadingSessionId={sessionLoadingId} /></div>
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-            <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw]"><ChatSidebar sessions={sessions} activeId={chatSessionId} cartCount={cart?.itemCount || 0} onNewOrder={startNewOrder} onSelectSession={openSession} loadingSessionId={sessionLoadingId} /></div>
-            <button className="absolute right-4 top-4 rounded-full border border-[#e8dcc9] bg-[#fff9f1] p-2 text-[#2f241c] shadow-[0_8px_24px_rgba(47,36,28,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b4423]/20" onClick={() => setSidebarOpen(false)}><X size={18} /></button>
-          </div>
-        )}
+    <main className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(214,162,74,0.16),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(111,138,58,0.10),transparent_20%),linear-gradient(180deg,#f8f4ec_0%,#fbf8f2_100%)] text-[#2f241c]">
+      {!started && <OpeningScreen loading={loading} error={error} onStart={startNewOrder} />}
 
-        <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-16 items-center justify-between border-b border-[#e8dcc9] bg-[#fff9f1]/90 px-4 shadow-[0_8px_20px_rgba(47,36,28,0.04)] backdrop-blur md:px-6">
-            <div className="flex items-center gap-3">
-               <button className="rounded-xl p-2 text-[#6b5a4d] transition hover:bg-[#f3ebdc] hover:text-[#2f241c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b4423]/20 lg:hidden" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Sparkles size={17} className="text-[#6f8a3a]" />
-                  <h1 className="font-semibold tracking-[-0.02em] text-[#2f241c]">Rumah Keripik AI</h1>
+      {started && (
+        <div className="flex h-full">
+          <motion.div
+            animate={{ width: sidebarCollapsed ? 92 : 320 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+            className="hidden shrink-0 lg:block"
+          >
+            <ChatSidebar
+              sessions={sessions}
+              activeId={chatSessionId}
+              cartCount={cart?.itemCount || 0}
+              compact={sidebarCollapsed}
+              onToggleCompact={() => setSidebarCollapsed((value) => !value)}
+              onNewOrder={startNewOrder}
+              onSelectSession={openSession}
+              loadingSessionId={sessionLoadingId}
+            />
+          </motion.div>
+
+          <AnimatePresence>
+            {sidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 lg:hidden"
+              >
+                <div className="absolute inset-0 bg-black/22 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+                <motion.div
+                  initial={{ x: -32, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -28, opacity: 0 }}
+                  transition={{ duration: 0.26, ease: 'easeOut' }}
+                  className="absolute inset-y-0 left-0 w-[308px] max-w-[88vw]"
+                >
+                  <ChatSidebar
+                    sessions={sessions}
+                    activeId={chatSessionId}
+                    cartCount={cart?.itemCount || 0}
+                    mobile
+                    onNewOrder={startNewOrder}
+                    onSelectSession={openSession}
+                    loadingSessionId={sessionLoadingId}
+                  />
+                </motion.div>
+                <button
+                  type="button"
+                  className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-[#fffaf3] text-[#2f241c] shadow-[0_12px_34px_rgba(47,36,28,0.12)]"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <X size={18} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <section className="relative flex min-w-0 flex-1 flex-col">
+            <header className="flex items-center justify-between px-4 pb-2 pt-4 md:px-6">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="grid h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-[#fffaf3]/85 text-[#6f5d4f] shadow-[0_10px_26px_rgba(47,36,28,0.06)] backdrop-blur transition hover:text-[#2f241c] lg:hidden"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu size={18} />
+                </button>
+                <div className="hidden md:block">
+                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#9a8672]">AI Workspace</p>
+                  <h1 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[#2f241c]">Rumah Keripik AI</h1>
                 </div>
-                <p className="text-xs text-[#6b5a4d]">Asisten pemesanan keripik</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href="/pesan/lacak"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#eadfce] bg-[#fffaf3]/90 px-4 py-2 text-sm font-medium text-[#2f241c] shadow-[0_10px_24px_rgba(47,36,28,0.04)] backdrop-blur transition hover:bg-[#ffffff]"
+                >
+                  <PackageSearch size={16} />
+                  <span className="hidden sm:inline">Lacak</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={startNewOrder}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-sm font-medium text-white shadow-[0_14px_30px_rgba(17,17,17,0.16)] transition hover:bg-[#222222]"
+                >
+                  <Sparkles size={15} />
+                  <span className="hidden sm:inline">Chat baru</span>
+                </button>
+              </div>
+            </header>
+
+            {error && (
+              <div className="mx-4 mt-2 rounded-[1.4rem] border border-red-200 bg-red-50/90 px-4 py-3 text-sm font-medium text-red-700 md:mx-6">
+                {error}
+              </div>
+            )}
+
+            <ChatWindow messages={messages} cart={cart} loading={loading || sending} onSend={sendMessage} onAction={runAction} />
+
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-4 md:px-6 md:pb-6">
+              <div className="mx-auto max-w-4xl">
+                <div className="pointer-events-auto">
+                  <ChatComposer disabled={loading || sending || !chatSessionId} onSend={sendMessage} />
+                </div>
+                <p className="mt-3 text-center text-[11px] text-[#9b8772]">
+                  AI bisa bantu pilih paket, tetapi stok dan ongkir tetap mengikuti data toko.
+                </p>
               </div>
             </div>
-            <a href="/pesan/lacak" className="inline-flex items-center gap-2 rounded-full border border-[#e8dcc9] bg-[#fffdf8] px-4 py-2 text-sm font-medium text-[#2f241c] transition hover:bg-[#f3ebdc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b4423]/20"><PackageSearch size={16} /> Lacak</a>
-          </header>
-
-          {error && <div className="mx-4 mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 md:mx-8">{error}</div>}
-          <ChatWindow messages={messages} cart={cart} loading={loading || sending} onSend={sendMessage} onAction={runAction} />
-          <div className="border-t border-transparent bg-transparent px-3 pb-4 pt-2 md:px-5 md:pb-6">
-            <div className="mx-auto max-w-4xl"><ChatComposer disabled={loading || sending || !chatSessionId} onSend={sendMessage} /></div>
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
       )}
     </main>
   );
 }
 
-function OpeningScreen({ loading, error, onStart }: { loading: boolean; error: string; onStart: () => void }) {
+function OpeningScreen({
+  loading,
+  error,
+  onStart,
+}: {
+  loading: boolean;
+  error: string;
+  onStart: () => void;
+}) {
   return (
     <div className="relative flex h-full min-h-screen items-center justify-center overflow-hidden px-5 py-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(214,162,74,0.16),transparent_32%),radial-gradient(circle_at_85%_70%,rgba(111,138,58,0.12),transparent_28%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-16 h-56 w-56 -translate-x-1/2 rounded-full border border-[#e8dcc9] bg-[#fff9f1]/60 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(214,162,74,0.18),transparent_26%),radial-gradient(circle_at_50%_92%,rgba(111,138,58,0.10),transparent_24%)]" />
+      <div className="pointer-events-none absolute left-1/2 top-24 h-64 w-64 -translate-x-1/2 rounded-full bg-[#fff2d7]/60 blur-3xl" />
 
-      <section className="relative z-10 mx-auto w-full max-w-5xl">
-        <div className="mx-auto mb-8 flex w-fit items-center gap-2 rounded-full border border-[#e8dcc9] bg-[#fff9f1]/85 px-3 py-1.5 text-xs font-medium text-[#6b5a4d] shadow-[0_6px_18px_rgba(47,36,28,0.04)] backdrop-blur animate-[rkFadeUp_0.6s_ease-out_both]">
-          <span className="h-2 w-2 rounded-full bg-[#6f8a3a]" />
+      <motion.section
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+        className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center text-center"
+      >
+        <motion.div
+          animate={{ y: [0, -7, 0], rotate: [0, -1.5, 0] }}
+          transition={{ duration: 4.4, repeat: Infinity, ease: 'easeInOut' }}
+          className="mb-6 grid h-16 w-16 place-items-center rounded-[1.8rem] bg-[#6b4423] text-white shadow-[0_22px_60px_rgba(107,68,35,0.22)]"
+        >
+          <Sparkles size={28} />
+        </motion.div>
+
+        <div className="mb-5 flex items-center gap-2 rounded-full border border-[#eadfce] bg-[#fffaf3]/88 px-4 py-2 text-xs font-medium text-[#6f5d4f] shadow-[0_10px_28px_rgba(47,36,28,0.06)] backdrop-blur">
+          <span className="h-2 w-2 rounded-full bg-[#7a963a]" />
           AI ordering siap bantu dari pilih rasa sampai checkout
         </div>
 
-        <div className="grid items-center gap-10 lg:grid-cols-[1fr_420px]">
-          <div className="text-center lg:text-left">
-            <div className="mx-auto mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-[#6b4423] text-white shadow-[0_18px_50px_rgba(107,68,35,0.16)] lg:mx-0 animate-[rkFloat_4s_ease-in-out_infinite]">
-              <Sparkles size={25} />
+        <h1 className="max-w-4xl text-4xl font-semibold tracking-[-0.07em] text-[#2f241c] md:text-6xl">
+          Pesan keripik lewat chat
+          <br className="hidden md:block" /> yang terasa lebih natural.
+        </h1>
+        <p className="mt-5 max-w-2xl text-base leading-7 text-[#6f5d4f] md:text-lg">
+          Sambutan dibuat lebih simpel, fokus langsung ke percakapan. Kamu bisa mulai dari rekomendasi rasa, stok, paket warung, atau cek pesanan lama.
+        </p>
+
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={loading}
+            className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#111111] px-6 py-3.5 text-sm font-medium text-white shadow-[0_18px_48px_rgba(17,17,17,0.16)] transition hover:bg-[#222222] disabled:cursor-not-allowed disabled:bg-[#cec2b2]"
+          >
+            {loading ? 'Menyiapkan chat...' : 'Mulai pesan'}
+            <ArrowRight size={17} className="transition group-hover:translate-x-0.5" />
+          </button>
+          <a
+            href="/pesan/lacak"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#eadfce] bg-[#fffaf3]/90 px-6 py-3.5 text-sm font-medium text-[#2f241c] shadow-[0_10px_28px_rgba(47,36,28,0.05)] transition hover:bg-[#ffffff]"
+          >
+            <PackageSearch size={17} />
+            Lacak pesanan
+          </a>
+        </div>
+
+        <div className="mt-14 w-full max-w-3xl rounded-[2rem] border border-[#eadfce] bg-[rgba(255,251,245,0.72)] p-3 shadow-[0_24px_70px_rgba(47,36,28,0.08)] backdrop-blur-2xl">
+          <div className="flex items-center gap-3 rounded-[1.6rem] px-3 py-2 text-left">
+            <div className="grid h-11 w-11 place-items-center rounded-full text-[#6f5d4f]">
+              <Sparkles size={20} />
             </div>
-            <h1 className="text-4xl font-semibold tracking-[-0.06em] text-[#2f241c] md:text-6xl animate-[rkFadeUp_0.7s_ease-out_0.05s_both]">
-              Pesan keripik lewat chat yang terasa personal.
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#6b5a4d] md:text-lg lg:mx-0 animate-[rkFadeUp_0.7s_ease-out_0.12s_both]">
-              Mulai dari tanya stok, rekomendasi rasa, bangun keranjang, pilih pembayaran, sampai cek status pesanan. Semua dari satu percakapan yang rapi.
-            </p>
-
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start animate-[rkFadeUp_0.7s_ease-out_0.2s_both]">
-              <button
-                type="button"
-                onClick={onStart}
-                disabled={loading}
-                className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-[#6b4423] px-6 py-4 text-sm font-medium text-white shadow-[0_16px_44px_rgba(107,68,35,0.18)] transition hover:bg-[#7d5230] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b4423]/20 disabled:cursor-not-allowed disabled:bg-[#cbb8a0]"
-              >
-                {loading ? 'Menyiapkan chat...' : 'Mulai Pesan Baru'}
-                <ArrowRight size={17} className="transition group-hover:translate-x-0.5" />
-              </button>
-              <a href="/pesan/lacak" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#e8dcc9] bg-[#fff9f1]/90 px-6 py-4 text-sm font-medium text-[#2f241c] transition hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b4423]/20">
-                <PackageSearch size={17} /> Lacak Pesanan
-              </a>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] text-[#9b8772]">Tanya stok, harga, atau tulis pesananmu...</p>
             </div>
-            {error && <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
-          </div>
-
-          <div className="relative mx-auto w-full max-w-md animate-[rkFadeUp_0.8s_ease-out_0.18s_both]">
-            <div className="rounded-[2rem] border border-[#e8dcc9] bg-[#fff9f1]/92 p-4 shadow-[0_24px_70px_rgba(47,36,28,0.12)] backdrop-blur">
-              <div className="mb-4 flex items-center justify-between border-b border-[#efe4d3] pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#6f8a3a] text-xs font-semibold text-white">AI</div>
-                  <div>
-                    <p className="text-sm font-semibold tracking-[-0.02em]">Rumah Keripik AI</p>
-                    <p className="text-xs text-[#6b5a4d]">Online sekarang</p>
-                  </div>
-                </div>
-                <span className="rounded-full bg-[#f3ebdc] px-2.5 py-1 text-[11px] font-medium text-[#8d765f]">Premium flow</span>
-              </div>
-
-              <div className="space-y-3">
-                <div className="max-w-[86%] rounded-2xl rounded-bl-md border border-[#e8dcc9] bg-[#fffdf8] px-4 py-3 text-sm leading-6 text-[#2f241c] animate-[rkMessageIn_0.55s_ease-out_0.35s_both]">
-                  Halo kak, mau pesan untuk ngemil sendiri, keluarga, atau stok warung?
-                </div>
-                <div className="ml-auto max-w-[76%] rounded-2xl rounded-br-md bg-[#6b4423] px-4 py-3 text-sm leading-6 text-white animate-[rkMessageIn_0.55s_ease-out_0.7s_both]">
-                  Rekomendasi rasa pedas best seller dong.
-                </div>
-                <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-[#e8dcc9] bg-[#fffdf8] px-4 py-3 text-sm leading-6 text-[#2f241c] animate-[rkMessageIn_0.55s_ease-out_1.05s_both]">
-                  Siap. Aku cek stok dan susun paket yang paling cocok.
-                  <div className="mt-3 grid gap-2">
-                    <div className="flex items-center gap-2 rounded-xl bg-[#f3ebdc] px-3 py-2 text-xs font-medium text-[#5a4a3c]"><ShoppingBag size={14} /> Paket Pedas Favorit</div>
-                    <div className="flex items-center gap-2 rounded-xl bg-[#f3ebdc] px-3 py-2 text-xs font-medium text-[#5a4a3c]"><ShieldCheck size={14} /> Checkout aman dan bisa dilacak</div>
-                  </div>
-                </div>
-              </div>
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-[#111111] text-white shadow-[0_12px_28px_rgba(17,17,17,0.16)]">
+              <ArrowRight size={18} />
             </div>
           </div>
         </div>
-      </section>
 
-      <style jsx>{`
-        @keyframes rkFadeUp {
-          from { opacity: 0; transform: translateY(18px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes rkFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes rkMessageIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-[#6f5d4f]">
+          <span className="rounded-full bg-[#f4ead9] px-4 py-2">Rekomendasi rasa otomatis</span>
+          <span className="rounded-full bg-[#f4ead9] px-4 py-2">Checkout lebih ringkas</span>
+          <span className="rounded-full bg-[#f4ead9] px-4 py-2">Riwayat chat bisa dibuka lagi</span>
+        </div>
+
+        {error && (
+          <p className="mt-5 rounded-[1.4rem] border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        )}
+
+        <div className="mt-12 grid w-full max-w-2xl gap-3 sm:grid-cols-3">
+          {[
+            { icon: <ShoppingBag size={16} />, title: 'Paket favorit', body: 'Mulai dari best seller untuk ngemil atau stok warung.' },
+            { icon: <ShieldCheck size={16} />, title: 'Alur lebih aman', body: 'Status pesanan dan pembayaran tetap jelas dan mudah dilacak.' },
+            { icon: <Sparkles size={16} />, title: 'Terasa premium', body: 'Komposer melayang, respons ringan, dan layout tidak ramai.' },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="rounded-[1.6rem] border border-[#eadfce] bg-[#fffaf3]/80 p-4 text-left shadow-[0_16px_36px_rgba(47,36,28,0.05)] backdrop-blur"
+            >
+              <div className="mb-3 grid h-10 w-10 place-items-center rounded-2xl bg-[#f4ead9] text-[#6b4423]">
+                {item.icon}
+              </div>
+              <p className="text-sm font-semibold text-[#2f241c]">{item.title}</p>
+              <p className="mt-1 text-sm leading-6 text-[#756252]">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </motion.section>
     </div>
   );
 }
