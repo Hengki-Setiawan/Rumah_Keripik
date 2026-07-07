@@ -18,11 +18,11 @@ export function ChatWindow({ messages, cart, loading, onSend, onAction }: { mess
         {!loading && messages.length === 0 && (
           <div className="flex min-h-[55vh] items-center justify-center">
             <div className="w-full max-w-2xl text-center">
-              <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-[#111827] text-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+              <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-[#6b4423] text-white shadow-[0_8px_30px_rgba(107,68,35,0.10)]">
                 <Sparkles size={22} />
               </div>
-              <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[#111827] md:text-3xl">Mau pesan keripik apa hari ini?</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6b7280]">Tanya stok, harga, varian rasa, atau langsung buat pesanan. Aku bantu dari rekomendasi sampai checkout.</p>
+              <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[#2f241c] md:text-3xl">Mau pesan keripik apa hari ini?</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6b5a4d]">Tanya stok, harga, varian rasa, atau langsung buat pesanan. Aku bantu dari rekomendasi sampai checkout.</p>
               <div className="mt-8 grid gap-2 text-left sm:grid-cols-2">
                 {[
                   { icon: <ShoppingBag size={17} />, label: 'Lihat menu best seller' },
@@ -30,8 +30,8 @@ export function ChatWindow({ messages, cart, loading, onSend, onAction }: { mess
                   { icon: <PackageSearch size={17} />, label: 'Cek status pesanan' },
                   { icon: <ShoppingBag size={17} />, label: 'Pesan untuk warung' },
                 ].map((item) => (
-                  <button key={item.label} type="button" onClick={() => onSend(item.label)} className="flex items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3 text-sm font-medium text-[#111827] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-[#d1d5db] hover:bg-[#f7f7f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/20">
-                    <span className="text-[#6b7280]">{item.icon}</span>
+                  <button key={item.label} type="button" onClick={() => onSend(item.label)} className="flex items-center gap-3 rounded-2xl border border-[#e8dcc9] bg-[#fffdf8] px-4 py-3 text-sm font-medium text-[#2f241c] shadow-[0_6px_18px_rgba(47,36,28,0.04)] transition hover:border-[#d6bea6] hover:bg-[#f3ebdc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b4423]/20">
+                    <span className="text-[#6b5a4d]">{item.icon}</span>
                     {item.label}
                   </button>
                 ))}
@@ -43,14 +43,14 @@ export function ChatWindow({ messages, cart, loading, onSend, onAction }: { mess
           <ChatMessage key={message.id} message={message} cart={cart} onSend={onSend} onAction={onAction} />
         ))}
         {loading && (
-          <div className="flex items-center gap-3 text-sm text-[#6b7280]">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#10a37f] text-xs font-semibold text-white">AI</span>
-            <span className="inline-flex items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3">
+          <div className="flex items-center gap-3 text-sm text-[#6b5a4d]">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#6f8a3a] text-xs font-semibold text-white">AI</span>
+            <span className="inline-flex items-center gap-2 rounded-2xl border border-[#e8dcc9] bg-[#fffdf8] px-4 py-3">
               Rumah Keripik AI sedang menjawab
               <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#9ca3af]" />
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#9ca3af] [animation-delay:120ms]" />
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#9ca3af] [animation-delay:240ms]" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a08973]" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a08973] [animation-delay:120ms]" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a08973] [animation-delay:240ms]" />
               </span>
             </span>
           </div>
