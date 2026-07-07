@@ -95,21 +95,21 @@ function SidebarLink({
     <Link
       href={item.href}
       onClick={onNavigate}
-      className={`group flex items-center gap-3 rounded-[1.2rem] px-3 py-2.5 transition-all ${
+      className={`group flex items-center gap-3 rounded-[1.15rem] px-2.5 py-2.5 transition-all ${
         isActive
-          ? 'bg-[#fffaf2] text-[#2f241c] shadow-[0_16px_34px_rgba(47,36,28,0.08)]'
-          : 'text-[#756252] hover:bg-[#f8f0e1] hover:text-[#2f241c]'
-      } ${compact ? 'justify-center px-2.5' : ''}`}
+          ? 'bg-[#fff9f2] text-[#2f241c] shadow-[0_14px_30px_rgba(47,36,28,0.06)]'
+          : 'text-[#756252] hover:bg-[#f9efe0] hover:text-[#2f241c]'
+      } ${compact ? 'justify-center px-2' : ''}`}
       title={compact ? item.label : undefined}
     >
-      <span className={`grid h-10 w-10 place-items-center rounded-2xl ${isActive ? 'bg-[#f4ead9] text-[#6b4423]' : 'group-hover:bg-[#f2e7d5]'}`}>
-        <Icon size={18} />
+      <span className={`grid h-9 w-9 place-items-center rounded-2xl ${isActive ? 'bg-[#fde8d9] text-[#c55a2b]' : 'group-hover:bg-[#f3e7d8]'}`}>
+        <Icon size={17} />
       </span>
       {!compact && (
         <>
           <span className="flex-1 text-sm font-medium">{item.label}</span>
           {badge ? (
-            <span className="rounded-full bg-[#8f2020] px-2 py-0.5 text-[11px] font-semibold text-white">
+            <span className="rounded-full bg-[#c55a2b] px-2 py-0.5 text-[11px] font-semibold text-white">
               {badge}
             </span>
           ) : null}
@@ -121,7 +121,7 @@ function SidebarLink({
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -163,16 +163,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const sidebarContent = (compact = false) => (
     <div className={`flex h-full flex-col ${compact ? 'items-center' : ''}`}>
-      <div className={`flex items-center ${compact ? 'w-full flex-col gap-3 px-2' : 'justify-between px-1'} pb-4`}>
+      <div className={`flex items-center ${compact ? 'w-full flex-col gap-3 px-1' : 'justify-between px-1'} pb-4`}>
         <div className={`flex items-center gap-3 ${compact ? 'flex-col' : ''}`}>
-          <div className="relative grid h-11 w-11 place-items-center rounded-[1.35rem] bg-[#6b4423] text-sm font-semibold text-white shadow-[0_18px_40px_rgba(107,68,35,0.24)]">
+          <div className="relative grid h-11 w-11 place-items-center rounded-[1.35rem] bg-[#c55a2b] text-sm font-semibold text-white shadow-[0_18px_40px_rgba(197,90,43,0.24)]">
             RK
-            <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-[#7a963a]" />
+            <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-[#7f9f3e]" />
           </div>
           {!compact && (
             <div>
               <p className="text-sm font-semibold tracking-[-0.02em] text-[#2f241c]">Rumah Keripik</p>
-              <p className="text-xs text-[#7a6758]">Admin workspace</p>
+              <p className="text-xs text-[#7a6758]">Operations workspace</p>
             </div>
           )}
         </div>
@@ -180,18 +180,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <button
           type="button"
           onClick={() => setSidebarCollapsed((value) => !value)}
-          className={`hidden lg:grid h-10 w-10 place-items-center rounded-2xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c] ${compact ? 'mx-auto' : ''}`}
+          className={`hidden lg:grid h-9 w-9 place-items-center rounded-2xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c] ${compact ? 'mx-auto' : ''}`}
           aria-label={compact ? 'Buka sidebar' : 'Ciutkan sidebar'}
         >
-          {compact ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {compact ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
         </button>
       </div>
 
       {!compact && (
-        <div className="mb-4 rounded-[1.8rem] border border-[#efe4d3] bg-[#fffaf3]/90 p-4 shadow-[0_18px_44px_rgba(47,36,28,0.05)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#a08973]">Workspace</p>
+        <div className="mb-4 rounded-[1.5rem] border border-[#f0dfca] bg-[#fffaf3]/92 p-4 shadow-[0_14px_34px_rgba(47,36,28,0.04)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#a08973]">Workspace</p>
           <p className="mt-2 text-sm leading-6 text-[#776454]">
-            Akses cepat ke penjualan, live chat, dan modul AI tanpa tampilan dashboard yang terlalu berat.
+            Penjualan, live chat, dan modul AI dalam satu shell yang lebih ringan.
           </p>
         </div>
       )}
@@ -212,11 +212,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className={`pt-4 ${compact ? 'w-full' : ''}`}>
         <button
           onClick={() => setLogoutOpen(true)}
-          className={`flex items-center gap-3 rounded-[1.2rem] px-3 py-2.5 text-[#756252] transition hover:bg-[#f8f0e1] hover:text-[#2f241c] ${compact ? 'w-full justify-center px-2.5' : 'w-full'}`}
+          className={`flex items-center gap-3 rounded-[1.15rem] px-2.5 py-2.5 text-[#756252] transition hover:bg-[#f9efe0] hover:text-[#2f241c] ${compact ? 'w-full justify-center px-2' : 'w-full'}`}
           title={compact ? 'Logout' : undefined}
         >
-          <span className="grid h-10 w-10 place-items-center rounded-2xl">
-            <LogOut size={18} />
+          <span className="grid h-9 w-9 place-items-center rounded-2xl">
+            <LogOut size={17} />
           </span>
           {!compact && <span className="text-sm font-medium">Logout</span>}
         </button>
@@ -227,10 +227,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ToastProvider>
       <NotificationPoller />
-      <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(214,162,74,0.10),transparent_20%),linear-gradient(180deg,#f8f4ec_0%,#fbf8f2_100%)]">
+      <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.12),transparent_20%),linear-gradient(180deg,#faf6ef_0%,#fffaf4_100%)]">
         <aside
-          className={`hidden lg:block shrink-0 border-r border-[#eadfce] bg-[linear-gradient(180deg,rgba(255,252,247,0.95)_0%,rgba(247,239,228,0.90)_100%)] px-3 py-4 backdrop-blur-xl transition-[width] duration-300 ${
-            sidebarCollapsed ? 'w-[92px]' : 'w-[300px]'
+          className={`hidden lg:block shrink-0 border-r border-[#f0dfca] bg-[linear-gradient(180deg,rgba(255,252,247,0.96)_0%,rgba(248,240,229,0.92)_100%)] px-2.5 py-4 backdrop-blur-xl transition-[width] duration-300 ${
+            sidebarCollapsed ? 'w-[72px]' : 'w-[272px]'
           }`}
         >
           {sidebarContent(sidebarCollapsed)}
@@ -238,9 +238,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {sidebarOpen && (
           <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setSidebarOpen(false)}>
-            <div className="absolute inset-0 bg-black/22 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
             <aside
-              className="relative h-full w-[300px] max-w-[88vw] border-r border-[#eadfce] bg-[linear-gradient(180deg,rgba(255,252,247,0.98)_0%,rgba(247,239,228,0.96)_100%)] px-3 py-4 shadow-[0_24px_70px_rgba(47,36,28,0.16)]"
+              className="relative h-full w-[272px] max-w-[84vw] border-r border-[#f0dfca] bg-[linear-gradient(180deg,rgba(255,252,247,0.98)_0%,rgba(248,240,229,0.96)_100%)] px-2.5 py-4 shadow-[0_24px_70px_rgba(47,36,28,0.16)]"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="mb-3 flex justify-end">
@@ -263,7 +263,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className="grid h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-[#fffaf3]/90 text-[#6f5d4f] shadow-[0_10px_26px_rgba(47,36,28,0.06)] lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 text-[#6f5d4f] shadow-[0_8px_22px_rgba(47,36,28,0.06)] lg:hidden"
               >
                 <Menu size={18} />
               </button>
@@ -278,18 +278,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <button
                   type="button"
                   onClick={() => setNotifOpen((value) => !value)}
-                  className="relative grid h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-[#fffaf3]/90 text-[#6f5d4f] shadow-[0_10px_26px_rgba(47,36,28,0.06)] transition hover:text-[#2f241c]"
+                  className="relative grid h-10 w-10 place-items-center rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 text-[#6f5d4f] shadow-[0_8px_22px_rgba(47,36,28,0.06)] transition hover:text-[#2f241c]"
                 >
-                  <Bell size={18} />
+                  <Bell size={17} />
                   {totalNotif > 0 && (
-                    <span className="absolute right-0 top-0 rounded-full bg-[#8f2020] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                    <span className="absolute right-0 top-0 rounded-full bg-[#c55a2b] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
                       {totalNotif > 99 ? '99+' : totalNotif}
                     </span>
                   )}
                 </button>
 
                 {notifOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-[1.5rem] border border-[#eadfce] bg-[#fffaf3] shadow-[0_24px_70px_rgba(47,36,28,0.14)]">
+                  <div className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-[1.4rem] border border-[#f0dfca] bg-[#fffaf3] shadow-[0_24px_70px_rgba(47,36,28,0.12)]">
                     <div className="border-b border-[#f0e4d2] px-4 py-3">
                       <p className="text-sm font-semibold text-[#2f241c]">Notifikasi</p>
                     </div>
@@ -298,9 +298,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Link
                           href="/transaksi?tab=verifikasi"
                           onClick={() => setNotifOpen(false)}
-                          className="flex items-center gap-3 rounded-[1.1rem] p-3 transition hover:bg-[#f8f0e1]"
+                          className="flex items-center gap-3 rounded-[1.1rem] p-3 transition hover:bg-[#f9efe0]"
                         >
-                          <ShieldAlert size={18} className="shrink-0 text-[#a85d0c]" />
+                          <ShieldAlert size={18} className="shrink-0 text-[#c55a2b]" />
                           <div>
                             <p className="text-sm font-medium text-[#2f241c]">
                               {notifs.pending_verifikasi} pembayaran perlu diverifikasi
@@ -316,9 +316,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Link
                           href="/livechat"
                           onClick={() => setNotifOpen(false)}
-                          className="flex items-center gap-3 rounded-[1.1rem] p-3 transition hover:bg-[#f8f0e1]"
+                          className="flex items-center gap-3 rounded-[1.1rem] p-3 transition hover:bg-[#f9efe0]"
                         >
-                          <MessageSquare size={18} className="shrink-0 text-[#6b4423]" />
+                          <MessageSquare size={18} className="shrink-0 text-[#7f9f3e]" />
                           <div>
                             <p className="text-sm font-medium text-[#2f241c]">
                               {notifs.unread_chats} pesan belum dibaca
@@ -332,7 +332,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
 
-              <div className="grid h-11 w-11 place-items-center rounded-full bg-[#6b4423] text-sm font-semibold text-white shadow-[0_14px_34px_rgba(107,68,35,0.18)]">
+              <div className="grid h-10 w-10 place-items-center rounded-full bg-[#c55a2b] text-sm font-semibold text-white shadow-[0_14px_34px_rgba(197,90,43,0.18)]">
                 AP
               </div>
             </div>
@@ -342,7 +342,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {children}
           </main>
 
-          <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-[#eadfce] bg-[rgba(255,250,243,0.92)] px-2 backdrop-blur-xl lg:hidden">
+          <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-[#f0dfca] bg-[rgba(255,250,243,0.94)] px-2 backdrop-blur-xl lg:hidden">
             {[
               { href: '/dashboard', label: 'Home', icon: Home },
               { href: '/master-data/pelanggan', label: 'Mitra', icon: Users },
@@ -357,7 +357,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   key={item.href}
                   href={item.href}
                   className={`flex flex-col items-center justify-center gap-0.5 rounded-full px-4 py-1.5 transition ${
-                    isActive ? 'bg-[#f4ead9] text-[#2f241c]' : 'text-[#7a6758]'
+                    isActive ? 'bg-[#fde8d9] text-[#2f241c]' : 'text-[#7a6758]'
                   }`}
                 >
                   <Icon size={18} />
@@ -369,7 +369,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <Link
             href="/transaksi?action=baru"
-            className="fixed bottom-20 right-4 z-50 grid h-12 w-12 place-items-center rounded-full bg-[#111111] text-white shadow-[0_18px_44px_rgba(17,17,17,0.18)] transition hover:bg-[#222222] lg:hidden"
+            className="fixed bottom-20 right-4 z-50 grid h-12 w-12 place-items-center rounded-full bg-[#c55a2b] text-white shadow-[0_18px_44px_rgba(197,90,43,0.18)] transition hover:bg-[#ae4d23] lg:hidden"
           >
             <Plus size={22} />
           </Link>

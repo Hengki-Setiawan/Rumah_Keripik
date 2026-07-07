@@ -6,17 +6,17 @@ import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
 import { formatRupiah } from '@/lib/utils';
 import type { AddressConfirmComponent, AdminHandoffComponent, CustomerConfirmComponent, OrderStatusComponent, OrderSummaryComponent, PaymentUploadComponent } from '@/lib/chat-v3/types';
 
-const cardClass = 'rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]';
-const panelClass = 'mt-3 rounded-2xl bg-[#f7f7f8] p-3 text-sm leading-6 text-[#4b5563]';
-const primaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full bg-[#111827] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#374151] disabled:cursor-not-allowed disabled:bg-[#d1d5db]';
-const secondaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#111827] transition hover:bg-[#f3f4f6]';
-const inputClass = 'rounded-2xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#111827]/30 focus:ring-4 focus:ring-[#111827]/5';
+const cardClass = 'rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.9)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur';
+const panelClass = 'mt-3 rounded-[1.2rem] bg-[#fbf2e7] p-3 text-sm leading-6 text-[#5f4d3f]';
+const primaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full bg-[#c55a2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ae4d23] disabled:cursor-not-allowed disabled:bg-[#d7c8ba]';
+const secondaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-sm font-medium text-[#2f241c] transition hover:bg-[#f7eddf]';
+const inputClass = 'rounded-[1.2rem] border border-[#ecd8bf] bg-white px-4 py-3 text-sm text-[#2f241c] outline-none transition placeholder:text-[#9ca3af] focus:border-[#c55a2b]/30 focus:ring-4 focus:ring-[#c55a2b]/5';
 
 export function CustomerConfirmCard({ component, onAction }: { component: CustomerConfirmComponent; onAction?: (action: string, payload?: Record<string, unknown>) => void }) {
   const customer = component.customer;
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><UserRound size={18} className="text-[#10a37f]" /><h3 className="font-semibold text-[#111827]">Data customer tersimpan</h3></div>
+      <div className="flex items-center gap-2"><UserRound size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Data customer tersimpan</h3></div>
       <div className={panelClass}>
         <p>Nama: <span className="font-medium text-[#111827]">{customer?.name || 'Customer tersimpan'}</span></p>
         <p>Nomor WA: <span className="font-medium text-[#111827]">{customer?.phoneMasked || '********'}</span></p>
@@ -35,7 +35,7 @@ export function AddressConfirmCard({ component, onAction }: { component: Address
   const address = component.address;
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><MapPinned size={18} className="text-[#10a37f]" /><h3 className="font-semibold text-[#111827]">Konfirmasi alamat</h3></div>
+      <div className="flex items-center gap-2"><MapPinned size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Konfirmasi alamat</h3></div>
       <div className={panelClass}>
         <p className="font-medium text-[#111827]">{address?.label || 'Alamat tersimpan'}</p>
         <p className="mt-1">Penerima: {address?.recipientName || '-'}</p>
@@ -58,7 +58,7 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
 
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><CreditCard size={18} className="text-[#d97706]" /><h3 className="font-semibold text-[#111827]">Upload bukti pembayaran</h3></div>
+      <div className="flex items-center gap-2"><CreditCard size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#2f241c]">Upload bukti pembayaran</h3></div>
       <p className="mt-2 text-sm leading-6 text-[#6b7280]">Upload bukti tersedia di halaman status/sukses pesanan.</p>
       <a href={`/pesan/lacak?code=${encodeURIComponent(component.orderId)}`} className={`${primaryButtonClass} mt-3`}>Buka status</a>
     </div>
@@ -85,11 +85,11 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
 
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><PackageCheck size={18} className="text-[#10a37f]" /><h3 className="font-semibold text-[#111827]">Buat order dari chat</h3></div>
+      <div className="flex items-center gap-2"><PackageCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Buat order dari chat</h3></div>
       <p className="mt-2 text-sm leading-6 text-[#6b7280]">Aku minta data bertahap supaya order bisa masuk dashboard dengan benar.</p>
       <div className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px] font-medium text-[#6b7280]">
         {(['customer', 'address', 'payment', 'review'] as const).map((item, index) => (
-          <button key={item} type="button" onClick={() => setStep(item)} className={`rounded-full px-2 py-2 transition ${step === item ? 'bg-[#111827] text-white' : 'bg-[#f3f4f6] hover:bg-[#e5e7eb]'}`}>{index + 1}. {item === 'customer' ? 'Data' : item === 'address' ? 'Alamat' : item === 'payment' ? 'Bayar' : 'Review'}</button>
+          <button key={item} type="button" onClick={() => setStep(item)} className={`rounded-full px-2 py-2 transition ${step === item ? 'bg-[#c55a2b] text-white' : 'bg-[#f7eddf] hover:bg-[#f2e2cc]'}`}>{index + 1}. {item === 'customer' ? 'Data' : item === 'address' ? 'Alamat' : item === 'payment' ? 'Bayar' : 'Review'}</button>
         ))}
       </div>
       {(component.savedCustomerId && component.savedAddressId && paymentMethodId) && (
@@ -115,7 +115,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
           <input value={address.mapsLink} onChange={(event) => setAddress({ ...address, mapsLink: event.target.value })} placeholder="Link Google Maps (opsional)" className={inputClass} />
           <button type="button" onClick={useLocation} className={`${secondaryButtonClass} rounded-2xl px-4 py-3`}>Ambil titik</button>
         </div>
-        {(address.lat && address.lng) && <p className="rounded-2xl bg-[#ecfdf5] px-4 py-3 text-xs font-medium text-[#15803d]">Koordinat tersimpan: {address.lat.slice(0, 10)}, {address.lng.slice(0, 10)}</p>}
+        {(address.lat && address.lng) && <p className="rounded-[1.2rem] bg-[#eef6dd] px-4 py-3 text-xs font-medium text-[#56721f]">Koordinat tersimpan: {address.lat.slice(0, 10)}, {address.lng.slice(0, 10)}</p>}
         <button type="button" disabled={address.text.trim().length < 8} onClick={() => setStep('payment')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut pembayaran</button>
         </>}
         {step === 'payment' && <>
@@ -123,8 +123,8 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Catatan pesanan opsional" className={`${inputClass} min-h-16`} />
         <button type="button" disabled={!paymentMethodId.trim()} onClick={() => setStep('review')} className={`${primaryButtonClass} rounded-2xl py-3`}>Review order</button>
         </>}
-        {step === 'review' && <div className="rounded-2xl bg-[#f7f7f8] p-4 text-sm leading-6 text-[#4b5563]">
-          <p className="font-semibold text-[#111827]">Cek ulang sebelum order dibuat</p>
+        {step === 'review' && <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#4b5563]">
+          <p className="font-semibold text-[#2f241c]">Cek ulang sebelum order dibuat</p>
           <p className="mt-2">Nama: {customer.name || 'Data tersimpan'}</p>
           <p>WA: {customer.phone || 'Data tersimpan'}</p>
           <p>Alamat: {address.text || 'Alamat tersimpan'}</p>
@@ -142,7 +142,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
 export function OrderStatusCard({ component }: { component: OrderStatusComponent }) {
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-[#16a34a]" /><h3 className="font-semibold text-[#111827]">Status pesanan</h3></div>
+      <div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Status pesanan</h3></div>
       <div className="mt-3 grid gap-2 text-sm text-[#4b5563]">
         <p>Order: {component.orderCode || component.orderId}</p>
         {component.status && <p>Status: {component.status}</p>}
@@ -156,9 +156,9 @@ export function OrderStatusCard({ component }: { component: OrderStatusComponent
 
 export function AdminHandoffCard({ component }: { component: AdminHandoffComponent }) {
   return (
-    <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-      <div className="flex items-center gap-2"><AlertTriangle size={18} className="text-orange-700" /><h3 className="font-semibold text-orange-950">Butuh admin</h3></div>
-      <p className="mt-2 text-sm leading-6 text-orange-800">{component.reason || 'Chat ini diteruskan ke admin untuk dicek lebih pasti.'}</p>
+    <div className="rounded-[1.7rem] border border-[#f3d2bf] bg-[#fff3ea] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)]">
+      <div className="flex items-center gap-2"><AlertTriangle size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#7b3111]">Butuh admin</h3></div>
+      <p className="mt-2 text-sm leading-6 text-[#8b4c31]">{component.reason || 'Chat ini diteruskan ke admin untuk dicek lebih pasti.'}</p>
     </div>
   );
 }

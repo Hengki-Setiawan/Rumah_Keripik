@@ -98,9 +98,9 @@ function MetricPill({
   loading?: boolean;
 }) {
   return (
-    <div className="rounded-[1.6rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-4 shadow-[0_16px_36px_rgba(47,36,28,0.05)] backdrop-blur">
+    <div className="rounded-[1.6rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur">
       <div className="mb-3 flex items-center justify-between">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f4ead9] text-[#6b4423]">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#fde8d9] text-[#c55a2b]">
           {icon}
         </div>
         {change !== undefined && change !== null && (
@@ -110,7 +110,7 @@ function MetricPill({
                 ? 'bg-emerald-50 text-emerald-700'
                 : change < 0
                   ? 'bg-rose-50 text-rose-600'
-                  : 'bg-[#f3ebdc] text-[#756252]'
+                  : 'bg-[#f7eddf] text-[#756252]'
             }`}
           >
             {change > 0 ? <ArrowUpRight size={12} /> : change < 0 ? <ArrowDownRight size={12} /> : <Minus size={12} />}
@@ -123,7 +123,7 @@ function MetricPill({
       {loading ? (
         <div className="space-y-2 animate-pulse">
           <div className="h-7 w-2/3 rounded bg-[#efe4d3]" />
-          <div className="h-3 w-1/2 rounded bg-[#f3ebdc]" />
+          <div className="h-3 w-1/2 rounded bg-[#f7eddf]" />
         </div>
       ) : (
         <>
@@ -180,20 +180,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2.2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top,rgba(214,162,74,0.18),transparent_34%),linear-gradient(135deg,rgba(255,251,245,0.95)_0%,rgba(246,239,228,0.90)_100%)] p-6 shadow-[0_24px_70px_rgba(47,36,28,0.08)] md:p-8">
-        <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[#fff0cb]/60 blur-3xl" />
-        <div className="relative grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="relative overflow-hidden rounded-[2.1rem] border border-[#f0dfca] bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.20),transparent_32%),linear-gradient(135deg,rgba(255,250,244,0.96)_0%,rgba(248,240,229,0.92)_100%)] p-6 shadow-[0_24px_70px_rgba(47,36,28,0.08)] md:p-8">
+        <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[#ffe9bf]/65 blur-3xl" />
+        <div className="relative grid gap-8 xl:grid-cols-[1.25fr_0.75fr]">
           <div>
-            <div className="mb-4 flex w-fit items-center gap-2 rounded-full border border-[#eadfce] bg-[#fffaf3]/88 px-4 py-2 text-xs font-medium text-[#6f5d4f]">
-              <span className="h-2 w-2 rounded-full bg-[#7a963a]" />
+            <div className="mb-4 flex w-fit items-center gap-2 rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 px-4 py-2 text-xs font-medium text-[#6f5d4f]">
+              <span className="h-2 w-2 rounded-full bg-[#7f9f3e]" />
               Ringkasan operasional hari ini
             </div>
             <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.06em] text-[#2f241c] md:text-5xl">
-              Dashboard yang lebih ringan,
-              <br className="hidden md:block" /> tapi tetap tajam untuk operasional UMKM.
+              Workspace operasional yang lebih ringan,
+              <br className="hidden md:block" /> lebih cepat dibaca, dan satu bahasa dengan AI chat.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[#6f5d4f] md:text-base">
-              Fokus ke hal yang paling penting: pendapatan, order, chat pelanggan, dan status worker AI. Tampilan dibuat lebih frameless supaya terasa seperti workspace modern.
+              Pendapatan, order, live chat, dan worker AI ditampilkan dengan hirarki yang lebih tenang supaya keputusan harian bisa diambil lebih cepat.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -201,8 +201,8 @@ export default function DashboardPage() {
                 onClick={() => router.replace('/dashboard')}
                 className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
                   activeTab === 'overview'
-                    ? 'bg-[#111111] text-white shadow-[0_14px_34px_rgba(17,17,17,0.14)]'
-                    : 'border border-[#eadfce] bg-[#fffaf3] text-[#2f241c]'
+                    ? 'bg-[#c55a2b] text-white shadow-[0_14px_34px_rgba(197,90,43,0.16)]'
+                    : 'border border-[#f0dfca] bg-[#fffaf3] text-[#2f241c]'
                 }`}
               >
                 <Home size={16} />
@@ -212,8 +212,8 @@ export default function DashboardPage() {
                 onClick={() => router.replace('/dashboard?tab=analytics')}
                 className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
                   activeTab === 'analytics'
-                    ? 'bg-[#111111] text-white shadow-[0_14px_34px_rgba(17,17,17,0.14)]'
-                    : 'border border-[#eadfce] bg-[#fffaf3] text-[#2f241c]'
+                    ? 'bg-[#c55a2b] text-white shadow-[0_14px_34px_rgba(197,90,43,0.16)]'
+                    : 'border border-[#f0dfca] bg-[#fffaf3] text-[#2f241c]'
                 }`}
               >
                 <BarChart3 size={16} />
@@ -274,8 +274,8 @@ export default function DashboardPage() {
             />
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[2rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+          <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+            <div className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Local AI Worker</p>
@@ -288,7 +288,7 @@ export default function DashboardPage() {
                       : 'Antrian tetap aman tersimpan. Begitu worker aktif lagi, proses berat akan lanjut otomatis.'}
                   </p>
                 </div>
-                <div className={`grid h-12 w-12 place-items-center rounded-2xl ${worker?.online ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                <div className={`grid h-12 w-12 place-items-center rounded-2xl ${worker?.online ? 'bg-[#eef6dd] text-[#6a852d]' : 'bg-[#fff1db] text-[#c55a2b]'}`}>
                   <Cpu size={22} />
                 </div>
               </div>
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                   { label: 'Proses', value: worker?.counts.processing ?? '-' },
                   { label: 'Gagal', value: worker?.counts.failed ?? '-' },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-[1.4rem] bg-[#fffaf3] p-4 text-center">
+                  <div key={item.label} className="rounded-[1.3rem] bg-[#fbf2e7] p-4 text-center">
                     <p className="text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">{item.value}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#9b8772]">{item.label}</p>
                   </div>
@@ -307,7 +307,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+            <div className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Aksi cepat</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Langsung ke pekerjaan penting</h2>
               <div className="mt-6 grid gap-3">
@@ -319,9 +319,9 @@ export default function DashboardPage() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center gap-3 rounded-[1.4rem] border border-[#eadfce] bg-[#fffaf3] px-4 py-4 text-sm font-medium text-[#2f241c] transition hover:-translate-y-0.5 hover:border-[#d8c1a6] hover:bg-white"
+                    className="flex items-center gap-3 rounded-[1.35rem] border border-[#f0dfca] bg-[#fffaf3] px-4 py-4 text-sm font-medium text-[#2f241c] transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
                   >
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#f4ead9] text-[#6b4423]">
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#fde8d9] text-[#c55a2b]">
                       {item.icon}
                     </span>
                     {item.label}
@@ -343,10 +343,10 @@ export default function DashboardPage() {
                   <Link
                     key={module.href}
                     href={module.href}
-                    className="group rounded-[1.8rem] border border-[#eadfce] bg-[rgba(255,251,245,0.78)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur transition hover:-translate-y-1 hover:border-[#d8c1a6] hover:bg-white"
+                    className="group rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur transition hover:-translate-y-1 hover:border-[#dfc5a8] hover:bg-white"
                   >
                     <div className="mb-4 flex items-start justify-between">
-                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#f4ead9] text-[#6b4423]">
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#fde8d9] text-[#c55a2b]">
                         <Icon size={20} />
                       </div>
                       <span className="text-sm text-[#9b8772] transition group-hover:text-[#2f241c]">Buka</span>

@@ -21,40 +21,6 @@ export function ChatShell() {
   const [started, setStarted] = useState(false);
   const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function resumeLatestSession() {
-      const loadedSessions = await loadSessions();
-      if (cancelled || loadedSessions.length === 0) return;
-      await openSession(loadedSessions[0].id, loadedSessions, true);
-    }
-
-    resumeLatestSession().catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!chatSessionId || typeof EventSource === 'undefined') return;
-    const source = new EventSource(`/api/chat/stream?chatSessionId=${encodeURIComponent(chatSessionId)}`);
-    source.addEventListener('chat_state', (event) => {
-      try {
-        const data = JSON.parse((event as MessageEvent).data);
-        if (data.ok) {
-          setMessages(data.messages || []);
-          setCart(data.cart || null);
-        }
-      } catch {
-        // Ignore malformed payloads.
-      }
-    });
-    source.onerror = () => source.close();
-    return () => source.close();
-  }, [chatSessionId]);
-
   async function loadSessions() {
     const response = await fetch('/api/chat/sessions');
     const data = await response.json();
@@ -135,6 +101,40 @@ export function ChatShell() {
     setCart(data.cart || null);
     loadSessions().catch(() => undefined);
   }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resumeLatestSession() {
+      const loadedSessions = await loadSessions();
+      if (cancelled || loadedSessions.length === 0) return;
+      await openSession(loadedSessions[0].id, loadedSessions, true);
+    }
+
+    resumeLatestSession().catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!chatSessionId || typeof EventSource === 'undefined') return;
+    const source = new EventSource(`/api/chat/stream?chatSessionId=${encodeURIComponent(chatSessionId)}`);
+    source.addEventListener('chat_state', (event) => {
+      try {
+        const data = JSON.parse((event as MessageEvent).data);
+        if (data.ok) {
+          setMessages(data.messages || []);
+          setCart(data.cart || null);
+        }
+      } catch {
+        // Ignore malformed payloads.
+      }
+    });
+    source.onerror = () => source.close();
+    return () => source.close();
+  }, [chatSessionId]);
 
   useEffect(() => {
     if (!chatSessionId || sending) return;

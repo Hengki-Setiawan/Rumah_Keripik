@@ -10,7 +10,7 @@ export function QuickReplies({ component, onSend, onAction }: { component: Quick
           key={option.id}
           type="button"
           onClick={() => option.action === 'send_message' ? onSend(option.value) : onAction(option.value, {})}
-          className="rounded-full border border-[#e8dcc9] bg-[#fffdf8] px-4 py-2 text-sm font-medium text-[#2f241c] shadow-[0_6px_18px_rgba(47,36,28,0.04)] transition hover:bg-[#f3ebdc] hover:border-[#d6bea6]"
+          className="rounded-full border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] px-4 py-2.5 text-sm font-medium text-[#5f4d3f] shadow-[0_10px_24px_rgba(47,36,28,0.04)] transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
         >
           {option.label}
         </button>
