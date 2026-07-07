@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  BarChart3,
   Package,
   Users,
-  Store,
   MessageSquare,
-  BookOpen,
   LogOut,
   Home,
   Bot,
@@ -18,13 +15,8 @@ import {
   Menu,
   X,
   ShoppingCart,
-  MapPin,
   ShieldAlert,
   Plus,
-  CreditCard,
-  Activity,
-  Route,
-  Brain,
 } from 'lucide-react';
 import { ToastProvider, useToast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/modal';
@@ -38,16 +30,16 @@ const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
-  { href: '/transaksi', label: 'Transaksi & Pengiriman', icon: ShoppingCart },
-  { href: '/pembayaran/verifikasi', label: 'Verifikasi Pembayaran', icon: CreditCard },
-  { href: '/hub-komunikasi', label: 'Chat Hub', icon: MessageSquare },
-  { href: '/livechat', label: 'Livechat', icon: MessageSquare },
-  { href: '/bot-config', label: 'Knowledge Base', icon: Bot },
-  { href: '/ai-monitor', label: 'AI Monitor', icon: Activity },
-  { href: '/ai-skills', label: 'AI Skills', icon: Brain },
-  { href: '/model-router', label: 'Model Router', icon: Route },
-  { href: '/feedback-learning', label: 'Feedback', icon: Brain },
+  { href: '/transaksi', label: 'Transaksi, Pembayaran & Kirim', icon: ShoppingCart, activeHrefs: ['/transaksi', '/pembayaran/verifikasi'] },
+  { href: '/livechat', label: 'Live Chat & Chat Hub', icon: MessageSquare, activeHrefs: ['/livechat', '/hub-komunikasi'] },
+  { href: '/ai-workspace', label: 'Knowledge Base & AI', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router'] },
+  { href: '/feedback-learning', label: 'Feedback', icon: Bot },
 ];
+
+function isMenuActive(pathname: string, item: { href: string; activeHrefs?: string[] }) {
+  const paths = item.activeHrefs || [item.href];
+  return paths.some((href) => pathname === href || pathname.startsWith(href + '/'));
+}
 
 function NotificationPoller() {
   const { addToast } = useToast();
@@ -118,9 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const totalNotif = notifs.pending_verifikasi + notifs.unread_chats;
 
-  const currentLabel = menuItems.find(
-    (item) => item.href === pathname || pathname.startsWith(item.href + '/')
-  )?.label || 'Dashboard';
+  const currentLabel = menuItems.find((item) => isMenuActive(pathname, item))?.label || 'Dashboard';
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -137,7 +127,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav className="flex-1 flex flex-col gap-1 px-3 pb-4 overflow-y-auto scrollbar-thin">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = isMenuActive(pathname, item);
           return (
               <Link
                 key={item.href}
@@ -239,7 +229,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </div>
                   <div className="p-2 space-y-1">
                     {notifs.pending_verifikasi > 0 ? (
-                      <Link href="/transaksi" onClick={() => setNotifOpen(false)}
+                      <Link href="/transaksi?tab=verifikasi" onClick={() => setNotifOpen(false)}
                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container transition-colors">
                         <ShieldAlert size={18} className="text-warning shrink-0" />
                         <div>
@@ -281,11 +271,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { href: '/dashboard', label: 'Home', icon: Home },
             { href: '/master-data/pelanggan', label: 'Mitra', icon: Users },
             { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart },
-            { href: '/livechat', label: 'Chat Hub', icon: MessageSquare },
-            { href: '/bot-config', label: 'KB & AI', icon: Bot },
+            { href: '/livechat', label: 'Chat', icon: MessageSquare },
+            { href: '/ai-workspace', label: 'AI', icon: Bot },
           ].map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isActive = isMenuActive(pathname, item);
             return (
               <Link
                 key={item.href}

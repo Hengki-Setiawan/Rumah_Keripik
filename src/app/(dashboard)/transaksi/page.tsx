@@ -7,7 +7,7 @@ import { getAllProdukAktif } from '@/actions/produk';
 import { getAllWarungAktif } from '@/actions/warung';
 import { useToast } from '@/components/ui/toast';
 import { formatRupiah } from '@/lib/utils';
-import { VerifikasiAntrian } from '@/components/transaksi/VerifikasiAntrian';
+import { PaymentVerificationPanel } from '@/components/transaksi/PaymentVerificationPanel';
 import { DeliveryZonesManager } from '@/components/dashboard/DeliveryZonesManager';
 import dynamic from 'next/dynamic';
 import {
@@ -533,9 +533,7 @@ export default function TransaksiHubPage() {
       )}
 
       {/* --- TAB 2: VERIFIKASI PEMBAYARAN --- */}
-      {activeTab === 'verifikasi' && (
-        <VerifikasiAntrian />
-      )}
+      {activeTab === 'verifikasi' && <PaymentVerificationPanel compactHeader />}
 
       {activeTab === 'zona' && (
         <DeliveryZonesManager />

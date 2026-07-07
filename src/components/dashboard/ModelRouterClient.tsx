@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { AlertTriangle, CheckCircle2, Save } from 'lucide-react';
 import { saveModelRouterSettings } from '@/actions/ai-ops';
 
-export function ModelRouterClient({ providerConfigs, taskConfigs }: { providerConfigs: unknown; taskConfigs: unknown }) {
+export function ModelRouterClient({ providerConfigs, taskConfigs, compactHeader = false }: { providerConfigs: unknown; taskConfigs: unknown; compactHeader?: boolean }) {
   const [providerText, setProviderText] = useState(JSON.stringify(providerConfigs, null, 2));
   const [taskText, setTaskText] = useState(JSON.stringify(taskConfigs, null, 2));
   const [message, setMessage] = useState('');
@@ -27,7 +27,7 @@ export function ModelRouterClient({ providerConfigs, taskConfigs }: { providerCo
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div><h1 className="font-headline-lg text-headline-lg text-on-surface">Model Router</h1><p className="mt-1 text-on-surface-variant">Atur provider AI, fallback, task config, token limit, dan mode hemat. Gemini/Groq aktif bila API key tersedia; Cerebras/Qwen siap sebagai slot OpenAI-compatible.</p></div>
+        <div>{compactHeader ? <h2 className="font-headline-sm text-headline-sm text-on-surface">Model Router</h2> : <h1 className="font-headline-lg text-headline-lg text-on-surface">Model Router</h1>}<p className="mt-1 text-on-surface-variant">Atur provider AI, fallback, task config, token limit, dan mode hemat. Gemini/Groq aktif bila API key tersedia; Cerebras/Qwen siap sebagai slot OpenAI-compatible.</p></div>
         <button onClick={save} disabled={pending} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-bold text-on-primary disabled:opacity-60"><Save size={16} /> Simpan</button>
       </div>
       {message && <div className="rounded-xl border border-primary/20 bg-primary-container/30 p-4 text-sm font-bold text-on-surface">{message}</div>}

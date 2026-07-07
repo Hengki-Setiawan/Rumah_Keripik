@@ -21,7 +21,9 @@ import {
 import { useToast } from '@/components/ui/toast';
 import { Modal, ConfirmModal } from '@/components/ui/modal';
 import { QuickReplyBar } from '@/components/livechat/QuickReplyBar';
+import { InfoButton } from '@/components/ui/InfoButton';
 import {
+  ExternalLink,
   MessageSquare,
   Send,
   Bot,
@@ -289,10 +291,14 @@ export default function CommunicationHubPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface">Hub Komunikasi</h1>
+          <h1 className="font-headline-lg text-headline-lg text-on-surface">Live Chat & Chat Hub</h1>
           <p className="text-on-surface-variant font-body-md mt-1">
-            Kirim broadcast massal dan tangani obrolan langsung dari WhatsApp atau Telegram
+            Tangani obrolan langsung, broadcast campaign, dan akses Chat Hub web dari satu area kerja
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <InfoButton title="Live Chat & Chat Hub" description="Live Chat dipakai untuk WhatsApp/Telegram dan broadcast. Chat Hub web dipakai untuk percakapan AI `/pesan`, takeover, card, customer context, cart, dan order." usage="Gunakan tab Live Chat untuk balas WA/Telegram atau campaign. Klik Chat Hub Web untuk membuka control center percakapan web AI." />
+          <a href="/hub-komunikasi" className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-white px-4 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container"><ExternalLink size={16} /> Chat Hub Web</a>
         </div>
       </div>
 
