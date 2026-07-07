@@ -88,6 +88,14 @@ async function main() {
     detail: newChatSessionId,
   });
 
+  const forbiddenStateRes = await fetch(`${baseUrl}/api/chat/state?chatSessionId=${encodeURIComponent(chatSessionId || '')}`, { redirect: 'manual' });
+  results.push({ name: 'chat state without cookie denied', status: forbiddenStateRes.status, ok: [302, 307, 401, 403].includes(forbiddenStateRes.status) });
+
+  const streamRes = await fetch(`${baseUrl}/api/chat/stream?chatSessionId=${encodeURIComponent(newChatSessionId || chatSessionId || '')}`, { headers: { Cookie: cookieHeader() }, redirect: 'manual' });
+  const contentType = streamRes.headers.get('content-type') || '';
+  results.push({ name: 'owned chat stream opens', status: streamRes.status, ok: streamRes.status === 200 && contentType.includes('text/event-stream'), detail: contentType });
+  await streamRes.body?.cancel().catch(() => undefined);
+
   const deleteSingleRes = await fetch(`${baseUrl}/api/chat/sessions/${encodeURIComponent(newChatSessionId || '')}`, {
     method: 'DELETE',
     headers: { Cookie: cookieHeader() },
@@ -121,14 +129,6 @@ async function main() {
     ok: sessionsAfterDeleteRes.status === 200 && Array.isArray(sessionsAfterDeleteData?.sessions) && sessionsAfterDeleteData.sessions.length === 0,
     detail: String(sessionsAfterDeleteData?.sessions?.length ?? ''),
   });
-
-  const forbiddenStateRes = await fetch(`${baseUrl}/api/chat/state?chatSessionId=${encodeURIComponent(chatSessionId || '')}`, { redirect: 'manual' });
-  results.push({ name: 'chat state without cookie denied', status: forbiddenStateRes.status, ok: [302, 307, 401, 403].includes(forbiddenStateRes.status) });
-
-  const streamRes = await fetch(`${baseUrl}/api/chat/stream?chatSessionId=${encodeURIComponent(chatSessionId || '')}`, { headers: { Cookie: cookieHeader() }, redirect: 'manual' });
-  const contentType = streamRes.headers.get('content-type') || '';
-  results.push({ name: 'owned chat stream opens', status: streamRes.status, ok: streamRes.status === 200 && contentType.includes('text/event-stream'), detail: contentType });
-  await streamRes.body?.cancel().catch(() => undefined);
 
   const failed = results.filter((result) => !result.ok);
   console.log(JSON.stringify({ ok: failed.length === 0, baseUrl, results }, null, 2));
