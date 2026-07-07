@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { PackageSearch, ShoppingBag, Sparkles } from 'lucide-react';
 import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatMessage } from './ChatMessage';
@@ -31,6 +31,7 @@ export function ChatWindow({
   onAction: (action: string, payload?: Record<string, unknown>) => void;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
   const [listRef] = useAutoAnimate<HTMLDivElement>({
     duration: 220,
     easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -46,13 +47,13 @@ export function ChatWindow({
         {idle ? (
           <div className="flex min-h-[calc(100vh-11rem)] items-center justify-center">
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+              animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
               transition={{ duration: 0.42, ease: 'easeOut' }}
               className="w-full max-w-4xl text-center"
             >
               <motion.div
-                animate={{ y: [0, -5, 0], rotate: [0, -1, 0] }}
+                animate={reducedMotion ? {} : { y: [0, -5, 0], rotate: [0, -1, 0] }}
                 transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
                 className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-[1.6rem] bg-[#c55a2b] text-white shadow-[0_18px_46px_rgba(197,90,43,0.20)]"
               >
@@ -73,8 +74,8 @@ export function ChatWindow({
                   <motion.button
                     key={item.label}
                     type="button"
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={reducedMotion ? false : { opacity: 0, y: 14 }}
+                    animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.28, delay: 0.08 * index, ease: 'easeOut' }}
                     onClick={() => onSend(item.label)}
                     className="inline-flex items-center gap-2 rounded-full border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] px-4 py-2.5 text-sm font-medium text-[#5f4d3f] shadow-[0_10px_24px_rgba(47,36,28,0.04)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
@@ -88,9 +89,19 @@ export function ChatWindow({
           </div>
         ) : (
           <div ref={listRef} className="mx-auto flex w-full max-w-4xl flex-col gap-8 pb-8 pt-8">
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} cart={cart} onSend={onSend} onAction={onAction} />
-            ))}
+            {messages.map((message, index) => {
+              const isFirstAssistant = message.role === 'assistant' && messages.slice(0, index).every((item) => item.role !== 'assistant');
+              return (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  cart={cart}
+                  onSend={onSend}
+                  onAction={onAction}
+                  isFirstAssistant={isFirstAssistant}
+                />
+              );
+            })}
 
             {loading && (
               <div className="flex items-start gap-3">

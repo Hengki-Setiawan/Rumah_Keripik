@@ -9,6 +9,7 @@ import {
   BarChart3,
   Bell,
   Bot,
+  ChevronRight,
   Cpu,
   Home,
   MessageSquare,
@@ -43,9 +44,7 @@ function useKPI() {
     async function fetchKPI() {
       try {
         const res = await fetch('/api/analytics/kpi');
-        if (res.ok) {
-          setData(await res.json());
-        }
+        if (res.ok) setData(await res.json());
       } finally {
         setLoading(false);
       }
@@ -84,23 +83,31 @@ function pctChange(current: number, prev: number): number | null {
   return ((current - prev) / prev) * 100;
 }
 
-function MetricPill({
+function KPIChip({
   label,
   value,
   change,
   icon,
+  urgent = false,
   loading,
 }: {
   label: string;
   value: string;
   change?: number | null;
   icon: React.ReactNode;
+  urgent?: boolean;
   loading?: boolean;
 }) {
   return (
-    <div className="rounded-[1.6rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur">
+    <div className={`rounded-[1.4rem] border p-4 shadow-[0_14px_34px_rgba(47,36,28,0.04)] backdrop-blur ${
+      urgent
+        ? 'border-[#f1cdb7] bg-[rgba(255,243,234,0.92)]'
+        : 'border-[#f0dfca] bg-[rgba(255,250,244,0.88)]'
+    }`}>
       <div className="mb-3 flex items-center justify-between">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#fde8d9] text-[#c55a2b]">
+        <div className={`grid h-10 w-10 place-items-center rounded-2xl ${
+          urgent ? 'bg-[#fff1db] text-[#c55a2b]' : 'bg-[#fde8d9] text-[#c55a2b]'
+        }`}>
           {icon}
         </div>
         {change !== undefined && change !== null && (
@@ -122,8 +129,8 @@ function MetricPill({
 
       {loading ? (
         <div className="space-y-2 animate-pulse">
-          <div className="h-7 w-2/3 rounded bg-[#efe4d3]" />
-          <div className="h-3 w-1/2 rounded bg-[#f7eddf]" />
+          <div className="h-6 w-1/2 rounded bg-[#efe4d3]" />
+          <div className="h-3 w-2/3 rounded bg-[#f7eddf]" />
         </div>
       ) : (
         <>
@@ -178,11 +185,35 @@ export default function DashboardPage() {
   const pendapatanChange = pctChange(data?.pendapatan_hari_ini ?? 0, data?.pendapatan_kemarin ?? 0);
   const orderChange = pctChange(data?.order_hari_ini ?? 0, data?.order_kemarin ?? 0);
 
+  const pendingQueue = [
+    {
+      title: 'Verifikasi pembayaran',
+      value: data?.pending_verifikasi ?? 0,
+      tone: (data?.pending_verifikasi ?? 0) > 0 ? 'urgent' : 'normal',
+      href: '/transaksi?tab=verifikasi',
+      description: (data?.pending_verifikasi ?? 0) > 0 ? 'Perlu dicek sekarang' : 'Tidak ada yang menunggu',
+    },
+    {
+      title: 'Job worker pending',
+      value: worker?.counts.pending ?? 0,
+      tone: (worker?.counts.pending ?? 0) > 0 ? 'normal' : 'calm',
+      href: '/dashboard',
+      description: 'Antrian proses lokal',
+    },
+    {
+      title: 'Aktivitas chat hari ini',
+      value: data?.chat_bot_hari_ini ?? 0,
+      tone: 'calm',
+      href: '/livechat',
+      description: 'Pantau percakapan pelanggan',
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-[2.1rem] border border-[#f0dfca] bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.20),transparent_32%),linear-gradient(135deg,rgba(255,250,244,0.96)_0%,rgba(248,240,229,0.92)_100%)] p-6 shadow-[0_24px_70px_rgba(47,36,28,0.08)] md:p-8">
         <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[#ffe9bf]/65 blur-3xl" />
-        <div className="relative grid gap-8 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="relative grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
           <div>
             <div className="mb-4 flex w-fit items-center gap-2 rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 px-4 py-2 text-xs font-medium text-[#6f5d4f]">
               <span className="h-2 w-2 rounded-full bg-[#7f9f3e]" />
@@ -222,19 +253,55 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-            <MetricPill
-              label="Pendapatan Hari Ini"
-              value={data ? formatRupiah(data.pendapatan_hari_ini) : '-'}
-              change={pendapatanChange}
-              icon={<TrendingUp size={20} />}
-              loading={loading}
-            />
-            <MetricPill
-              label="Order Hari Ini"
-              value={data ? String(data.order_hari_ini) : '-'}
-              change={orderChange}
-              icon={<Package size={20} />}
+          <div className="grid gap-4">
+            <div className="rounded-[1.8rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-5 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Hero KPI</p>
+              {loading ? (
+                <div className="mt-4 space-y-2 animate-pulse">
+                  <div className="h-10 w-2/3 rounded bg-[#efe4d3]" />
+                  <div className="h-4 w-1/2 rounded bg-[#f7eddf]" />
+                </div>
+              ) : (
+                <>
+                  <p className="mt-4 text-4xl font-semibold tracking-[-0.06em] text-[#2f241c]">
+                    {formatRupiah(data?.pendapatan_hari_ini ?? 0)}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-sm text-[#6f5d4f]">
+                    <TrendingUp size={16} className="text-[#c55a2b]" />
+                    Pendapatan Hari Ini
+                    {pendapatanChange !== null && (
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        pendapatanChange >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'
+                      }`}>
+                        {pendapatanChange >= 0 ? '+' : ''}{pendapatanChange.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <KPIChip
+                label="Order Hari Ini"
+                value={data ? String(data.order_hari_ini) : '-'}
+                change={orderChange}
+                icon={<Package size={20} />}
+                loading={loading}
+              />
+              <KPIChip
+                label="Chat Aktif Hari Ini"
+                value={data ? String(data.chat_bot_hari_ini) : '-'}
+                icon={<MessageSquare size={20} />}
+                loading={loading}
+              />
+            </div>
+
+            <KPIChip
+              label="Perlu Verifikasi"
+              value={data ? String(data.pending_verifikasi) : '-'}
+              icon={<Bell size={20} />}
+              urgent
               loading={loading}
             />
           </div>
@@ -245,42 +312,13 @@ export default function DashboardPage() {
         <AnalyticsHub />
       ) : (
         <>
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricPill
-              label="Chat Bot Hari Ini"
-              value={data ? String(data.chat_bot_hari_ini) : '-'}
-              icon={<MessageSquare size={20} />}
-              loading={loading}
-            />
-            <MetricPill
-              label="Menunggu Verifikasi"
-              value={data ? String(data.pending_verifikasi) : '-'}
-              icon={<Bell size={20} />}
-              loading={loading}
-            />
-            <MetricPill
-              label="Pendapatan Hari Ini"
-              value={data ? formatRupiah(data.pendapatan_hari_ini) : '-'}
-              change={pendapatanChange}
-              icon={<TrendingUp size={20} />}
-              loading={loading}
-            />
-            <MetricPill
-              label="Order Hari Ini"
-              value={data ? String(data.order_hari_ini) : '-'}
-              change={orderChange}
-              icon={<Package size={20} />}
-              loading={loading}
-            />
-          </section>
-
-          <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+          <section className="grid gap-4 xl:grid-cols-[1.06fr_0.94fr]">
             <div className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Local AI Worker</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">AI operations snapshot</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">
-                    {worker?.online ? 'Online dan siap proses job' : 'Sedang offline sementara'}
+                    {worker?.online ? 'Worker online dan siap proses job' : 'Worker sedang offline sementara'}
                   </h2>
                   <p className="mt-3 max-w-xl text-sm leading-7 text-[#776454]">
                     {worker?.online
@@ -308,7 +346,40 @@ export default function DashboardPage() {
             </div>
 
             <div className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Aksi cepat</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Pending action queue</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Apa yang perlu ditangani sekarang</h2>
+              <div className="mt-6 space-y-3">
+                {pendingQueue.map((item) => (
+                  <Link
+                    key={item.title}
+                    href={item.href}
+                    className="flex items-center justify-between gap-4 rounded-[1.35rem] border border-[#f0dfca] bg-[#fffaf3] px-4 py-4 transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-[#2f241c]">{item.title}</p>
+                      <p className="mt-1 text-sm text-[#776454]">{item.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        item.tone === 'urgent'
+                          ? 'bg-[#fff1db] text-[#c55a2b]'
+                          : item.tone === 'calm'
+                            ? 'bg-[#eef6dd] text-[#5d7b20]'
+                            : 'bg-[#f7eddf] text-[#756252]'
+                      }`}>
+                        {item.value}
+                      </span>
+                      <ChevronRight size={16} className="text-[#9b8772]" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Key shortcuts</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Langsung ke pekerjaan penting</h2>
               <div className="mt-6 grid gap-3">
                 {[
@@ -329,33 +400,33 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-          </section>
 
-          <section>
-            <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Modul sistem</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Workspace operasional</h2>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {modules.map((module) => {
-                const Icon = module.icon;
-                return (
-                  <Link
-                    key={module.href}
-                    href={module.href}
-                    className="group rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur transition hover:-translate-y-1 hover:border-[#dfc5a8] hover:bg-white"
-                  >
-                    <div className="mb-4 flex items-start justify-between">
-                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#fde8d9] text-[#c55a2b]">
-                        <Icon size={20} />
+            <div>
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">Modul sistem</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">Workspace operasional</h2>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+                {modules.map((module) => {
+                  const Icon = module.icon;
+                  return (
+                    <Link
+                      key={module.href}
+                      href={module.href}
+                      className="group rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur transition hover:-translate-y-1 hover:border-[#dfc5a8] hover:bg-white"
+                    >
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#fde8d9] text-[#c55a2b]">
+                          <Icon size={20} />
+                        </div>
+                        <span className="text-sm text-[#9b8772] transition group-hover:text-[#2f241c]">Buka</span>
                       </div>
-                      <span className="text-sm text-[#9b8772] transition group-hover:text-[#2f241c]">Buka</span>
-                    </div>
-                    <h3 className="text-lg font-semibold tracking-[-0.03em] text-[#2f241c]">{module.title}</h3>
-                    <p className="mt-2 text-sm leading-7 text-[#776454]">{module.description}</p>
-                  </Link>
-                );
-              })}
+                      <h3 className="text-lg font-semibold tracking-[-0.03em] text-[#2f241c]">{module.title}</h3>
+                      <p className="mt-2 text-sm leading-7 text-[#776454]">{module.description}</p>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </section>
         </>
