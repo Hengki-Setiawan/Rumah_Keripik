@@ -10,7 +10,7 @@ import type { AIModelTaskConfig, AIProviderConfig, GenerateTextInput, GenerateTe
 export const defaultProviderConfigs: AIProviderConfig[] = [
   { id: 'deterministic', name: 'deterministic', enabled: true, apiKeyEnv: '', defaultModel: 'template', supportsToolCalling: false, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 180, priority: 99 },
   { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-2.0-flash', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
-  { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'qwen-3-32b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
+  { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'gemma-4-31b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
   { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'llama-3.3/3.1 fallback chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
   { id: 'qwen', name: 'qwen', enabled: false, baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', apiKeyEnv: 'QWEN_API_KEY', defaultModel: 'qwen-plus', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 4 },
 ];

@@ -34,7 +34,7 @@ export async function callOpenAICompatibleProvider(provider: AIProviderConfig, i
 
 function resolveProviderModel(provider: AIProviderConfig) {
   if (provider.name === 'cerebras') {
-    return process.env.CEREBRAS_MODEL || provider.defaultModel || 'qwen-3-32b';
+    return process.env.CEREBRAS_MODEL || provider.defaultModel || 'gemma-4-31b';
   }
   if (provider.name === 'qwen') {
     return process.env.QWEN_MODEL || provider.defaultModel || 'qwen-plus';
