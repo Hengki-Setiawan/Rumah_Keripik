@@ -67,6 +67,7 @@ export function ChatWindow({
                   <motion.button
                     key={item.label}
                     type="button"
+                    data-testid={`starter-prompt-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                     initial={reducedMotion ? false : { opacity: 0, y: 14 }}
                     animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.28, delay: 0.08 * index, ease: 'easeOut' }}
@@ -103,7 +104,7 @@ export function ChatWindow({
                 </div>
                 <div className="pt-1.5 text-sm text-[#6b5a4d]">
                   <span className="inline-flex items-center gap-2">
-                    Asisten Rumah Keripik sedang menjawab
+                    Rumah Keripik sedang menjawab
                     <span className="flex gap-1">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a08973]" />
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a08973] [animation-delay:120ms]" />

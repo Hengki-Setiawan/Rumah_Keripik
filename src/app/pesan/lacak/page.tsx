@@ -78,6 +78,7 @@ export default function TrackOrderPage() {
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-[#4f4034]">Kode pesanan</span>
             <input
+              data-testid="track-order-code"
               value={code}
               onChange={(event) => setCode(event.target.value)}
               placeholder="Contoh: PESANAN-ABC123"
@@ -88,6 +89,7 @@ export default function TrackOrderPage() {
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-[#4f4034]">Nomor HP</span>
             <input
+              data-testid="track-order-phone"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               placeholder="Contoh: 08123456789"
@@ -99,6 +101,7 @@ export default function TrackOrderPage() {
           <label className="block md:col-span-2">
             <span className="mb-2 block text-sm font-medium text-[#4f4034]">Token status opsional</span>
             <input
+              data-testid="track-order-token"
               value={token}
               onChange={(event) => setToken(event.target.value)}
               placeholder="Isi kalau link sukses memberi token"
@@ -108,6 +111,7 @@ export default function TrackOrderPage() {
           </label>
           <button
             type="button"
+            data-testid="track-order-submit"
             onClick={track}
             disabled={isPending}
             className="inline-flex items-center justify-center gap-2 rounded-[1.2rem] bg-[#2f241c] px-5 py-4 font-medium text-white shadow-[0_12px_24px_rgba(47,36,28,0.12)] disabled:opacity-60 md:col-span-2"

@@ -53,7 +53,7 @@ export function ProductCards({ component, onAction }: { component: ProductCardsC
         const placeholder = getProductPlaceholder({ nama_produk: product.name });
         const imageUrl = variant?.imageUrl || product.imageUrl || placeholder.url;
         return (
-          <article key={product.id} className="rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white">
+          <article key={product.id} data-testid={`product-card-${product.id}`} className="rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white">
             <div className="mb-3 h-32 overflow-hidden rounded-[1rem] bg-[#f7eddf]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
@@ -73,6 +73,7 @@ export function ProductCards({ component, onAction }: { component: ProductCardsC
               </div>
               <button
                 type="button"
+                data-testid={`add-to-cart-${product.id}`}
                 disabled={stock <= 0}
                 onClick={() => onAction('add_to_cart', { productId: product.id, variantId: variant?.id, quantity: 1 })}
                 className="inline-flex items-center gap-2 rounded-full bg-[#c55a2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ae4d23] disabled:bg-[#d7c8ba]"

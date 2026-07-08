@@ -123,24 +123,24 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
       )}
       <div className="mt-4 grid gap-3">
         {step === 'customer' && <>
-        <input value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} placeholder="Nama penerima" className={inputClass} />
-        <input value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} placeholder="Nomor WhatsApp" inputMode="tel" className={inputClass} />
+        <input data-testid="order-customer-name" value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} placeholder="Nama penerima" className={inputClass} />
+        <input data-testid="order-customer-phone" value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} placeholder="Nomor WhatsApp" inputMode="tel" className={inputClass} />
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {(['konsumen', 'warung', 'reseller'] as const).map((type) => (
             <button key={type} type="button" onClick={() => setCustomer({ ...customer, type })} className={`rounded-2xl border px-3 py-2 text-xs font-medium capitalize transition ${customer.type === type ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f3f4f6]'}`}>{type}</button>
           ))}
         </div>
-        <button type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
+        <button data-testid="order-step-address" type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
         </>}
         {step === 'address' && <>
-        <textarea value={address.text} onChange={(event) => setAddress({ ...address, text: event.target.value })} placeholder="Alamat lengkap" className={`${inputClass} min-h-20`} />
-        <input value={address.note} onChange={(event) => setAddress({ ...address, note: event.target.value })} placeholder="Patokan/catatan kurir" className={inputClass} />
+        <textarea data-testid="order-address-text" value={address.text} onChange={(event) => setAddress({ ...address, text: event.target.value })} placeholder="Alamat lengkap" className={`${inputClass} min-h-20`} />
+        <input data-testid="order-address-note" value={address.note} onChange={(event) => setAddress({ ...address, note: event.target.value })} placeholder="Patokan/catatan kurir" className={inputClass} />
         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-          <input value={address.mapsLink} onChange={(event) => setAddress({ ...address, mapsLink: event.target.value })} placeholder="Link Google Maps (opsional)" className={inputClass} />
-          <button type="button" onClick={useLocation} className={`${secondaryButtonClass} rounded-2xl px-4 py-3`}>Ambil titik</button>
+          <input data-testid="order-address-maps" value={address.mapsLink} onChange={(event) => setAddress({ ...address, mapsLink: event.target.value })} placeholder="Link Google Maps (opsional)" className={inputClass} />
+          <button data-testid="order-address-geolocate" type="button" onClick={useLocation} className={`${secondaryButtonClass} rounded-2xl px-4 py-3`}>Ambil titik</button>
         </div>
         {(address.lat && address.lng) && <p className="rounded-[1.2rem] bg-[#eef6dd] px-4 py-3 text-xs font-medium text-[#56721f]">Koordinat tersimpan: {address.lat.slice(0, 10)}, {address.lng.slice(0, 10)}</p>}
-        <button type="button" disabled={address.text.trim().length < 8} onClick={() => setStep('payment')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut pembayaran</button>
+        <button data-testid="order-step-payment" type="button" disabled={address.text.trim().length < 8} onClick={() => setStep('payment')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut pembayaran</button>
         </>}
         {step === 'payment' && <>
         <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#5f4d3f]">
@@ -175,8 +175,8 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
             </div>
           )}
         </div>
-        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Catatan pesanan opsional" className={`${inputClass} min-h-16`} />
-        <button type="button" disabled={!paymentMethodId.trim()} onClick={() => setStep('review')} className={`${primaryButtonClass} rounded-2xl py-3`}>Review order</button>
+        <textarea data-testid="order-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Catatan pesanan opsional" className={`${inputClass} min-h-16`} />
+        <button data-testid="order-step-review" type="button" disabled={!paymentMethodId.trim()} onClick={() => setStep('review')} className={`${primaryButtonClass} rounded-2xl py-3`}>Review order</button>
         </>}
         {step === 'review' && <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#4b5563]">
           <p className="font-semibold text-[#2f241c]">Cek ulang sebelum order dibuat</p>
@@ -187,7 +187,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
           {notes && <p>Catatan: {notes}</p>}
         </div>}
         {step === 'review' && (
-        <button type="button" disabled={!canSubmit()} onClick={() => onAction('create_order', { customer, address, paymentMethodId, notes })} className={`${primaryButtonClass} rounded-2xl py-3`}>Konfirmasi & Buat Order</button>
+        <button data-testid="order-submit" type="button" disabled={!canSubmit()} onClick={() => onAction('create_order', { customer, address, paymentMethodId, notes })} className={`${primaryButtonClass} rounded-2xl py-3`}>Konfirmasi & Buat Order</button>
         )}
       </div>
     </div>
@@ -209,11 +209,29 @@ export function OrderStatusCard({ component }: { component: OrderStatusComponent
   );
 }
 
-export function AdminHandoffCard({ component }: { component: AdminHandoffComponent }) {
+export function AdminHandoffCard({
+  component,
+  onSend,
+}: {
+  component: AdminHandoffComponent;
+  onSend?: (message: string) => void;
+}) {
   return (
     <div className="rounded-[1.7rem] border border-[#f3d2bf] bg-[#fff3ea] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)]">
       <div className="flex items-center gap-2"><AlertTriangle size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#7b3111]">Butuh admin</h3></div>
       <p className="mt-2 text-sm leading-6 text-[#8b4c31]">{component.reason || 'Chat ini diteruskan ke admin untuk dicek lebih pasti.'}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onSend?.('lihat produk')}
+          className={secondaryButtonClass}
+        >
+          Lihat katalog
+        </button>
+        <Link href="/pesan/lacak" className={primaryButtonClass}>
+          Buka order lama
+        </Link>
+      </div>
     </div>
   );
 }

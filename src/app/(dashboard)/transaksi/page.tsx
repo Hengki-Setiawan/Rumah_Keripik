@@ -464,16 +464,19 @@ export default function TransaksiHubPage() {
                               </a>
                             )}
                             <button
+                              data-testid={`tx-processing-${tx.id_transaksi}`}
                               onClick={() => handleOrderStatus(tx.id_transaksi, 'processing')}
                                className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700"
                               title="Tandai diproses + notify chat"
                             >Proses</button>
                             <button
+                              data-testid={`tx-shipping-${tx.id_transaksi}`}
                               onClick={() => handleOrderStatus(tx.id_transaksi, 'shipping')}
                                className="rounded-md bg-neutral-100 px-2 py-1 text-[10px] font-medium text-neutral-700"
                               title="Tandai dikirim + notify chat"
                             >Kirim</button>
                             <button
+                              data-testid={`tx-completed-${tx.id_transaksi}`}
                               onClick={() => handleOrderStatus(tx.id_transaksi, 'completed')}
                                className="rounded-md bg-green-50 px-2 py-1 text-[10px] font-medium text-green-700"
                               title="Tandai selesai + notify chat"

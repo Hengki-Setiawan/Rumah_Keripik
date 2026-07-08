@@ -7,7 +7,7 @@ import { AIChatResponseSchema } from '@/lib/chat-v3/schemas';
 import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
 import { buildMemoryPrompt } from '@/lib/chat-v3/memory';
 import { recommendProducts } from '@/lib/ai/tools/products';
-import { getChatCart } from '@/lib/ai/tools/cart';
+import { addToChatCart, getChatCart } from '@/lib/ai/tools/cart';
 import { getActivePaymentMethods } from '@/lib/ai/tools/payment';
 import { generateTextWithRouter } from '@/lib/ai/model-router';
 import { ORDER_ASSISTANT_SYSTEM_PROMPT } from '@/lib/ai/prompts/order-assistant';
@@ -113,6 +113,72 @@ async function responseFromToolOutput(chatSessionId: string, response: AIChatRes
 export async function buildDeterministicResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
   const lower = message.toLowerCase();
   const customerContext = await getCustomerContextForChat(chatSessionId);
+  const complexOrder = parseComplexOrderIntent(lower);
+
+  if (complexOrder.needsProofUploadHelp) {
+    return {
+      reply: customerContext.lastOrder
+        ? 'Aman kak, bukti bisa diupload nanti selama order belum diverifikasi admin. Kalau perlu, buka status pesanan terakhir dulu ya.'
+        : 'Aman kak, bukti transfer bisa diupload nanti selama pesanan belum diverifikasi admin. Simpan kode pesanan lalu buka halaman status saat siap upload.',
+      intent: 'show_payment',
+      components: [
+        ...(customerContext.lastOrder ? [{
+          type: 'order_status_card' as const,
+          orderId: customerContext.lastOrder.id,
+          orderCode: customerContext.lastOrder.code,
+          status: customerContext.lastOrder.status,
+          paymentStatus: customerContext.lastOrder.paymentStatus,
+          deliveryStatus: customerContext.lastOrder.status,
+          totalAmount: customerContext.lastOrder.totalAmount,
+        }] : []),
+        {
+          type: 'quick_replies',
+          options: [
+            { id: 'proof-track', label: 'Buka lacak pesanan', value: '/pesan/lacak', action: 'tool_action' },
+            { id: 'proof-payment', label: 'Cara bayar', value: 'cara bayar', action: 'send_message' },
+          ],
+        },
+      ],
+      confidence: 0.96,
+    };
+  }
+
+  if (complexOrder.shouldPrepareOrder) {
+    const recommendations = await recommendProducts(message, customerContext.memory);
+    const selected = pickProductsForComplexOrder(recommendations, complexOrder);
+
+    if (selected.length > 0) {
+      for (const item of selected) {
+        const variantId = selectVariantId(item, complexOrder);
+        await addToChatCart(chatSessionId, item.id, variantId, complexOrder.multiFlavor ? 1 : complexOrder.quantity);
+      }
+      const cart = await getChatCart(chatSessionId);
+      const methods = await getActivePaymentMethods();
+      const preferredMethods = complexOrder.wantsCod
+        ? methods.filter((method) => method.type === 'cod')
+        : methods.filter((method) => ['bank_transfer', 'qris', 'ewallet', 'cod'].includes(method.type));
+      const preferredMethod = preferredMethods[0];
+
+      return {
+        reply: buildComplexOrderReply(selected.map((item) => item.name), complexOrder, Boolean(preferredMethod)),
+        intent: 'confirm_order',
+        components: [
+          { type: 'cart_summary', cartId: cart.id },
+          ...(preferredMethod ? [{ type: 'payment_methods' as const, methodIds: preferredMethods.map((method) => method.id) }] : []),
+          {
+            type: 'order_summary',
+            orderDraftId: chatSessionId,
+            ...(preferredMethod ? { paymentMethodId: preferredMethod.id } : {}),
+            ...(customerContext.customer ? { savedCustomerId: customerContext.customer.id } : {}),
+            ...(customerContext.defaultAddress ? { savedAddressId: customerContext.defaultAddress.id } : {}),
+            actions: ['confirm_order', 'edit_cart', 'edit_address'],
+          },
+        ],
+        nextAction: 'confirm_order',
+        confidence: 0.94,
+      };
+    }
+  }
 
   if (/^(ya|pakai|gunakan).*(data|alamat)|data ini|alamat ini/.test(lower) && customerContext.customer) {
     return {
@@ -184,6 +250,70 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
   return { reply: 'Aku bisa bantu pilih produk, cek keranjang, pembayaran, dan status pesanan kak.', intent: 'small_talk', components: defaultQuickReplies(), confidence: 0.58 };
 }
 
+export async function buildPausedChatResponse(chatSessionId: string, message: string): Promise<AIChatResponse | null> {
+  const lower = message.toLowerCase();
+  const customerContext = await getCustomerContextForChat(chatSessionId);
+
+  if (/status|lacak|cek pesanan|pesanan saya/.test(lower)) {
+    if (customerContext.lastOrder) {
+      return {
+        reply: 'Admin sedang menangani chat ini, tapi status pesanan terakhir tetap bisa kamu cek di sini ya kak.',
+        intent: 'track_order',
+        components: [{
+          type: 'order_status_card',
+          orderId: customerContext.lastOrder.id,
+          orderCode: customerContext.lastOrder.code,
+          status: customerContext.lastOrder.status,
+          paymentStatus: customerContext.lastOrder.paymentStatus,
+          deliveryStatus: customerContext.lastOrder.status,
+          totalAmount: customerContext.lastOrder.totalAmount,
+        }],
+        confidence: 0.96,
+      };
+    }
+    return {
+      reply: 'Admin sedang menangani chat ini. Kalau mau, kakak tetap bisa buka halaman lacak pesanan ya.',
+      intent: 'track_order',
+      components: [{ type: 'quick_replies', options: [{ id: 'paused-track', label: 'Buka lacak pesanan', value: '/pesan/lacak', action: 'tool_action' }] }],
+      confidence: 0.94,
+    };
+  }
+
+  if (/produk|keripik|kripik|rasa|pedas|original|keluarga|oleh|budget|hemat|rekomendasi|warung|reseller|kantor|acara/.test(lower)) {
+    const products = await recommendProducts(message, customerContext.memory);
+    return {
+      reply: 'Admin sedang menangani chat ini, tapi katalog tetap bisa kakak lihat dulu ya.',
+      intent: 'recommend_products',
+      components: productComponents(products.map((product) => product.id)),
+      confidence: 0.93,
+    };
+  }
+
+  if (/keranjang|cart|checkout/.test(lower)) {
+    const cart = await getChatCart(chatSessionId);
+    return {
+      reply: cart.itemCount > 0
+        ? 'Admin sedang menangani chat ini, tapi keranjang kakak masih bisa dilihat di bawah ya.'
+        : 'Keranjang kakak masih kosong. Sambil menunggu admin, kakak bisa lihat katalog dulu ya.',
+      intent: 'show_cart',
+      components: cart.itemCount > 0 ? [{ type: 'cart_summary', cartId: cart.id }] : defaultQuickReplies(),
+      confidence: 0.92,
+    };
+  }
+
+  if (/bayar|pembayaran|qris|transfer|cod|bukti/.test(lower)) {
+    const methods = await getActivePaymentMethods();
+    return {
+      reply: 'Admin sedang menangani chat ini, tapi metode pembayaran aktif tetap bisa kamu lihat ya kak.',
+      intent: 'show_payment',
+      components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }],
+      confidence: 0.91,
+    };
+  }
+
+  return null;
+}
+
 async function maybeSearchKnowledge(message: string) {
   const lower = message.toLowerCase();
   if (!/(bayar|pembayaran|qris|transfer|cod|ongkir|kirim|pengiriman|alamat|faq|aturan|promo|jam|buka|tutup|komplain|refund|retur|stok|harga|halal|kadaluarsa|expired)/.test(lower)) return [];
@@ -213,6 +343,84 @@ function defaultQuickReplies(): ChatComponent[] {
     { id: 'keranjang', label: 'Lihat Keranjang', value: 'lihat keranjang', action: 'send_message' },
     { id: 'bayar', label: 'Cara Bayar', value: 'cara bayar', action: 'send_message' },
   ] }];
+}
+
+type RecommendedProduct = Awaited<ReturnType<typeof recommendProducts>>[number];
+
+type ComplexOrderIntent = {
+  quantity: number;
+  multiFlavor: boolean;
+  wantsCod: boolean;
+  shouldPrepareOrder: boolean;
+  needsProofUploadHelp: boolean;
+  flavorHint: 'pedas' | 'non_pedas' | 'mixed' | null;
+};
+
+function parseComplexOrderIntent(lower: string): ComplexOrderIntent {
+  const quantity = extractRequestedQuantity(lower);
+  const wantsCod = /\bcod\b|bayar di tempat/.test(lower);
+  const multiFlavor = /dua rasa|2 rasa|campur|mix|beda/.test(lower);
+  const hasStructuredOrder = /[+/,]| dan /.test(lower);
+  const flavorHint = lower.includes('pedas')
+    ? (/(tidak pedas|ga pedas|nggak pedas|non pedas|original)/.test(lower) ? 'mixed' : 'pedas')
+    : (/(tidak pedas|ga pedas|nggak pedas|non pedas|original)/.test(lower) ? 'non_pedas' : null);
+  const hasOrderVerb = /(langsung|sekalian|tolong|bisa|mau|pesan|order|butuh|untuk)/.test(lower);
+  const hasOrderContext = /keluarga|warung|reseller|kantor|acara|stok|jual lagi|oleh/.test(lower);
+  const needsProofUploadHelp = /(sudah transfer|bukti|upload).*(belum|nanti|malam|upload)|upload.*bukti|bukti.*upload/.test(lower);
+
+  return {
+    quantity,
+    multiFlavor,
+    wantsCod,
+    needsProofUploadHelp,
+    shouldPrepareOrder:
+      (hasOrderVerb || hasStructuredOrder) &&
+      (quantity > 1 || wantsCod || multiFlavor || hasOrderContext || flavorHint !== null),
+    flavorHint,
+  };
+}
+
+function extractRequestedQuantity(lower: string) {
+  const digitMatch = lower.match(/(?:^|\s)(\d{1,2})(?:\s*(?:pcs?|pack|paket|bungkus|item|rasa|varian))?/);
+  if (digitMatch) return Math.max(1, Math.min(6, Number(digitMatch[1])));
+
+  const words: Record<string, number> = {
+    satu: 1,
+    dua: 2,
+    tiga: 3,
+    empat: 4,
+    lima: 5,
+    enam: 6,
+  };
+
+  for (const [word, value] of Object.entries(words)) {
+    if (new RegExp(`\\b${word}\\b`).test(lower)) return value;
+  }
+
+  return 1;
+}
+
+function pickProductsForComplexOrder(products: RecommendedProduct[], intent: ComplexOrderIntent) {
+  if (products.length === 0) return [];
+  if (intent.multiFlavor) return products.slice(0, Math.min(2, products.length));
+  return products.slice(0, 1);
+}
+
+function selectVariantId(product: RecommendedProduct, intent: ComplexOrderIntent) {
+  const activeVariants = product.variants.filter((variant) => variant.stock > 0);
+  if (activeVariants.length === 0) return undefined;
+
+  const lowered = activeVariants.map((variant) => ({ ...variant, lower: `${variant.name} ${variant.id}`.toLowerCase() }));
+  if (intent.flavorHint === 'pedas') return lowered.find((variant) => /pedas|spicy|balado|cabe/.test(variant.lower))?.id || lowered[0].id;
+  if (intent.flavorHint === 'non_pedas') return lowered.find((variant) => /original|jagung|keju|gurih/.test(variant.lower) && !/pedas|spicy|balado|cabe/.test(variant.lower))?.id || lowered[0].id;
+  return lowered[0].id;
+}
+
+function buildComplexOrderReply(productNames: string[], intent: ComplexOrderIntent, hasPreferredMethod: boolean) {
+  const names = productNames.join(' dan ');
+  const qtyText = intent.multiFlavor ? `${productNames.length} rasa` : `${intent.quantity} item`;
+  const paymentText = intent.wantsCod && hasPreferredMethod ? ' COD' : '';
+  return `Siap kak, aku sudah siapkan ${qtyText} dari ${names}${paymentText ? ` dengan opsi${paymentText}` : ''}. Tinggal cek keranjang lalu lengkapi data penerima untuk buat order ya.`;
 }
 
 function parseJsonObject(text: string) {

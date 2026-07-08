@@ -181,7 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <>
             <div className="flex items-center gap-3">
               <div>
-                <BrandLogo variant="full" className="h-auto w-[162px]" priority />
+                <BrandLogo variant="full" className="h-auto w-[136px]" priority />
                 <p className="mt-1 text-xs text-[#7a6758]">Dashboard operasional dan kontrol pesanan</p>
               </div>
             </div>

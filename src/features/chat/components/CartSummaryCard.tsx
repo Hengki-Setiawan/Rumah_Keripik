@@ -10,7 +10,7 @@ export function CartSummaryCard({ cart, onAction }: { component: CartSummaryComp
   }
 
   return (
-    <div id="chat-cart" className="rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.9)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur">
+    <div id="chat-cart" data-testid="chat-cart-summary" className="rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.9)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur">
       <div className="mb-3 flex items-center gap-2">
         <ShoppingBag className="text-[#7f9f3e]" size={18} />
         <h3 className="font-semibold text-[#2f241c]">Ringkasan keranjang</h3>
@@ -36,8 +36,8 @@ export function CartSummaryCard({ cart, onAction }: { component: CartSummaryComp
         <div className="mt-1 flex items-end justify-between"><span className="font-medium text-white/80">Total produk</span><span className="text-2xl font-semibold tracking-[-0.03em]">{formatRupiah(cart.total)}</span></div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => onAction('request_location')} className="rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-sm font-medium text-[#2f241c] transition hover:bg-[#f7eddf]">Isi alamat</button>
-        <button type="button" onClick={() => onAction('show_payment_methods')} className="rounded-full bg-[#c55a2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ae4d23]">Pilih pembayaran</button>
+        <button data-testid="cart-fill-address" type="button" onClick={() => onAction('request_location')} className="rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-sm font-medium text-[#2f241c] transition hover:bg-[#f7eddf]">Isi alamat</button>
+        <button data-testid="cart-choose-payment" type="button" onClick={() => onAction('show_payment_methods')} className="rounded-full bg-[#c55a2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ae4d23]">Pilih pembayaran</button>
       </div>
     </div>
   );

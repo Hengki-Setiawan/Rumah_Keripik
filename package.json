@@ -16,6 +16,7 @@
     "smoke:http": "tsx src/scripts/smoke-http.ts",
     "smoke:security": "tsx src/scripts/smoke-security.ts",
     "smoke:chat-v3": "tsx src/scripts/smoke-chat-v3.ts",
+    "e2e:pesan": "playwright test e2e/pesan-flow.spec.ts",
     "smoke:worker": "tsx src/scripts/smoke-worker.ts",
     "smoke:cron-auth": "tsx src/scripts/smoke-cron-auth.ts",
     "readiness:production": "tsx src/scripts/readiness-production.ts",
@@ -61,6 +62,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -68,6 +70,7 @@
     "drizzle-kit": "^0.22.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4",
     "tsx": "^4.11.0",
     "typescript": "^5"

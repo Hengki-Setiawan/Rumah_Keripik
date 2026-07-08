@@ -25,6 +25,7 @@ export function ChatComposer({
   return (
     <form
       onSubmit={submit}
+      data-testid={idle ? 'chat-composer-idle' : 'chat-composer'}
       className={`rounded-[1.5rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.92)] p-1.5 shadow-[0_18px_54px_rgba(47,36,28,0.1)] backdrop-blur-2xl transition focus-within:border-[#e0c5a8] focus-within:shadow-[0_22px_66px_rgba(47,36,28,0.12)] md:rounded-[1.7rem] ${
         idle ? 'scale-100' : ''
       }`}
@@ -36,6 +37,7 @@ export function ChatComposer({
 
         <div className="min-w-0 flex-1">
           <textarea
+            data-testid="chat-input"
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             onKeyDown={(event) => {
@@ -52,6 +54,7 @@ export function ChatComposer({
 
         <button
           type="submit"
+          data-testid="chat-send-button"
           disabled={disabled || !message.trim()}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#c55a2b] text-white shadow-[0_12px_28px_rgba(197,90,43,0.16)] transition hover:scale-[1.02] hover:bg-[#ae4d23] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c55a2b]/20 disabled:cursor-not-allowed disabled:bg-[#d8c8b8] disabled:shadow-none md:h-11 md:w-11"
           aria-label="Kirim pesan"

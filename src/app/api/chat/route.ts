@@ -3,7 +3,7 @@ import { createChatMessage, getChatMessages } from '@/lib/chat-v3/messages';
 import { SendChatSchema } from '@/lib/chat-v3/schemas';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getChatCart } from '@/lib/ai/tools/cart';
-import { buildChatResponse } from '@/lib/ai/orchestrator';
+import { buildChatResponse, buildPausedChatResponse } from '@/lib/ai/orchestrator';
 import { rememberChatSignals } from '@/lib/chat-v3/memory';
 import { chatOwnershipErrorResponse, requireOwnedChatSession } from '@/lib/chat-v3/ownership';
 import { updateChatSessionTitle } from '@/lib/chat-v3/session-title';
@@ -28,13 +28,21 @@ export async function POST(req: Request) {
     if (ownership) return NextResponse.json({ ok: false, error: ownership.error }, { status: ownership.status });
     throw error;
   }
+  let userMessage;
+  let aiResponse;
+
   if (chatSession.aiMode !== 'enabled') {
-    return NextResponse.json({ ok: false, error: 'Chat sedang di-handle admin. Tunggu balasan admin ya kak.' }, { status: 409 });
+    aiResponse = await buildPausedChatResponse(chatSessionId, parsed.data.message);
+    if (!aiResponse) {
+      return NextResponse.json({ ok: false, error: 'Chat sedang di-handle admin. Tunggu balasan admin ya kak.' }, { status: 409 });
+    }
+    userMessage = await createChatMessage({ chatSessionId, role: 'user', content: parsed.data.message });
+  } else {
+    userMessage = await createChatMessage({ chatSessionId, role: 'user', content: parsed.data.message });
+    rememberChatSignals(chatSessionId, parsed.data.message).catch(() => undefined);
+    aiResponse = await buildChatResponse(chatSessionId, parsed.data.message);
   }
 
-  const userMessage = await createChatMessage({ chatSessionId, role: 'user', content: parsed.data.message });
-  rememberChatSignals(chatSessionId, parsed.data.message).catch(() => undefined);
-  const aiResponse = await buildChatResponse(chatSessionId, parsed.data.message);
   const assistantMessage = await createChatMessage({
     chatSessionId,
     role: aiResponse.intent === 'handoff_to_admin' ? 'system' : 'assistant',

@@ -318,8 +318,7 @@ export function ChatShell() {
                 <Menu size={16} />
               </button>
               <div className="hidden min-w-0 md:block">
-                <BrandLogo variant="full" className="h-auto w-[142px]" priority />
-                <p className="mt-1 text-xs font-medium tracking-[0.02em] text-[#8e7a68]">Asisten pemesanan Rumah Keripik</p>
+                <BrandLogo variant="full" className="h-auto w-[108px]" priority />
               </div>
             </div>
 

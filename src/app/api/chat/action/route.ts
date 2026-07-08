@@ -71,6 +71,7 @@ export async function POST(req: Request) {
         components: [{
           type: 'quick_replies',
           options: [
+            { id: 'bantuan-produk', label: 'Lihat produk', value: 'Lihat produk', action: 'send_message' },
             { id: 'bantuan-keranjang', label: 'Lihat keranjang', value: 'Lihat keranjang saya', action: 'send_message' },
             { id: 'bantuan-alamat', label: 'Ubah alamat', value: 'Saya mau ubah alamat pengiriman', action: 'send_message' },
             { id: 'bantuan-lacak', label: 'Lacak pesanan', value: '/pesan/lacak', action: 'tool_action' },

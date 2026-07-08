@@ -52,7 +52,7 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
 
           <div className="mt-8 rounded-[1.5rem] bg-[#111827] p-6 text-white">
             <p className="text-sm text-white/65">Kode pesanan</p>
-            <p className="mt-2 break-all text-3xl font-semibold tracking-[-0.03em]">{decodedCode}</p>
+            <p data-testid="success-order-code" className="mt-2 break-all text-3xl font-semibold tracking-[-0.03em]">{decodedCode}</p>
             {order && hasValidToken && (
               <div className="mt-5 grid gap-3 border-t border-white/15 pt-5 sm:grid-cols-2">
                 <div>
@@ -118,6 +118,7 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
+              data-testid="success-view-status"
               href={`/pesan/status/${encodeURIComponent(decodedCode)}${query?.token || order?.status_token ? `?token=${encodeURIComponent(query?.token || order?.status_token || '')}` : ''}`}
               className="flex-1 rounded-2xl bg-[#111827] px-5 py-4 text-center font-medium text-white transition hover:bg-[#374151]"
             >
