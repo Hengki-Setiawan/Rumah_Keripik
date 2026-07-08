@@ -56,7 +56,7 @@ export function ChatWindow({
               <motion.div
                 animate={reducedMotion ? {} : { y: [0, -5, 0], rotate: [0, -1, 0] }}
                 transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="mx-auto mb-4 overflow-hidden rounded-[1.2rem] shadow-[0_14px_32px_rgba(197,90,43,0.18)]"
+                className="mx-auto mb-4 grid h-12 w-12 place-items-center overflow-hidden rounded-[1.2rem] shadow-[0_14px_32px_rgba(197,90,43,0.18)]"
               >
                 <BrandLogo variant="mark" className="h-12 w-12 object-contain" priority />
               </motion.div>

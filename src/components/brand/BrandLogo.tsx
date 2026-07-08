@@ -13,10 +13,10 @@ export function BrandLogo({ variant = 'full', className, priority = false }: Bra
 
   return (
     <Image
-      src={isMark ? '/brand/rumah-keripik-mark.svg' : '/brand/rumah-keripik-logo.svg'}
+      src={isMark ? '/brand/rumah-keripik-mark.png' : '/brand/rumah-keripik-logo.png'}
       alt="Logo Rumah Keripik"
-      width={isMark ? 256 : 720}
-      height={isMark ? 256 : 220}
+      width={isMark ? 435 : 951}
+      height={isMark ? 500 : 500}
       priority={priority}
       className={className}
     />
