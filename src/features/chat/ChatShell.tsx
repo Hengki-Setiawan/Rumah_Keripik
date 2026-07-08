@@ -317,8 +317,8 @@ export function ChatShell() {
               >
                 <Menu size={16} />
               </button>
-              <div className="hidden min-w-0 md:block">
-                <BrandLogo variant="full" className="h-auto w-[108px]" priority />
+              <div className="hidden min-w-0 md:block pt-0.5">
+                <BrandLogo variant="full" className="h-auto w-[102px]" priority />
               </div>
             </div>
 

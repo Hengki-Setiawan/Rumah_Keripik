@@ -208,8 +208,8 @@ export function ChatSidebar({
           </>
         ) : (
           <>
-            <div className="min-w-0">
-              <BrandLogo variant="full" className="h-auto w-[94px]" priority />
+            <div className="min-w-0 pt-0.5">
+              <BrandLogo variant="full" className="h-auto w-[88px]" priority />
             </div>
             {!mobile && (
               <button
