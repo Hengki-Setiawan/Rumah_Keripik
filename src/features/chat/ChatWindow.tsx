@@ -53,14 +53,6 @@ export function ChatWindow({
               transition={{ duration: 0.42, ease: 'easeOut' }}
               className="w-full max-w-3xl text-center"
             >
-              <motion.div
-                animate={reducedMotion ? {} : { y: [0, -5, 0], rotate: [0, -1, 0] }}
-                transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="mx-auto mb-4 grid h-12 w-12 place-items-center overflow-hidden rounded-[1.2rem] shadow-[0_14px_32px_rgba(197,90,43,0.18)]"
-              >
-                <BrandLogo variant="mark" className="h-12 w-12 object-contain" priority />
-              </motion.div>
-
               <h2 className="text-[2rem] font-semibold leading-[0.98] tracking-[-0.06em] text-[#2f241c] sm:text-[2.4rem] md:text-5xl">
                 Mau pesan keripik apa hari ini?
               </h2>

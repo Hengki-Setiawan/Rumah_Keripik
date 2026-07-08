@@ -209,7 +209,7 @@ export function ChatSidebar({
         ) : (
           <>
             <div className="min-w-0">
-              <BrandLogo variant="full" className="h-auto w-[148px]" priority />
+              <BrandLogo variant="full" className="h-auto w-[124px]" priority />
               <p className="mt-1 text-xs text-[#7c6858]">Asisten pemesanan, pelacakan, dan keranjang</p>
             </div>
             {!mobile && (
