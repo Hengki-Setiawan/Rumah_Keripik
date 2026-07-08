@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import {
   Bell,
   Bot,
@@ -166,9 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className={`flex ${compact ? 'w-full flex-col items-center gap-2 px-1' : 'items-center justify-between px-1'} pb-4`}>
         {compact ? (
           <>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#c55a2b] text-white shadow-[0_14px_32px_rgba(197,90,43,0.22)]">
-              <Bot size={16} />
-            </div>
+            <BrandLogo variant="mark" className="h-10 w-10 rounded-xl object-contain shadow-[0_14px_32px_rgba(197,90,43,0.18)]" priority />
             <button
               type="button"
               onClick={() => setSidebarCollapsed((value) => !value)}
@@ -181,12 +180,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ) : (
           <>
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#c55a2b] text-white shadow-[0_14px_32px_rgba(197,90,43,0.22)]">
-                <Bot size={16} />
-              </div>
               <div>
-                <p className="text-sm font-semibold tracking-[-0.02em] text-[#2f241c]">Rumah Keripik</p>
-                <p className="text-xs text-[#7a6758]">Operations workspace</p>
+                <BrandLogo variant="full" className="h-auto w-[162px]" priority />
+                <p className="mt-1 text-xs text-[#7a6758]">Dashboard operasional dan kontrol pesanan</p>
               </div>
             </div>
 
@@ -273,8 +269,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex items-center justify-between px-4 pb-2 pt-4 md:px-6">
-            <div className="flex items-center gap-3">
+          <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-2 pt-4 md:px-6">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
@@ -282,13 +278,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 <Menu size={18} />
               </button>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#9a8672]">{dateStr}</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[#2f241c]">{currentLabel}</h2>
+              <div className="min-w-0">
+                <p className="line-clamp-1 text-xs font-medium uppercase tracking-[0.18em] text-[#9a8672] md:tracking-[0.22em]">{dateStr}</p>
+                <h2 className="mt-1 truncate text-lg font-semibold tracking-[-0.03em] text-[#2f241c]">{currentLabel}</h2>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
               <div className="relative">
                 <button
                   type="button"
@@ -304,7 +300,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </button>
 
                 {notifOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-[1.4rem] border border-[#f0dfca] bg-[#fffaf3] shadow-[0_24px_70px_rgba(47,36,28,0.12)]">
+                  <div className="absolute right-0 top-full z-50 mt-3 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-[1.4rem] border border-[#f0dfca] bg-[#fffaf3] shadow-[0_24px_70px_rgba(47,36,28,0.12)]">
                     <div className="border-b border-[#f0e4d2] px-4 py-3">
                       <p className="text-sm font-semibold text-[#2f241c]">Notifikasi</p>
                     </div>
@@ -347,9 +343,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
 
-              <div className="grid h-10 w-10 place-items-center rounded-full bg-[#c55a2b] text-sm font-semibold text-white shadow-[0_14px_34px_rgba(197,90,43,0.18)]">
-                AP
-              </div>
+              <BrandLogo variant="mark" className="h-10 w-10 rounded-full object-contain shadow-[0_14px_34px_rgba(197,90,43,0.14)]" />
             </div>
           </header>
 
@@ -357,7 +351,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {children}
           </main>
 
-          <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-[#f0dfca] bg-[rgba(255,250,243,0.94)] px-2 backdrop-blur-xl lg:hidden">
+          <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-[#f0dfca] bg-[rgba(255,250,243,0.94)] px-1 backdrop-blur-xl lg:hidden">
             {[
               { href: '/dashboard', label: 'Home', icon: Home },
               { href: '/master-data/pelanggan', label: 'Mitra', icon: Users },
@@ -371,12 +365,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex flex-col items-center justify-center gap-0.5 rounded-full px-4 py-1.5 transition ${
+                  className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5 transition ${
                     isActive ? 'bg-[#fde8d9] text-[#2f241c]' : 'text-[#7a6758]'
                   }`}
                 >
                   <Icon size={18} />
-                  <span className="text-[11px] font-medium">{item.label}</span>
+                  <span className="truncate text-[10px] font-medium sm:text-[11px]">{item.label}</span>
                 </Link>
               );
             })}

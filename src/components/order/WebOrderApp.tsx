@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import {
   Bot,
   CheckCircle2,
@@ -370,9 +371,8 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
 
         <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-full border border-[#e8dcc9] bg-[#fff9f1]/90 px-4 py-3 shadow-[0_12px_34px_rgba(47,36,28,0.06)] backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-[#6b4423] text-lg font-semibold text-white shadow-[0_10px_28px_rgba(107,68,35,0.18)]">RK</div>
             <div>
-              <p className="text-sm font-semibold tracking-[0.12em] text-[#2f241c]">RUMAH KERIPIK</p>
+              <BrandLogo variant="full" className="h-auto w-[180px]" priority />
               <p className="text-xs text-[#6b5a4d]">Pesan cepat, admin langsung cek</p>
             </div>
           </div>

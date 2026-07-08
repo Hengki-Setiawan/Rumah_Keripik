@@ -251,7 +251,7 @@ export default function DashboardPage() {
               <span className="h-2 w-2 rounded-full bg-[#7f9f3e]" />
               Ringkasan operasional hari ini
             </div>
-            <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.06em] text-[#2f241c] md:text-5xl">
+            <h1 className="max-w-3xl text-[2rem] font-semibold leading-[0.98] tracking-[-0.06em] text-[#2f241c] sm:text-[2.4rem] md:text-5xl">
               Workspace operasional yang lebih ringan,
               <br className="hidden md:block" /> lebih cepat dibaca, dan satu bahasa dengan AI chat.
             </h1>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 onClick={() => router.replace('/dashboard')}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
                   activeTab === 'overview'
                     ? 'bg-[#c55a2b] text-white shadow-[0_14px_34px_rgba(197,90,43,0.16)]'
                     : 'border border-[#f0dfca] bg-[#fffaf3] text-[#2f241c]'
@@ -273,7 +273,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => router.replace('/dashboard?tab=analytics')}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
                   activeTab === 'analytics'
                     ? 'bg-[#c55a2b] text-white shadow-[0_14px_34px_rgba(197,90,43,0.16)]'
                     : 'border border-[#f0dfca] bg-[#fffaf3] text-[#2f241c]'
@@ -363,7 +363,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[
                   { label: 'Pending', value: worker?.counts.pending ?? '-' },
                   { label: 'Proses', value: worker?.counts.processing ?? '-' },
@@ -477,7 +477,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               {(publicOrderOps?.recentChatOrders || []).map((order) => (
                 <Link
                   key={order.id}

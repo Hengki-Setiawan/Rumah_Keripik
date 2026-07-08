@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { AlertCircle, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
@@ -56,9 +57,7 @@ function LoginForm() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(214,162,74,0.18),transparent_32%),linear-gradient(135deg,#f7f0e4_0%,#f3ebdc_52%,#eef1e6_100%)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#6b4423] text-white shadow-[0_16px_40px_rgba(107,68,35,0.18)]">
-            <span className="text-base font-semibold tracking-[0.08em]">RK</span>
-          </div>
+          <BrandLogo variant="mark" className="mx-auto mb-4 h-16 w-16 rounded-2xl object-contain shadow-[0_16px_40px_rgba(107,68,35,0.14)]" priority />
           <h1 className="text-3xl font-bold text-[#2f241c]">Rumah Keripik</h1>
           <p className="mt-2 text-[#6b5a4d]">Login admin untuk operasional dan monitoring pesanan</p>
         </div>

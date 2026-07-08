@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import {
   autoUpdate,
   flip,
@@ -20,7 +22,6 @@ import {
   MessageSquarePlus,
   PackageSearch,
   ShoppingBag,
-  Sparkles,
   Trash2,
 } from 'lucide-react';
 
@@ -123,7 +124,7 @@ function SidebarItem({
     active
       ? 'bg-[#fff9f2] text-[#2f241c]'
       : 'text-[#715f50] hover:bg-[#f9efe0] hover:text-[#2f241c]'
-  } ${compact ? 'justify-center' : ''}`;
+  } ${compact ? 'justify-center' : 'justify-start'}`;
 
   const content = (
     <>
@@ -131,22 +132,22 @@ function SidebarItem({
         {icon}
       </span>
       {!compact && (
-        <>
-          <span className="flex-1 truncate">{label}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate">{label}</span>
           {badge !== undefined && badge !== 0 && (
             <span className="rounded-full bg-[#c55a2b] px-2 py-0.5 text-[11px] font-semibold text-white">
               {badge}
             </span>
           )}
-        </>
+        </div>
       )}
     </>
   );
 
   const element = href ? (
-    <a href={href} className={className} onClick={onClick}>
+    <Link href={href} className={className} onClick={onClick}>
       {content}
-    </a>
+    </Link>
   ) : (
     <button type="button" className={className} onClick={onClick}>
       {content}
@@ -193,9 +194,7 @@ export function ChatSidebar({
       <div className={`flex ${compact ? 'w-full flex-col items-center gap-2' : 'items-center justify-between gap-2 px-1'}`}>
         {compact ? (
           <>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#c55a2b] text-white shadow-[0_12px_28px_rgba(197,90,43,0.2)]">
-              <Sparkles size={16} />
-            </div>
+            <BrandLogo variant="mark" className="h-10 w-10 rounded-xl object-contain shadow-[0_12px_28px_rgba(197,90,43,0.18)]" priority />
             {!mobile && (
               <button
                 type="button"
@@ -209,9 +208,9 @@ export function ChatSidebar({
           </>
         ) : (
           <>
-            <div>
-              <p className="text-base font-semibold tracking-[-0.03em] text-[#2f241c]">Rumah Keripik AI</p>
-              <p className="text-xs text-[#7c6858]">Pesan, lacak, dan cek keranjang</p>
+            <div className="min-w-0">
+              <BrandLogo variant="full" className="h-auto w-[148px]" priority />
+              <p className="mt-1 text-xs text-[#7c6858]">Asisten pemesanan, pelacakan, dan keranjang</p>
             </div>
             {!mobile && (
               <button
@@ -227,7 +226,7 @@ export function ChatSidebar({
         )}
       </div>
 
-      <div className={`mt-5 grid w-full gap-2 ${compact ? 'justify-items-center' : ''}`}>
+      <div className={`mt-3 grid w-full gap-1 ${compact ? 'justify-items-center' : ''}`}>
         <SidebarItem icon={<MessageSquarePlus size={16} />} label="Pesanan baru" active={!activeId} compact={compact} onClick={onNewOrder} />
         <SidebarItem icon={<PackageSearch size={16} />} label="Lacak pesanan" href="/pesan/lacak" compact={compact} />
         <SidebarItem
@@ -246,7 +245,7 @@ export function ChatSidebar({
       </div>
 
       {!compact && (
-        <div className="mt-6 min-h-0 flex-1 overflow-hidden">
+        <div className="mt-4 min-h-0 flex-1 overflow-hidden">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a08973]">Riwayat chat</p>
             <div className="flex items-center gap-2">
@@ -300,7 +299,7 @@ export function ChatSidebar({
                         <button
                           type="button"
                           onClick={() => onDeleteSession(session.id)}
-                          className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#a08973] opacity-0 transition hover:bg-[#f7eddf] hover:text-[#9f3c21] group-hover:opacity-100"
+                          className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#a08973] opacity-100 transition hover:bg-[#f7eddf] hover:text-[#9f3c21] sm:opacity-0 sm:group-hover:opacity-100"
                           aria-label="Hapus riwayat chat"
                         >
                           <Trash2 size={14} />

@@ -23,6 +23,7 @@ import { Modal, ConfirmModal } from '@/components/ui/modal';
 import { QuickReplyBar } from '@/components/livechat/QuickReplyBar';
 import { InfoButton } from '@/components/ui/InfoButton';
 import {
+  ArrowLeft,
   ExternalLink,
   MessageSquare,
   Send,
@@ -285,6 +286,7 @@ export default function CommunicationHubPage() {
   });
 
   const selectedData = chatList.find((c) => c.no_wa_pelanggan === selectedChat);
+  const showMobileConversation = Boolean(selectedChat);
 
   return (
     <div className="space-y-6">
@@ -327,9 +329,9 @@ export default function CommunicationHubPage() {
 
       {/* --- TAB 1: LIVE CHAT --- */}
       {hubTab === 'chat' && (
-        <div className="h-[calc(100vh-14rem)] flex flex-col md:flex-row gap-0 bg-surface-cream rounded-xl overflow-hidden border border-outline-variant/20 shadow-sm">
+        <div className="flex min-h-[70vh] flex-col gap-0 rounded-xl border border-outline-variant/20 bg-surface-cream shadow-sm md:h-[calc(100vh-14rem)] md:flex-row">
           {/* Chat List */}
-          <section className="w-full md:w-[360px] flex flex-col bg-white border-r border-outline-variant/20 shrink-0">
+          <section className={`${showMobileConversation ? 'hidden md:flex' : 'flex'} w-full flex-col bg-white md:w-[360px] md:shrink-0 md:border-r md:border-outline-variant/20`}>
             <div className="p-4 space-y-4 border-b border-outline-variant/10">
               <div className="relative group">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
@@ -362,7 +364,7 @@ export default function CommunicationHubPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-thin">
+            <div className="flex-1 overflow-y-auto scrollbar-thin md:min-h-0">
               {chatLoading ? (
                 <ChatListSkeleton />
               ) : filteredChats.length === 0 ? (
@@ -419,7 +421,7 @@ export default function CommunicationHubPage() {
           </section>
 
           {/* Chat Window */}
-          <section className="hidden md:flex flex-1 flex-col bg-surface-cream relative">
+          <section className={`${showMobileConversation ? 'flex' : 'hidden'} relative min-h-[70vh] flex-1 flex-col bg-surface-cream md:flex`}>
             {!selectedChat ? (
               <div className="flex-1 flex items-center justify-center text-on-surface-variant">
                 <div className="text-center">
@@ -430,8 +432,16 @@ export default function CommunicationHubPage() {
             ) : (
               <>
                 {/* Chat Header */}
-                <div className="px-6 py-4 bg-white flex justify-between items-center border-b border-outline-variant/10 shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-outline-variant/10 bg-white px-4 py-4 shadow-sm md:flex-row md:items-center md:justify-between md:px-6">
                   <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedChat(null)}
+                      className="grid h-9 w-9 place-items-center rounded-full border border-outline-variant/30 text-on-surface-variant md:hidden"
+                      aria-label="Kembali ke daftar chat"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
                     <div className={`w-10 h-10 rounded-full ${getAvatarColor(selectedData?.nama_pelanggan || selectedChat)} flex items-center justify-center font-bold text-sm text-white`}>
                       {(selectedData?.nama_pelanggan || '?').charAt(0).toUpperCase()}
                     </div>
@@ -445,10 +455,10 @@ export default function CommunicationHubPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-surface-container rounded-full p-0.5">
+                    <div className="flex w-full items-center bg-surface-container rounded-full p-0.5 md:w-auto">
                       <button
                         onClick={() => handleAmbilAlih(selectedChat)}
-                        className={`px-4 py-1.5 rounded-full font-label-md text-label-md shadow-sm transition-all ${
+                        className={`flex-1 px-4 py-1.5 rounded-full font-label-md text-label-md shadow-sm transition-all md:flex-initial ${
                           selectedData?.status_handle === 'Manual_Admin'
                             ? 'bg-primary text-white font-bold'
                             : 'text-on-surface-variant hover:bg-surface-container-highest'
@@ -458,7 +468,7 @@ export default function CommunicationHubPage() {
                       </button>
                       <button
                         onClick={() => handleLepas(selectedChat)}
-                        className={`px-4 py-1.5 rounded-full font-label-md text-label-md transition-all ${
+                        className={`flex-1 px-4 py-1.5 rounded-full font-label-md text-label-md transition-all md:flex-initial ${
                           selectedData?.status_handle === 'AI_Bot'
                             ? 'bg-bot-indigo text-white font-bold'
                             : 'text-on-surface-variant hover:bg-surface-container-highest'
@@ -471,7 +481,7 @@ export default function CommunicationHubPage() {
                 </div>
 
                 {/* Messages Panel */}
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scrollbar-thin">
+                <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-thin md:p-6">
                   {messages.length === 0 ? (
                     <div className="text-center text-on-surface-variant font-body-md mt-8">Belum ada pesan</div>
                   ) : (
@@ -487,7 +497,7 @@ export default function CommunicationHubPage() {
                             </div>
                           )}
                           <div className={`flex flex-col ${msg.direction === 'out' ? 'items-end' : 'items-start'}`}>
-                            <div className={`flex items-end gap-2 max-w-[85%] ${msg.direction === 'out' ? 'self-end' : ''}`}>
+                            <div className={`flex items-end gap-2 max-w-[92%] md:max-w-[85%] ${msg.direction === 'out' ? 'self-end' : ''}`}>
                               <div className={`p-4 rounded-2xl ${
                                 msg.direction === 'out'
                                   ? msg.sumber === 'bot'
@@ -515,15 +525,15 @@ export default function CommunicationHubPage() {
                 </div>
 
                 {/* Input Panel */}
-                <div className="p-4 bg-white border-t border-outline-variant/20">
+                <div className="border-t border-outline-variant/20 bg-white p-3 md:p-4">
                   <QuickReplyBar onSelect={(text) => setMessageInput(text)} />
-                  <form onSubmit={handleKirim} className="flex items-center gap-3 bg-surface-container px-4 py-1.5 rounded-2xl mt-2">
+                  <form onSubmit={handleKirim} className="mt-2 flex items-center gap-3 rounded-2xl bg-surface-container px-3 py-1.5 md:px-4">
                     <input
                       type="text"
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       placeholder="Ketik pesan..."
-                      className="flex-1 bg-transparent border-none focus:outline-none font-body-md text-body-md py-3 focus:ring-0"
+                      className="flex-1 bg-transparent border-none py-3 font-body-md text-body-md focus:ring-0 focus:outline-none"
                       disabled={sending}
                     />
                     <button

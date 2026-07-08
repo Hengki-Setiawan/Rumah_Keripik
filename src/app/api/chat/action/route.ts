@@ -37,6 +37,16 @@ export async function POST(req: Request) {
   try {
     if (action === 'refresh_chat') {
       // Client-side refresh after external actions such as payment proof upload.
+    } else if (action === 'message_feedback') {
+      await logAiLearningEvent({
+        eventType: 'chat_message_feedback',
+        chatSessionId,
+        outcome: String(payload.label || 'helpful'),
+        rating: Number(payload.rating || 5),
+        metadata: {
+          messageId: String(payload.messageId || ''),
+        },
+      });
     } else if (action === 'show_cart') {
       const cart = await getChatCart(chatSessionId);
       await createChatMessage({

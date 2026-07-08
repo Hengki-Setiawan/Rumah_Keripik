@@ -16,8 +16,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rumah Kripik Dashboard",
-  description: "Master dashboard admin untuk mengelola bisnis Rumah Kripik",
+  title: "Rumah Keripik",
+  description: "Workspace pemesanan dan dashboard operasional Rumah Keripik",
+  icons: {
+    icon: [{ url: "/brand/rumah-keripik-mark.svg", type: "image/svg+xml" }],
+    shortcut: ["/brand/rumah-keripik-mark.svg"],
+    apple: ["/brand/rumah-keripik-mark.svg"],
+  },
 };
 
 export default function RootLayout({

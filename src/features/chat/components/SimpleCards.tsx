@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, CreditCard, Edit3, MapPinned, Navigation, PackageCheck, ShieldCheck, UserRound } from 'lucide-react';
 import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
 import { formatRupiah } from '@/lib/utils';
@@ -11,6 +12,14 @@ const panelClass = 'mt-3 rounded-[1.2rem] bg-[#fbf2e7] p-3 text-sm leading-6 tex
 const primaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full bg-[#c55a2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ae4d23] disabled:cursor-not-allowed disabled:bg-[#d7c8ba]';
 const secondaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-sm font-medium text-[#2f241c] transition hover:bg-[#f7eddf]';
 const inputClass = 'rounded-[1.2rem] border border-[#ecd8bf] bg-white px-4 py-3 text-sm text-[#2f241c] outline-none transition placeholder:text-[#9ca3af] focus:border-[#c55a2b]/30 focus:ring-4 focus:ring-[#c55a2b]/5';
+type PaymentMethodOption = {
+  id: string;
+  type: string;
+  label: string;
+  note?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+};
 
 export function CustomerConfirmCard({ component, onAction }: { component: CustomerConfirmComponent; onAction?: (action: string, payload?: Record<string, unknown>) => void }) {
   const customer = component.customer;
@@ -60,7 +69,7 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
     <div className={cardClass}>
       <div className="flex items-center gap-2"><CreditCard size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#2f241c]">Upload bukti pembayaran</h3></div>
       <p className="mt-2 text-sm leading-6 text-[#6b7280]">Upload bukti tersedia di halaman status/sukses pesanan.</p>
-      <a href={`/pesan/lacak?code=${encodeURIComponent(component.orderId)}`} className={`${primaryButtonClass} mt-3`}>Buka status</a>
+      <Link href={`/pesan/lacak?code=${encodeURIComponent(component.orderId)}`} className={`${primaryButtonClass} mt-3`}>Buka status</Link>
     </div>
   );
 }
@@ -71,6 +80,21 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
   const [address, setAddress] = useState({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
   const [paymentMethodId, setPaymentMethodId] = useState(component.paymentMethodId || '');
   const [notes, setNotes] = useState('');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/public/payment-methods')
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) return;
+        setPaymentMethods(data.methods || []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function canSubmit() {
     return customer.name.trim().length >= 2 && customer.phone.trim().length >= 8 && address.text.trim().length >= 8 && paymentMethodId.trim().length > 0;
@@ -87,7 +111,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
     <div className={cardClass}>
       <div className="flex items-center gap-2"><PackageCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Buat order dari chat</h3></div>
       <p className="mt-2 text-sm leading-6 text-[#6b7280]">Aku minta data bertahap supaya order bisa masuk dashboard dengan benar.</p>
-      <div className="mt-4 grid grid-cols-4 gap-2 text-center text-[11px] font-medium text-[#6b7280]">
+      <div className="mt-4 grid grid-cols-2 gap-2 text-center text-[11px] font-medium text-[#6b7280] sm:grid-cols-4">
         {(['customer', 'address', 'payment', 'review'] as const).map((item, index) => (
           <button key={item} type="button" onClick={() => setStep(item)} className={`rounded-full px-2 py-2 transition ${step === item ? 'bg-[#c55a2b] text-white' : 'bg-[#f7eddf] hover:bg-[#f2e2cc]'}`}>{index + 1}. {item === 'customer' ? 'Data' : item === 'address' ? 'Alamat' : item === 'payment' ? 'Bayar' : 'Review'}</button>
         ))}
@@ -101,7 +125,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         {step === 'customer' && <>
         <input value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} placeholder="Nama penerima" className={inputClass} />
         <input value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} placeholder="Nomor WhatsApp" inputMode="tel" className={inputClass} />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {(['konsumen', 'warung', 'reseller'] as const).map((type) => (
             <button key={type} type="button" onClick={() => setCustomer({ ...customer, type })} className={`rounded-2xl border px-3 py-2 text-xs font-medium capitalize transition ${customer.type === type ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f3f4f6]'}`}>{type}</button>
           ))}
@@ -119,7 +143,38 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         <button type="button" disabled={address.text.trim().length < 8} onClick={() => setStep('payment')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut pembayaran</button>
         </>}
         {step === 'payment' && <>
-        <input value={paymentMethodId} onChange={(event) => setPaymentMethodId(event.target.value)} placeholder="ID metode pembayaran" className={inputClass} />
+        <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#5f4d3f]">
+          Pilih metode pembayaran langsung dari daftar di bawah. Customer tidak perlu tahu ID internal.
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {paymentMethods.map((method) => (
+            <button
+              key={method.id}
+              type="button"
+              onClick={() => setPaymentMethodId(method.id)}
+              className={`rounded-[1.2rem] border px-4 py-3 text-left transition ${
+                paymentMethodId === method.id
+                  ? 'border-[#c55a2b] bg-[#fff4ea] shadow-[0_10px_24px_rgba(197,90,43,0.08)]'
+                  : 'border-[#ecd8bf] bg-white hover:bg-[#fdf6ee]'
+              }`}
+            >
+              <p className="text-sm font-semibold text-[#2f241c]">{method.label}</p>
+              <p className="mt-1 text-xs leading-5 text-[#6b7280]">
+                {method.note || (method.type === 'cod' ? 'Bayar saat pesanan diterima.' : 'Pembayaran akan dicek admin.')}
+              </p>
+              {method.accountNumber && (
+                <p className="mt-2 text-xs font-medium text-[#2f241c]">
+                  {method.bankName}: {method.accountNumber}
+                </p>
+              )}
+            </button>
+          ))}
+          {paymentMethods.length === 0 && (
+            <div className="rounded-[1.2rem] border border-dashed border-[#ecd8bf] bg-white px-4 py-3 text-sm text-[#6b7280]">
+              Metode pembayaran belum termuat. Coba lanjutkan sebentar lagi.
+            </div>
+          )}
+        </div>
         <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Catatan pesanan opsional" className={`${inputClass} min-h-16`} />
         <button type="button" disabled={!paymentMethodId.trim()} onClick={() => setStep('review')} className={`${primaryButtonClass} rounded-2xl py-3`}>Review order</button>
         </>}

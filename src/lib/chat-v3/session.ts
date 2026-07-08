@@ -1,17 +1,9 @@
 import { createHash } from 'crypto';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chatCarts, chatMessages, chatSessions, customerSessions } from '@/lib/schema';
-import {
-  generateIdChatCart,
-  generateIdChatMessage,
-  generateIdChatSession,
-  generateIdCustomerSession,
-  generateSecureSessionToken,
-} from '@/lib/id-generator';
+import { chatCarts, chatSessions, customerSessions } from '@/lib/schema';
+import { generateIdChatCart, generateIdChatSession, generateIdCustomerSession, generateSecureSessionToken } from '@/lib/id-generator';
 import { getClientIp } from '@/lib/rate-limit';
-import { serializeComponents } from './messages';
-import { buildReturningCustomerComponents } from './customer-context';
 
 export const CUSTOMER_SESSION_COOKIE = 'rk_customer_session';
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;
@@ -100,24 +92,6 @@ export async function createChatSession(customerSessionId: string) {
     title: 'Pesanan Baru',
     status: 'active',
     aiMode: 'enabled',
-  });
-
-  const returningComponents = await buildReturningCustomerComponents(chatSessionId);
-  await db.insert(chatMessages).values({
-    id: generateIdChatMessage(),
-    chatSessionId,
-    role: 'assistant',
-    content: returningComponents.length > 0 ? 'Halo kak, aku menemukan data tersimpan. Mau pakai data ini untuk pesanan sekarang?' : 'Halo kak! Mau pesan keripik apa hari ini?',
-    componentJson: serializeComponents(returningComponents.length > 0 ? returningComponents : [
-      {
-        type: 'quick_replies',
-        options: [
-          { id: 'lihat-produk', label: 'Lihat Produk', value: 'lihat produk', action: 'send_message' },
-          { id: 'paket-keluarga', label: 'Paket keluarga', value: 'aku mau paket buat keluarga', action: 'send_message' },
-          { id: 'tidak-pedas', label: 'Tidak pedas', value: 'aku mau yang tidak terlalu pedas', action: 'send_message' },
-        ],
-      },
-    ]),
   });
 
   await ensureActiveCart(chatSessionId, null);

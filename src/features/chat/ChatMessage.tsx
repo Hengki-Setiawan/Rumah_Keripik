@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Copy, RefreshCcw, ThumbsUp } from 'lucide-react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
+import { Check, Copy, Loader2, RefreshCcw, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatComponentRenderer } from './ChatComponentRenderer';
@@ -24,13 +25,35 @@ export function ChatMessage({
   const hasText = Boolean(message.content?.trim());
   const reducedMotion = useReducedMotion();
   const [copied, setCopied] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [feedback, setFeedback] = useState<'helpful' | 'not_helpful' | null>(null);
+  const [loggingFeedback, setLoggingFeedback] = useState(false);
 
   async function copyMessage() {
     if (!message.content?.trim()) return;
-    await navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function submitFeedback(nextFeedback: 'helpful' | 'not_helpful', rating: number) {
+    if (feedback || loggingFeedback) return;
+    setLoggingFeedback(true);
+    try {
+      await Promise.resolve(
+        onAction('message_feedback', {
+          messageId: message.id,
+          rating,
+          label: nextFeedback,
+        })
+      );
+      setFeedback(nextFeedback);
+    } finally {
+      setLoggingFeedback(false);
+    }
   }
 
   return (
@@ -44,13 +67,17 @@ export function ChatMessage({
               : {}
           }
           transition={{ duration: 0.42, ease: 'easeOut' }}
-          className={`mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
+          className={`mt-1 grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-xl ${
             isSystem
               ? 'border border-[#e7dccb] bg-[#fffaf3] text-[#7a6959]'
-              : 'bg-[linear-gradient(135deg,#7f9f3e_0%,#67812d_100%)] text-white shadow-[0_12px_30px_rgba(103,129,45,0.22)]'
+              : 'bg-[#fffaf3] shadow-[0_12px_30px_rgba(107,68,35,0.12)]'
           }`}
         >
-          <span className="text-[12px] font-semibold">{isSystem ? 'S' : 'AI'}</span>
+          {isSystem ? (
+            <span className="text-[12px] font-semibold">S</span>
+          ) : (
+            <BrandLogo variant="mark" className="h-full w-full object-contain" />
+          )}
         </motion.div>
       )}
 
@@ -91,13 +118,25 @@ export function ChatMessage({
             </button>
             <button
               type="button"
-              onClick={() => setLiked((value) => !value)}
+              onClick={() => submitFeedback('helpful', 5)}
+              disabled={Boolean(feedback) || loggingFeedback}
               className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-[#f8efe2] hover:text-[#2f241c] ${
-                liked ? 'bg-[#eef6dd] text-[#5d7b20]' : ''
+                feedback === 'helpful' ? 'bg-[#eef6dd] text-[#5d7b20]' : ''
               }`}
             >
-              <ThumbsUp size={12} />
-              {liked ? 'Membantu' : 'Bagus'}
+              {loggingFeedback ? <Loader2 size={12} className="animate-spin" /> : <ThumbsUp size={12} />}
+              {feedback === 'helpful' ? 'Membantu' : loggingFeedback ? 'Menyimpan' : 'Bagus'}
+            </button>
+            <button
+              type="button"
+              onClick={() => submitFeedback('not_helpful', 2)}
+              disabled={Boolean(feedback) || loggingFeedback}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-[#f8efe2] hover:text-[#2f241c] ${
+                feedback === 'not_helpful' ? 'bg-[#fff1db] text-[#b45309]' : ''
+              }`}
+            >
+              <ThumbsDown size={12} />
+              {feedback === 'not_helpful' ? 'Kurang pas' : 'Kurang pas'}
             </button>
           </div>
         )}
