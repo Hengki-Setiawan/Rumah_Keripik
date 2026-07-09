@@ -1,5 +1,5 @@
 import { db } from '../lib/db';
-import { produk, warungRetail, pelangganChatbot, aiKnowledgeBase, botAutoReply } from '../lib/schema';
+import { produk, warungRetail, pelangganChatbot, aiKnowledgeBase, botAutoReply, paymentMethod } from '../lib/schema';
 
 async function seed() {
   console.log('🌱 Memulai seed data...');
@@ -163,6 +163,34 @@ async function seed() {
       { keyword: 'terima kasih,makasih,thanks,thx', response: 'Sama-sama kak! 😊 Senang bisa membantu! 🍟', is_active: 1 },
     ]).onConflictDoNothing();
     console.log('✓ Auto-reply rules di-seed (8 rules)');
+
+    console.log('💳 Menambah data metode pembayaran...');
+    await db.insert(paymentMethod).values([
+      {
+        id_payment_method: 'PM-BCA-TRANSFER',
+        type: 'bank_transfer',
+        label: 'Transfer Bank BCA',
+        bank_name: 'BCA',
+        account_number: '123-456-7890',
+        account_name: 'Rumah Keripik',
+        note: 'Silakan transfer ke rekening BCA di atas, lalu upload bukti pembayaran.',
+        min_order_total: 0,
+        max_order_total: null,
+        sort_order: 1,
+        is_active: 1,
+      },
+      {
+        id_payment_method: 'PM-COD-PERMANENT',
+        type: 'cod',
+        label: 'COD (Bayar di Tempat)',
+        note: 'Bayar tunai ke kurir saat pesanan Anda sampai.',
+        min_order_total: 0,
+        max_order_total: 1000000,
+        sort_order: 2,
+        is_active: 1,
+      },
+    ]).onConflictDoNothing();
+    console.log('✓ Metode pembayaran berhasil di-seed');
 
     console.log('🎉 Seed selesai!');
     process.exit(0);

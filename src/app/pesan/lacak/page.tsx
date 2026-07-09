@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { Suspense, useEffect, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowRight, MapPinned, Search, ShieldCheck, UserRound } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
+import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
 
 type TrackResult = {
   order: {
@@ -19,12 +21,24 @@ type TrackResult = {
     alamat_penerima: string | null;
     waktu_simpan: string;
     updated_at: string;
+    status_token?: string;
   };
+  customer?: { nama: string | null; phone: string | null } | null;
   items: Array<{ id_produk: string; nama_produk: string | null; qty: number; harga: number; subtotal: number }>;
   events: Array<{ id: number; event_type: string; created_at: string }>;
+  recentOrders?: Array<{ kode_pesanan: string; total_bayar: number; waktu_simpan: string; order_status: string }>;
 };
 
 export default function TrackOrderPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen grid place-items-center bg-[#faf6ef] text-[#2f241c]"><p className="text-sm font-medium">Memuat halaman pelacakan...</p></div>}>
+      <TrackOrderContent />
+    </Suspense>
+  );
+}
+
+function TrackOrderContent() {
+  const searchParams = useSearchParams();
   const [code, setCode] = useState('');
   const [phone, setPhone] = useState('');
   const [token, setToken] = useState('');
@@ -32,18 +46,16 @@ export default function TrackOrderPage() {
   const [result, setResult] = useState<TrackResult | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function track() {
+  const handleTrack = (codeVal: string, phoneVal: string, tokenVal: string) => {
     setError('');
     setResult(null);
-    if (!code.trim() || (!phone.trim() && !token.trim())) {
-      setError('Isi kode pesanan dan nomor HP atau token status.');
-      return;
-    }
 
     startTransition(async () => {
-      const params = new URLSearchParams({ code: code.trim() });
-      if (phone.trim()) params.set('phone', phone.trim());
-      if (token.trim()) params.set('token', token.trim());
+      const params = new URLSearchParams();
+      if (codeVal.trim()) params.set('code', codeVal.trim());
+      if (phoneVal.trim()) params.set('phone', phoneVal.trim());
+      if (tokenVal.trim()) params.set('token', tokenVal.trim());
+
       const res = await fetch(`/api/order/track?${params.toString()}`);
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
@@ -51,8 +63,30 @@ export default function TrackOrderPage() {
         return;
       }
       setResult(data);
+      if (data.order.kode_pesanan) {
+        setCode(data.order.kode_pesanan);
+      }
     });
-  }
+  };
+
+  useEffect(() => {
+    const codeParam = searchParams.get('code') || searchParams.get('id') || '';
+    const phoneParam = searchParams.get('phone') || '';
+    const tokenParam = searchParams.get('token') || '';
+
+    if (codeParam) {
+      setCode(codeParam);
+    }
+    if (phoneParam) {
+      setPhone(phoneParam);
+    }
+    if (tokenParam) {
+      setToken(tokenParam);
+    }
+
+    // Jalankan pencarian otomatis saat mount (baik ada parameter code di URL atau untuk melacak sesi aktif secara otomatis)
+    handleTrack(codeParam, phoneParam, tokenParam);
+  }, [searchParams]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.16),transparent_24%),radial-gradient(circle_at_85%_15%,rgba(127,159,62,0.10),transparent_18%),linear-gradient(180deg,#faf6ef_0%,#fffaf4_100%)] px-5 py-8 text-[#2f241c]">
@@ -62,8 +96,7 @@ export default function TrackOrderPage() {
             <p className="text-sm font-medium uppercase tracking-[0.22em] text-[#9a8672]">Lacak pesanan</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] md:text-5xl">Cek status dengan aman.</h1>
             <p className="mt-3 max-w-2xl text-[#6f5d4f]">
-              Masukkan kode pesanan dan nomor HP yang dipakai saat checkout. Jika datang dari link sukses,
-              token status juga bisa dipakai untuk akses yang lebih aman.
+              Masukkan kode pesanan Anda. Info pesanan terakhir dalam sesi aktif Anda akan termuat secara otomatis saat halaman dibuka.
             </p>
           </div>
           <Link
@@ -73,6 +106,34 @@ export default function TrackOrderPage() {
             Pesan lagi <ArrowRight size={16} />
           </Link>
         </div>
+
+        {/* Tautan cepat untuk pesanan aktif lainnya */}
+        {result?.recentOrders && result.recentOrders.length > 1 && (
+          <div className="mt-6 rounded-[1.7rem] border border-[#ead7bf] bg-[rgba(255,248,239,0.88)] p-4">
+            <p className="text-xs font-semibold text-[#8a7562] uppercase tracking-[0.12em] mb-2.5">Pesanan Anda dalam sesi ini:</p>
+            <div className="flex flex-wrap gap-2">
+              {result.recentOrders.map((ro) => (
+                <button
+                  key={ro.kode_pesanan}
+                  type="button"
+                  onClick={() => {
+                    setCode(ro.kode_pesanan);
+                    setPhone('');
+                    setToken('');
+                    handleTrack(ro.kode_pesanan, '', '');
+                  }}
+                  className={`rounded-full px-4 py-2 text-xs font-medium transition ${
+                    (result.order.kode_pesanan === ro.kode_pesanan || code === ro.kode_pesanan)
+                      ? 'bg-[#c55a2b] text-white shadow-sm'
+                      : 'bg-white border border-[#ecd8bf] text-[#2f241c] hover:bg-[#f7eddf]'
+                  }`}
+                >
+                  {ro.kode_pesanan}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 grid gap-3 rounded-[1.7rem] border border-[#ead7bf] bg-[rgba(255,248,239,0.88)] p-5 md:grid-cols-[1fr_1fr]">
           <label className="block">
@@ -87,7 +148,7 @@ export default function TrackOrderPage() {
             />
           </label>
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-[#4f4034]">Nomor HP</span>
+            <span className="mb-2 block text-sm font-medium text-[#4f4034]">Nomor HP (Opsional)</span>
             <input
               data-testid="track-order-phone"
               value={phone}
@@ -99,12 +160,12 @@ export default function TrackOrderPage() {
             />
           </label>
           <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm font-medium text-[#4f4034]">Token status opsional</span>
+            <span className="mb-2 block text-sm font-medium text-[#4f4034]">Token status (Opsional)</span>
             <input
               data-testid="track-order-token"
               value={token}
               onChange={(event) => setToken(event.target.value)}
-              placeholder="Isi kalau link sukses memberi token"
+              placeholder="Isi jika link checkout memberi token"
               autoComplete="off"
               className="w-full rounded-[1.2rem] border border-[#e1cfb9] bg-white px-4 py-3 outline-none transition focus:border-[#c55a2b]/30 focus:ring-4 focus:ring-[#c55a2b]/5"
             />
@@ -112,7 +173,7 @@ export default function TrackOrderPage() {
           <button
             type="button"
             data-testid="track-order-submit"
-            onClick={track}
+            onClick={() => handleTrack(code, phone, token)}
             disabled={isPending}
             className="inline-flex items-center justify-center gap-2 rounded-[1.2rem] bg-[#2f241c] px-5 py-4 font-medium text-white shadow-[0_12px_24px_rgba(47,36,28,0.12)] disabled:opacity-60 md:col-span-2"
           >
@@ -131,17 +192,40 @@ export default function TrackOrderPage() {
                 <p className="mt-1 text-sm text-[#7a6758]">Penerima: {result.order.nama_penerima || '-'}</p>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
-                <ShieldCheck size={16} /> Data cocok
+                <ShieldCheck size={16} /> Data termuat
               </div>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
-              <StatusCard label="Order" value={result.order.order_status} />
-              <StatusCard label="Pembayaran" value={result.order.payment_status} />
-              <StatusCard label="Total" value={formatRupiah(result.order.total_bayar)} />
+              <StatusCard label="Status Order" value={result.order.order_status} />
+              <StatusCard label="Status Pembayaran" value={result.order.status_pembayaran || result.order.payment_status} />
+              <StatusCard label="Total Belanja" value={formatRupiah(result.order.total_bayar)} />
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            {/* Uploader Bukti Pembayaran Dinamis */}
+            {result.order.status_pembayaran === 'Menunggu_Bayar' && result.order.payment_method !== 'cod' && (
+              <div className="rounded-[1.5rem] border border-[#ecd8bf] bg-[#fffaf3] p-1">
+                <PaymentProofUploader
+                  orderId={result.order.id_transaksi}
+                  statusToken={result.order.status_token || token}
+                  onUploaded={() => handleTrack(result.order.kode_pesanan || result.order.id_transaksi, phone, result.order.status_token || token)}
+                />
+              </div>
+            )}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {result.customer && (
+                <div className="rounded-[1.3rem] border border-[#ead7bf] bg-[#fffaf3] p-4">
+                  <div className="flex items-center gap-2">
+                    <UserRound size={16} className="text-[#7f9f3e]" />
+                    <h3 className="font-semibold text-[#2f241c]">Data diri pemesan</h3>
+                  </div>
+                  <div className="mt-3 space-y-2 text-sm text-[#5f4d3f]">
+                    <p><span className="text-[#8a7562]">Nama:</span> {result.customer.nama || '-'}</p>
+                    <p><span className="text-[#8a7562]">Nomor HP/WA:</span> {result.customer.phone || '-'}</p>
+                  </div>
+                </div>
+              )}
               <div className="rounded-[1.3rem] border border-[#ead7bf] bg-[#fffaf3] p-4">
                 <div className="flex items-center gap-2">
                   <UserRound size={16} className="text-[#7f9f3e]" />
@@ -153,7 +237,7 @@ export default function TrackOrderPage() {
                   <p><span className="text-[#8a7562]">Metode bayar:</span> {result.order.payment_method || '-'}</p>
                 </div>
               </div>
-              <div className="rounded-[1.3rem] border border-[#ead7bf] bg-[#fffaf3] p-4">
+              <div className="rounded-[1.3rem] border border-[#ead7bf] bg-[#fffaf3] p-4 md:col-span-1">
                 <div className="flex items-center gap-2">
                   <MapPinned size={16} className="text-[#c55a2b]" />
                   <h3 className="font-semibold text-[#2f241c]">Alamat pengiriman</h3>

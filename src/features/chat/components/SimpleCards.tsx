@@ -81,6 +81,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
   const [paymentMethodId, setPaymentMethodId] = useState(component.paymentMethodId || '');
   const [notes, setNotes] = useState('');
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,6 +92,15 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         setPaymentMethods(data.methods || []);
       })
       .catch(() => undefined);
+
+    fetch('/api/public/saved-addresses')
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) return;
+        setSavedAddresses(data.ok ? (data.addresses || []) : []);
+      })
+      .catch(() => undefined);
+
     return () => {
       cancelled = true;
     };
@@ -133,6 +143,32 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         <button data-testid="order-step-address" type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
         </>}
         {step === 'address' && <>
+        {savedAddresses.length > 0 && (
+          <div className="mb-3 rounded-[1.2rem] bg-[#fbf2e7] p-3 text-xs">
+            <p className="font-semibold text-[#5f4d3f] mb-2">Alamat Tersimpan (Klik untuk isi otomatis):</p>
+            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
+              {savedAddresses.map((addr: any) => (
+                <button
+                  key={addr.id}
+                  type="button"
+                  onClick={() => {
+                    setAddress({
+                      text: addr.addressText || '',
+                      note: addr.courierNote || addr.landmark || '',
+                      mapsLink: (addr.latitude && addr.longitude) ? `https://www.google.com/maps?q=${addr.latitude},${addr.longitude}` : '',
+                      lat: addr.latitude || '',
+                      lng: addr.longitude || '',
+                    });
+                  }}
+                  className="rounded-xl border border-[#ecd8bf] bg-white p-2.5 text-left transition hover:bg-[#fff9f2]"
+                >
+                  <p className="font-semibold text-[#2f241c] truncate">{addr.recipientName || 'Penerima'} ({addr.phone || ''})</p>
+                  <p className="mt-1 text-[11px] text-[#6b7280] line-clamp-1">{addr.addressText}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <textarea data-testid="order-address-text" value={address.text} onChange={(event) => setAddress({ ...address, text: event.target.value })} placeholder="Alamat lengkap" className={`${inputClass} min-h-20`} />
         <input data-testid="order-address-note" value={address.note} onChange={(event) => setAddress({ ...address, note: event.target.value })} placeholder="Patokan/catatan kurir" className={inputClass} />
         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">

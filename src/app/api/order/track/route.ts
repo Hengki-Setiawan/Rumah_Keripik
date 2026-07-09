@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { cookies } from 'next/headers';
+import { desc, eq, and } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { detailTransaksi, orderEvents, produk, transaksi } from '@/lib/schema';
+import { detailTransaksi, orderEvents, produk, transaksi, webOrderSession, customerProfile } from '@/lib/schema';
 import { normalizePhoneNumber } from '@/lib/utils';
 import { checkRateLimit, getClientIp, isRateLimited } from '@/lib/rate-limit';
 
@@ -29,15 +30,45 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const code = searchParams.get('code')?.trim();
+  let code = searchParams.get('code')?.trim();
   const token = searchParams.get('token')?.trim();
   const phone = searchParams.get('phone')?.trim();
 
-  if (!code) {
-    return NextResponse.json({ ok: false, error: 'Kode pesanan wajib diisi' }, { status: 400 });
+  const tokenCookie = (await cookies()).get('rk_order_session')?.value;
+  let recentOrders: Array<{ kode_pesanan: string; total_bayar: number; waktu_simpan: string; order_status: string }> = [];
+
+  if (tokenCookie) {
+    const [session] = await db
+      .select({ id_session: webOrderSession.id_session })
+      .from(webOrderSession)
+      .where(eq(webOrderSession.anonymous_token, tokenCookie))
+      .limit(1);
+
+    if (session) {
+      // Ambil daftar semua pesanan dalam sesi ini
+      const orders = await db
+        .select({
+          kode_pesanan: transaksi.kode_pesanan,
+          total_bayar: transaksi.total_bayar,
+          waktu_simpan: transaksi.waktu_simpan,
+          order_status: transaksi.order_status,
+        })
+        .from(transaksi)
+        .where(eq(transaksi.id_session, session.id_session))
+        .orderBy(desc(transaksi.waktu_simpan))
+        .limit(5);
+
+      recentOrders = orders.filter((o): o is typeof o & { kode_pesanan: string } => o.kode_pesanan !== null);
+
+      // Jika kode pesanan tidak dicantumkan di query params, gunakan pesanan terakhir dari sesi ini
+      if (!code && recentOrders.length > 0) {
+        code = recentOrders[0].kode_pesanan;
+      }
+    }
   }
-  if (!token && !phone) {
-    return NextResponse.json({ ok: false, error: 'Token status atau nomor HP wajib diisi' }, { status: 403 });
+
+  if (!code) {
+    return NextResponse.json({ ok: false, error: 'Kode pesanan wajib diisi atau buat pesanan terlebih dahulu.' }, { status: 400 });
   }
 
   const [order] = await db
@@ -51,19 +82,41 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: 'Pesanan tidak ditemukan' }, { status: 404 });
   }
 
-  const normalizedPhone = phone ? normalizePhoneNumber(phone) : null;
-  const tokenMatches = Boolean(order.status_token && token && token === order.status_token);
-  const phoneMatches = Boolean(
-    normalizedPhone &&
-    [order.no_hp_penerima, order.no_wa_pelanggan]
-      .filter(Boolean)
-      .map((value) => normalizePhoneNumber(value as string))
-      .includes(normalizedPhone)
-  );
+  // Verifikasi hanya dijalankan jika user secara eksplisit memberikan phone atau token
+  if (phone || token) {
+    const normalizedPhone = phone ? normalizePhoneNumber(phone) : null;
+    const tokenMatches = Boolean(order.status_token && token && token === order.status_token);
+    const phoneMatches = Boolean(
+      normalizedPhone &&
+      [order.no_hp_penerima, order.no_wa_pelanggan]
+        .filter(Boolean)
+        .map((value) => normalizePhoneNumber(value as string))
+        .includes(normalizedPhone)
+    );
 
-  if (!tokenMatches && !phoneMatches) {
-    await checkRateLimit(`order-track-failures:${clientIp}`, 5, 300_000);
-    return NextResponse.json({ ok: false, error: 'Verifikasi pesanan tidak valid' }, { status: 403 });
+    if (!tokenMatches && !phoneMatches) {
+      await checkRateLimit(`order-track-failures:${clientIp}`, 5, 300_000);
+      return NextResponse.json({ ok: false, error: 'Verifikasi pesanan tidak valid' }, { status: 403 });
+    }
+  }
+
+  // Ambil data customer (pemesan)
+  let customer: { nama: string | null; phone: string | null } | null = null;
+  if (order.id_customer) {
+    const [cust] = await db
+      .select({
+        nama: customerProfile.nama,
+        phone: customerProfile.phone,
+      })
+      .from(customerProfile)
+      .where(eq(customerProfile.id_customer, order.id_customer))
+      .limit(1);
+    if (cust) {
+      customer = {
+        nama: cust.nama,
+        phone: maskPhone(cust.phone),
+      };
+    }
   }
 
   const items = await db
@@ -98,8 +151,11 @@ export async function GET(req: Request) {
       alamat_penerima: order.alamat_penerima,
       waktu_simpan: order.waktu_simpan,
       updated_at: order.updated_at,
+      status_token: order.status_token, // Diperlukan untuk upload bukti pembayaran
     },
+    customer,
     items,
     events,
+    recentOrders,
   });
 }
