@@ -58,6 +58,9 @@ export async function getCustomerContextForChat(chatSessionId: string): Promise<
   if (!customerId) {
     const [session] = await db.select().from(customerSessions).where(eq(customerSessions.id, chatSession.customerSessionId)).limit(1);
     customerId = session?.customerId || null;
+    if (customerId) {
+      await db.update(chatSessions).set({ customerId, updatedAt: sql`(datetime('now', 'utc'))` }).where(eq(chatSessions.id, chatSessionId));
+    }
   }
 
   if (!customerId) return { customer: null, addresses: [], defaultAddress: null, memory: [], lastOrder: null };
