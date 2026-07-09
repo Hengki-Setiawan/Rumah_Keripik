@@ -4,7 +4,7 @@ import { desc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { adminAuditLog, aiLearningEvents, aiRuns, aiToolCalls, botSetting, chatSessions, failedConversation, recommendationEvents, transaksi } from '@/lib/schema';
-import { defaultProviderConfigs, defaultTaskConfigs } from '@/lib/ai/model-router';
+import { defaultProviderConfigs, defaultTaskConfigs, normalizeProviderConfigs, normalizeTaskConfigs } from '@/lib/ai/model-router';
 import { tambahKnowledgeBase } from '@/actions/knowledge-base';
 
 export async function getAiMonitorData() {
@@ -39,20 +39,23 @@ export async function getAiAuditEvents() {
 export async function getModelRouterSettings() {
   const keys = ['ai.provider.configs', 'ai.task.configs'];
   const rows = await Promise.all(keys.map((key) => db.select().from(botSetting).where(eq(botSetting.key, key)).limit(1).then((items) => items[0])));
-  const providerConfigs = rows[0]?.value_json ? safeJson(rows[0].value_json, defaultProviderConfigs) : defaultProviderConfigs;
-  const taskConfigs = rows[1]?.value_json ? safeJson(rows[1].value_json, defaultTaskConfigs) : defaultTaskConfigs;
+  const providerConfigs = normalizeProviderConfigs(rows[0]?.value_json ? safeJson(rows[0].value_json, defaultProviderConfigs) : defaultProviderConfigs);
+  const taskConfigs = normalizeTaskConfigs(rows[1]?.value_json ? safeJson(rows[1].value_json, defaultTaskConfigs) : defaultTaskConfigs);
   return { providerConfigs, taskConfigs };
 }
 
 export async function saveModelRouterSettings(input: { providerConfigsJson: string; taskConfigsJson: string }) {
-  const providerConfigs = safeJson(input.providerConfigsJson, null);
-  const taskConfigs = safeJson(input.taskConfigsJson, null);
+  const providerConfigsRaw = safeJson(input.providerConfigsJson, null);
+  const taskConfigsRaw = safeJson(input.taskConfigsJson, null);
+  const providerConfigs = providerConfigsRaw ? normalizeProviderConfigs(providerConfigsRaw) : null;
+  const taskConfigs = taskConfigsRaw ? normalizeTaskConfigs(taskConfigsRaw) : null;
   if (!providerConfigs || !taskConfigs) return { ok: false, error: 'JSON config tidak valid' };
 
   await Promise.all([
     upsertSetting('ai.provider.configs', JSON.stringify(providerConfigs, null, 2)),
     upsertSetting('ai.task.configs', JSON.stringify(taskConfigs, null, 2)),
   ]);
+  revalidatePath('/ai-workspace');
   revalidatePath('/model-router');
   return { ok: true };
 }
@@ -79,6 +82,7 @@ export async function createKnowledgeFromFailedConversation(id: number, input?: 
   if (!result.success) return { ok: false, error: result.message };
 
   await db.update(failedConversation).set({ resolved: 1, admin_note: `Dibuat menjadi KB: ${title}`, reviewed_at: sql`(datetime('now', 'utc'))` }).where(eq(failedConversation.id, id));
+  revalidatePath('/ai-workspace');
   revalidatePath('/feedback-learning');
   revalidatePath('/knowledge-base');
   return { ok: true };

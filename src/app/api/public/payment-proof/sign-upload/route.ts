@@ -12,7 +12,7 @@ const SignProofSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`public-proof-sign:${getClientIp(req)}`, 12, 60_000);
+  const rate = await checkRateLimit(`public-proof-sign:${getClientIp(req)}`, 12, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan upload. Coba lagi sebentar.' }, { status: 429 });
 
   const parsed = SignProofSchema.safeParse(await req.json().catch(() => null));

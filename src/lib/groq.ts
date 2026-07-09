@@ -116,7 +116,10 @@ export async function callGroqLLM(
       // Jika ini model terakhir di Groq, jangan throw — lanjut ke fallback
       if (i === GROQ_CHAIN.length - 1) {
         console.log('🔄 Semua Groq model gagal, fallback ke Gemini...');
-        return await callGeminiLLM(messages, maxTokens, temperature);
+        const fallbackMessages = systemPrompt
+          ? [{ role: 'system' as const, content: systemPrompt }, ...messages]
+          : messages;
+        return await callGeminiLLM(fallbackMessages, maxTokens, temperature);
       }
     }
   }

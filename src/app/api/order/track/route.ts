@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { detailTransaksi, orderEvents, produk, transaksi } from '@/lib/schema';
 import { normalizePhoneNumber } from '@/lib/utils';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp, isRateLimited } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -15,7 +15,15 @@ function maskPhone(value: string | null | undefined) {
 }
 
 export async function GET(req: Request) {
-  const rate = checkRateLimit(`order-track:${getClientIp(req)}`, 30, 60_000);
+  const clientIp = getClientIp(req);
+
+  // Hardening: Block brute force attempts
+  const isBlocked = await isRateLimited(`order-track-failures:${clientIp}`, 5);
+  if (isBlocked) {
+    return NextResponse.json({ ok: false, error: 'Terlalu banyak kegagalan pelacakan. Akses diblokir sementara selama 5 menit.' }, { status: 429 });
+  }
+
+  const rate = await checkRateLimit(`order-track:${clientIp}`, 30, 60_000);
   if (!rate.ok) {
     return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan cek status. Coba lagi sebentar.' }, { status: 429 });
   }
@@ -39,6 +47,7 @@ export async function GET(req: Request) {
     .limit(1);
 
   if (!order) {
+    await checkRateLimit(`order-track-failures:${clientIp}`, 5, 300_000);
     return NextResponse.json({ ok: false, error: 'Pesanan tidak ditemukan' }, { status: 404 });
   }
 
@@ -53,6 +62,7 @@ export async function GET(req: Request) {
   );
 
   if (!tokenMatches && !phoneMatches) {
+    await checkRateLimit(`order-track-failures:${clientIp}`, 5, 300_000);
     return NextResponse.json({ ok: false, error: 'Verifikasi pesanan tidak valid' }, { status: 403 });
   }
 

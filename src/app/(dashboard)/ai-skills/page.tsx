@@ -1,7 +1,7 @@
-import { AiSkillsPanel } from '@/components/dashboard/AiSkillsPanel';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default function AiSkillsPage() {
-  return <AiSkillsPanel />;
+  redirect('/ai-workspace?tab=skills');
 }

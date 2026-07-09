@@ -47,4 +47,6 @@ export interface OrderContext {
   maps_link_pengiriman?: string;
   jarak_km?: number;
   shipping_cost?: number;
+  sessionId?: string;
+  history?: { role: 'user' | 'assistant'; content: string }[];
 }

@@ -23,7 +23,7 @@ const SessionPatchSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`public-session:${getClientIp(req)}`, 600, 60_000);
+  const rate = await checkRateLimit(`public-session:${getClientIp(req)}`, 600, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak request. Coba lagi sebentar.' }, { status: 429 });
 
   const cookieStore = await cookies();
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const rate = checkRateLimit(`public-session-patch:${getClientIp(req)}`, 80, 60_000);
+  const rate = await checkRateLimit(`public-session-patch:${getClientIp(req)}`, 80, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak update session. Coba lagi sebentar.' }, { status: 429 });
 
   const token = (await cookies()).get(SESSION_COOKIE)?.value;

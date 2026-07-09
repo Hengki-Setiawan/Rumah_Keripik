@@ -36,7 +36,7 @@ export interface RouterResult {
  * Entry point — proses pesan masuk dari WhatsApp
  * Support: text, image, location
  */
-export async function processIncomingMessage(
+async function processIncomingMessageInternal(
   no_wa: string,
   message: string,
   isImage?: boolean,
@@ -196,7 +196,14 @@ export async function processIncomingMessage(
     return { response: cachedAi, source: 'rule', modelUsed: 'cache', tokensUsed: 0 };
   }
 
-  const messages = [{ role: 'user' as const, content: message }];
+  const chatHistory = ctx.history || [];
+  const messages = [
+    ...chatHistory.map((h) => ({
+      role: h.role as 'user' | 'assistant',
+      content: h.content,
+    })),
+    { role: 'user' as const, content: message },
+  ];
   const systemPrompt = knowledgeContext
     ? getRAGSystemPrompt(knowledgeContext)
     : getSystemPrompt();
@@ -568,4 +575,101 @@ async function saveCachedAiResponse(
   } catch {
     // Cache is only an optimization.
   }
+}
+
+/**
+ * Wrapper for processIncomingMessage to handle session ID and rolling chat history memory.
+ */
+export async function processIncomingMessage(
+  no_wa: string,
+  message: string,
+  isImage?: boolean,
+  imageMessageId?: string,
+  locationData?: { lat: number; lng: number; address?: string },
+): Promise<RouterResult> {
+  await ensurePelangganExists(no_wa);
+
+  // 1. Ambil data pelanggan untuk mengecek/men-generate sessionId
+  const pelanggan = await db
+    .select()
+    .from(pelangganChatbot)
+    .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa))
+    .limit(1)
+    .then((r) => r[0]);
+
+  if (pelanggan?.status_handle === 'Manual_Admin') {
+    return { response: '', source: 'not_found' };
+  }
+
+  let ctx: OrderContext = { step: 'IDLE' };
+  try {
+    ctx = pelanggan?.context_sesi
+      ? JSON.parse(pelanggan.context_sesi)
+      : { step: 'IDLE' };
+  } catch {
+    ctx = { step: 'IDLE' };
+  }
+
+  // Generate sessionId jika belum ada
+  if (!ctx.sessionId) {
+    ctx.sessionId = `tg_sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    ctx.last_updated = new Date().toISOString();
+    await db
+      .update(pelangganChatbot)
+      .set({ context_sesi: JSON.stringify(ctx) })
+      .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
+  }
+
+  // 2. Jalankan logika pemrosesan chat internal
+  const result = await processIncomingMessageInternal(no_wa, message, isImage, imageMessageId, locationData);
+
+  // 3. Setelah pemrosesan selesai, simpan pesan ke riwayat context_sesi
+  if (result.response) {
+    const updatedPelanggan = await db
+      .select({ context_sesi: pelangganChatbot.context_sesi })
+      .from(pelangganChatbot)
+      .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa))
+      .limit(1)
+      .then((r) => r[0]);
+
+    let latestCtx: OrderContext = { step: 'IDLE' };
+    try {
+      latestCtx = updatedPelanggan?.context_sesi
+        ? JSON.parse(updatedPelanggan.context_sesi)
+        : { step: 'IDLE' };
+    } catch {
+      latestCtx = { step: 'IDLE' };
+    }
+
+    const lowerMessage = message.trim().toLowerCase();
+    const cancelKeywords = ['batal', 'cancel', 'reset'];
+
+    if (cancelKeywords.some((k) => lowerMessage.includes(k))) {
+      // Bersihkan riwayat percakapan dan hapus sessionId untuk sesi berikutnya
+      latestCtx.history = [];
+      latestCtx.sessionId = undefined;
+    } else {
+      // Simpan riwayat percakapan bergulir (rolling chat history)
+      const history = latestCtx.history || [];
+      const userContent = isImage ? '[Foto Bukti Pembayaran]' : message;
+      
+      // Cegah pesan duplikat berurutan dengan isi yang sama persis
+      const lastMsg = history[history.length - 1];
+      if (!lastMsg || lastMsg.content !== result.response || lastMsg.role !== 'assistant') {
+        history.push({ role: 'user', content: userContent });
+        history.push({ role: 'assistant', content: result.response });
+      }
+
+      // Batasi maksimal 10 pesan (5 pertukaran tanya-jawab)
+      latestCtx.history = history.slice(-10);
+    }
+
+    latestCtx.last_updated = new Date().toISOString();
+    await db
+      .update(pelangganChatbot)
+      .set({ context_sesi: JSON.stringify(latestCtx) })
+      .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
+  }
+
+  return result;
 }

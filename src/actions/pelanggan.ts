@@ -250,7 +250,7 @@ export async function ambilAlihChatWithCheck(no_wa: string, adminName: string) {
       })
       .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
 
-    revalidatePath('/livechat');
+    revalidatePath('/hub-komunikasi');
     revalidatePath('/master-data/pelanggan');
     return { success: true, message: `Chat diambil alih oleh ${adminName}` };
   } catch (error) {
@@ -269,7 +269,7 @@ export async function lepasKeBot(no_wa: string) {
       })
       .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
 
-    revalidatePath('/livechat');
+    revalidatePath('/hub-komunikasi');
     revalidatePath('/master-data/pelanggan');
     return { success: true, message: 'Chat dikembalikan ke bot' };
   } catch (error) {

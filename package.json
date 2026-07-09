@@ -29,6 +29,7 @@
     "db:migrate:v6": "tsx src/scripts/migrate-v6-chat-v3.ts",
     "db:migrate:v7": "tsx src/scripts/migrate-v7-ai-learning.ts",
     "db:migrate:v8": "tsx src/scripts/migrate-v8-production-hardening.ts",
+    "db:migrate:v9": "tsx src/scripts/migrate-v9-rate-limits.ts",
     "db:migrate:all": "tsx src/scripts/migrate-all.ts",
     "db:backup": "tsx src/scripts/backup-turso.ts",
     "db:studio": "drizzle-kit studio",

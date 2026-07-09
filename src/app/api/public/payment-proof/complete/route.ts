@@ -12,7 +12,7 @@ import { canUploadPaymentProof, getPaymentProofUploadBlockReason } from '@/lib/o
 import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`public-proof-complete:${getClientIp(req)}`, 12, 60_000);
+  const rate = await checkRateLimit(`public-proof-complete:${getClientIp(req)}`, 12, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan upload. Coba lagi sebentar.' }, { status: 429 });
 
   const parsed = PaymentProofCompleteSchema.safeParse(await req.json().catch(() => null));
@@ -21,6 +21,16 @@ export async function POST(req: Request) {
   }
   if (!isAllowedCloudinaryProofUrl(parsed.data.secureUrl, parsed.data.cloudinaryPublicId)) {
     return NextResponse.json({ ok: false, error: 'URL bukti pembayaran tidak valid' }, { status: 400 });
+  }
+
+  const urlExt = parsed.data.secureUrl.split('.').pop()?.toLowerCase();
+  const format = parsed.data.fileFormat.toLowerCase();
+  const isMatch = urlExt === format || 
+    (format === 'jpeg' && urlExt === 'jpg') || 
+    (format === 'jpg' && urlExt === 'jpeg');
+  
+  if (!isMatch) {
+    return NextResponse.json({ ok: false, error: 'Format berkas di URL tidak sesuai dengan format data bukti' }, { status: 400 });
   }
 
   const [order] = await db.select().from(transaksi).where(eq(transaksi.id_transaksi, parsed.data.orderId)).limit(1);

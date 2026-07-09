@@ -65,6 +65,7 @@ export async function tambahKnowledgeBase(
       embedded++;
     }
 
+    revalidatePath('/ai-workspace');
     revalidatePath('/knowledge-base');
     return {
       success: true,
@@ -100,6 +101,7 @@ export async function getAllKnowledgeBase() {
 export async function hapusKnowledgeBase(id: number) {
   try {
     await db.delete(aiKnowledgeBase).where(eq(aiKnowledgeBase.id, id));
+    revalidatePath('/ai-workspace');
     revalidatePath('/knowledge-base');
     return { success: true, message: 'Entri berhasil dihapus' };
   } catch (error) {
@@ -124,6 +126,7 @@ export async function toggleActiveKnowledgeBase(id: number) {
       .set({ is_active: entry[0].is_active ? 0 : 1 })
       .where(eq(aiKnowledgeBase.id, id));
 
+    revalidatePath('/ai-workspace');
     revalidatePath('/knowledge-base');
     return { success: true, message: 'Status berhasil diubah' };
   } catch (error) {

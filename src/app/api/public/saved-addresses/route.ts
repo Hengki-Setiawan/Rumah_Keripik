@@ -8,7 +8,7 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 const SESSION_COOKIE = 'rk_order_session';
 
 export async function GET(req: Request) {
-  const rate = checkRateLimit(`public-saved-addresses:${getClientIp(req)}`, 30, 60_000);
+  const rate = await checkRateLimit(`public-saved-addresses:${getClientIp(req)}`, 30, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak request. Coba lagi sebentar.' }, { status: 429 });
 
   const token = (await cookies()).get(SESSION_COOKIE)?.value;

@@ -1,7 +1,7 @@
-import { AiMonitorPanel } from '@/components/dashboard/AiMonitorPanel';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default function AiMonitorPage() {
-  return <AiMonitorPanel />;
+  redirect('/ai-workspace?tab=monitor');
 }

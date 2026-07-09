@@ -1316,3 +1316,13 @@ export type DeliveryAssignment = typeof deliveryAssignment.$inferSelect;
 export type InsertDeliveryAssignment = typeof deliveryAssignment.$inferInsert;
 export type DeliveryRoutePoint = typeof deliveryRoutePoint.$inferSelect;
 export type InsertDeliveryRoutePoint = typeof deliveryRoutePoint.$inferInsert;
+
+export const rateLimits = sqliteTable('rate_limits', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull().default(0),
+  resetAt: integer('reset_at').notNull(),
+});
+
+export type RateLimit = typeof rateLimits.$inferSelect;
+export type InsertRateLimit = typeof rateLimits.$inferInsert;
+

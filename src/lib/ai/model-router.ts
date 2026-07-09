@@ -10,7 +10,7 @@ import type { AIModelTaskConfig, AIProviderConfig, GenerateTextInput, GenerateTe
 export const defaultProviderConfigs: AIProviderConfig[] = [
   { id: 'deterministic', name: 'deterministic', enabled: true, apiKeyEnv: '', defaultModel: 'template', supportsToolCalling: false, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 180, priority: 99 },
   { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-2.0-flash', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
-  { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'gemma-4-31b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
+  { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'qwen-3-32b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
   { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'llama-3.3/3.1 fallback chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
   { id: 'qwen', name: 'qwen', enabled: false, baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', apiKeyEnv: 'QWEN_API_KEY', defaultModel: 'qwen-plus', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 4 },
 ];
@@ -19,7 +19,7 @@ export const defaultTaskConfigs: AIModelTaskConfig[] = [
   { task: 'intent_detection', primaryProviderId: 'groq', fallbackProviderIds: ['cerebras', 'gemini', 'deterministic'], maxInputTokens: 1500, maxOutputTokens: 120, temperature: 0.1, timeoutMs: 8000 },
   { task: 'structured_chat_response', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 3200, maxOutputTokens: 260, temperature: 0.15, timeoutMs: 14000 },
   { task: 'faq_answer', primaryProviderId: 'cerebras', fallbackProviderIds: ['gemini', 'groq', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 180, temperature: 0.15, timeoutMs: 12000 },
-  { task: 'memory_extraction', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 2500, maxOutputTokens: 180, temperature: 0.1, timeoutMs: 12000 },
+  { task: 'memory_extraction', primaryProviderId: 'cerebras', fallbackProviderIds: ['gemini', 'groq', 'deterministic'], maxInputTokens: 2500, maxOutputTokens: 180, temperature: 0.1, timeoutMs: 12000 },
   { task: 'admin_summary', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 4000, maxOutputTokens: 260, temperature: 0.2, timeoutMs: 14000 },
 ];
 
@@ -73,12 +73,37 @@ export async function loadRouterConfig() {
     const [providerRow] = await db.select().from(botSetting).where(eq(botSetting.key, 'ai.provider.configs')).limit(1);
     const [taskRow] = await db.select().from(botSetting).where(eq(botSetting.key, 'ai.task.configs')).limit(1);
     return {
-      providerConfigs: providerRow?.value_json ? JSON.parse(providerRow.value_json) as AIProviderConfig[] : defaultProviderConfigs,
-      taskConfigs: taskRow?.value_json ? JSON.parse(taskRow.value_json) as AIModelTaskConfig[] : defaultTaskConfigs,
+      providerConfigs: normalizeProviderConfigs(providerRow?.value_json ? JSON.parse(providerRow.value_json) as AIProviderConfig[] : defaultProviderConfigs),
+      taskConfigs: normalizeTaskConfigs(taskRow?.value_json ? JSON.parse(taskRow.value_json) as AIModelTaskConfig[] : defaultTaskConfigs),
     };
   } catch {
     return { providerConfigs: defaultProviderConfigs, taskConfigs: defaultTaskConfigs };
   }
+}
+
+export function normalizeProviderConfigs(configs: AIProviderConfig[]) {
+  const byId = new Map(configs.map((item) => [item.id, item]));
+  return defaultProviderConfigs.map((fallback) => {
+    const current = byId.get(fallback.id);
+    return current
+      ? {
+          ...fallback,
+          ...current,
+          defaultModel:
+            current.id === 'cerebras' && (!current.defaultModel || current.defaultModel === 'gemma-4-31b')
+              ? fallback.defaultModel
+              : current.defaultModel || fallback.defaultModel,
+        }
+      : fallback;
+  });
+}
+
+export function normalizeTaskConfigs(configs: AIModelTaskConfig[]) {
+  const byTask = new Map(configs.map((item) => [item.task, item]));
+  return defaultTaskConfigs.map((fallback) => {
+    const current = byTask.get(fallback.task);
+    return current ? { ...fallback, ...current } : fallback;
+  });
 }
 
 async function logRun(id: string, input: GenerateTextInput, result: GenerateTextResult, latencyMs: number, status: 'success' | 'error' | 'fallback', errorMessage?: string) {

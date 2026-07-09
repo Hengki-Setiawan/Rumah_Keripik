@@ -8,6 +8,10 @@ function randomPhone() {
   return `0813${suffix}`;
 }
 
+function normalizePhone(phone: string) {
+  return phone.startsWith('0') ? `62${phone.slice(1)}` : phone;
+}
+
 async function fillChatOrderForm(page: Page, {
   name,
   phone,
@@ -38,14 +42,38 @@ async function pickCodPayment(page: Page) {
 }
 
 async function readSuccessPayload(page: Page) {
-  await expect(page).toHaveURL(/\/pesan\/sukses\//);
+  if (/\/pesan\/sukses\//.test(page.url())) {
+    const successUrl = new URL(page.url());
+    const orderCode = decodeURIComponent(successUrl.pathname.split('/').pop() || '');
+    expect(orderCode).not.toHaveLength(0);
+
+    const statusHref = await page.getByRole('link', { name: /lihat status pesanan/i }).getAttribute('href');
+    expect(statusHref).toBeTruthy();
+    return { orderCode, transactionId: null, statusHref: statusHref! };
+  }
+
+  await expect(page.getByText(/order cod berhasil dibuat|status pesanan/i).first()).toBeVisible();
+  const orderLine = page.getByText(/^Order:\s+/).last();
+  await expect(orderLine).toBeVisible();
+  const orderText = (await orderLine.textContent()) || '';
+  const transactionId = orderText.replace(/^Order:\s*/, '').trim();
+  expect(transactionId).not.toHaveLength(0);
+
+  const viewStatusButton = page.getByRole('button', { name: /lihat status/i }).last();
+  await expect(viewStatusButton).toBeVisible();
+  await viewStatusButton.click();
+  await expect(page).toHaveURL(/\/pesan\/(sukses|status)\//);
+
+  if (/\/pesan\/status\//.test(page.url())) {
+    return { orderCode: transactionId, transactionId, statusHref: page.url() };
+  }
+
   const successUrl = new URL(page.url());
   const orderCode = decodeURIComponent(successUrl.pathname.split('/').pop() || '');
   expect(orderCode).not.toHaveLength(0);
-
   const statusHref = await page.getByRole('link', { name: /lihat status pesanan/i }).getAttribute('href');
   expect(statusHref).toBeTruthy();
-  return { orderCode, statusHref: statusHref! };
+  return { orderCode, transactionId, statusHref: statusHref! };
 }
 
 async function loginAdmin(page: Page, callbackUrl: string) {
@@ -57,11 +85,11 @@ async function loginAdmin(page: Page, callbackUrl: string) {
   await page.getByRole('button', { name: /masuk ke dashboard/i }).click();
 }
 
-async function approveCodOrder(page: Page, orderCode: string) {
+async function approveCodOrder(page: Page, phone: string) {
   await loginAdmin(page, '/pembayaran/cod');
   await expect(page).toHaveURL(/\/pembayaran\/cod/);
 
-  const card = page.locator(`[data-testid^="cod-order-"], section`).filter({ hasText: orderCode }).first();
+  const card = page.locator('[data-testid^="cod-order-"]').filter({ hasText: normalizePhone(phone) }).first();
   await expect(card).toBeVisible();
 
   page.once('dialog', (dialog) => dialog.accept());
@@ -88,7 +116,7 @@ async function markOrderCompleted(page: Page, orderCode: string) {
 
 async function verifyPublicCompleted(page: Page, statusHref: string) {
   await page.goto(statusHref);
-  await expect(page.getByText(/status pesanan/i)).toBeVisible();
+  await expect(page.getByText('Status pesanan', { exact: true })).toBeVisible();
   await expect(page.getByText(/^Order$/)).toBeVisible();
   await expect(page.getByText(/^completed$/)).toBeVisible();
 }
@@ -113,7 +141,7 @@ test.describe('/pesan end-to-end', () => {
 
     const { orderCode, statusHref } = await readSuccessPayload(page);
 
-    await approveCodOrder(page, orderCode);
+    await approveCodOrder(page, phone);
     await markOrderCompleted(page, orderCode);
     await verifyPublicCompleted(page, statusHref);
   });
@@ -125,7 +153,7 @@ test.describe('/pesan end-to-end', () => {
     await expect(page.getByText(/mau pesan keripik apa hari ini/i)).toBeVisible();
 
     await page.getByRole('button', { name: /lihat produk/i }).click();
-    const firstAddButton = page.locator('[data-testid^="add-to-cart-"], button').filter({ hasText: /^Tambah$/ }).first();
+    const firstAddButton = page.locator('[data-testid^="add-to-cart-"]').first();
     await expect(firstAddButton).toBeVisible();
     await firstAddButton.click();
 
@@ -145,7 +173,7 @@ test.describe('/pesan end-to-end', () => {
 
     const { orderCode, statusHref } = await readSuccessPayload(page);
 
-    await approveCodOrder(page, orderCode);
+    await approveCodOrder(page, phone);
     await markOrderCompleted(page, orderCode);
     await verifyPublicCompleted(page, statusHref);
   });

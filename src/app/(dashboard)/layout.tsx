@@ -29,15 +29,24 @@ interface NotifCounts {
   unread_chats: number;
 }
 
-const menuItems = [
+const coreMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/master-data/produk', label: 'Produk', icon: Package },
-  { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart, activeHrefs: ['/transaksi', '/pembayaran/verifikasi'] },
   { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
-  { href: '/ai-workspace', label: 'AI Workspace', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router'] },
-  { href: '/feedback-learning', label: 'Feedback', icon: Bot },
+  { href: '/master-data/produk', label: 'Produk', icon: Package },
+  { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
+  { href: '/ai-workspace', label: 'Pusat AI', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router'] },
 ];
+
+const supportMenuItems = [
+  { href: '/feedback-learning', label: 'Feedback Learning', icon: Bot },
+  { href: '/bot-config', label: 'Bot Config', icon: Bot },
+  { href: '/web-sessions', label: 'Web Sessions', icon: Users },
+  { href: '/ops-smoke', label: 'Smoke Ops', icon: ShieldAlert },
+];
+
+const menuItems = [...coreMenuItems, ...supportMenuItems];
+
 
 function isMenuActive(pathname: string, item: { href: string; activeHrefs?: string[] }) {
   const paths = item.activeHrefs || [item.href];
@@ -208,13 +217,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       <nav className={`flex-1 space-y-1 overflow-y-auto scrollbar-thin ${compact ? 'w-full px-0' : 'pr-1'}`}>
-        {menuItems.map((item) => (
+        {/* Core Menu */}
+        {!compact && (
+          <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#a08973]">
+            Core Menu
+          </p>
+        )}
+        {coreMenuItems.map((item) => (
           <SidebarLink
             key={item.href}
             item={item}
             pathname={pathname}
             compact={compact}
             badge={item.href === '/transaksi' ? notifs.pending_verifikasi : undefined}
+            onNavigate={() => setSidebarOpen(false)}
+          />
+        ))}
+
+        {/* Separator */}
+        <div className={`my-4 border-t border-[#f0dfca] ${compact ? 'mx-2' : 'mx-3'}`} />
+
+        {/* Support Menu */}
+        {!compact && (
+          <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#a08973]">
+            Support Menu
+          </p>
+        )}
+        {supportMenuItems.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            pathname={pathname}
+            compact={compact}
             onNavigate={() => setSidebarOpen(false)}
           />
         ))}

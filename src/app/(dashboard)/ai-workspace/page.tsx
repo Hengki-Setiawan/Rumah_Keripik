@@ -1,10 +1,14 @@
 import { getModelRouterSettings } from '@/actions/ai-ops';
+import { getStatsKnowledgeBase } from '@/actions/knowledge-base';
 import { AiMonitorPanel } from '@/components/dashboard/AiMonitorPanel';
 import { AiSkillsPanel } from '@/components/dashboard/AiSkillsPanel';
 import { AiWorkspaceTabs } from '@/components/dashboard/AiWorkspaceTabs';
+import { KnowledgePlayground } from '@/components/dashboard/KnowledgePlayground';
+import { KnowledgeV3QuickAdd } from '@/components/dashboard/KnowledgeV3QuickAdd';
 import { ModelRouterClient } from '@/components/dashboard/ModelRouterClient';
 import { ModelRouterHealthPanel } from '@/components/dashboard/ModelRouterHealthPanel';
 import { InfoButton } from '@/components/ui/InfoButton';
+import { BookOpen, MessageSquareText, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -13,23 +17,24 @@ export default async function AiWorkspacePage({ searchParams }: { searchParams: 
   const params = await searchParams;
   const tab = params.tab === 'monitor' || params.tab === 'skills' || params.tab === 'router' ? params.tab : 'kb';
   const routerSettings = tab === 'router' ? await getModelRouterSettings() : null;
+  const kbStats = tab === 'kb' ? await getStatsKnowledgeBase() : null;
 
   return (
     <div className="space-y-6">
       <div className="rounded-[2rem] border border-outline-variant bg-gradient-to-br from-white via-surface-container-lowest to-surface-cream p-5 shadow-sm md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-primary">Unified Control Center</p>
-            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-on-surface md:text-4xl">Knowledge Base & AI</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-on-surface-variant">Kelola knowledge base, pantau performa AI, audit skills, dan atur model router tanpa berpindah menu. Route lama tetap aktif untuk deep link, tetapi navigasi utama sekarang fokus ke halaman ini.</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-primary">Pusat Operasi AI</p>
+            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-on-surface md:text-4xl">Pusat AI & Pengetahuan</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-on-surface-variant">Kelola knowledge base, pantau performa AI, audit skills, dan atur model router tanpa berpindah menu. Route lama tetap aktif untuk deep link, tetapi navigasi utama sekarang fokus ke workspace ini.</p>
           </div>
-          <InfoButton title="Knowledge Base & AI" description="Halaman ini menggabungkan Knowledge Base, AI Monitor, AI Skills, dan Model Router agar workspace dashboard lebih ringkas." usage="Mulai dari Knowledge Base untuk isi pengetahuan, cek Monitor untuk error/fallback, lihat Skills untuk kemampuan aktif, lalu ubah Router jika perlu mengganti provider AI." />
+          <InfoButton title="Pusat AI & Pengetahuan" description="Halaman ini menggabungkan Knowledge Base, AI Monitor, AI Skills, dan Model Router agar workspace dashboard lebih ringkas." usage="Mulai dari Knowledge Base untuk isi pengetahuan, cek Monitor untuk error/fallback, lihat Skills untuk kemampuan aktif, lalu ubah Router jika perlu mengganti provider AI." />
         </div>
       </div>
 
       <AiWorkspaceTabs activeTab={tab} />
 
-      {tab === 'kb' && <KnowledgeBaseBridge />}
+      {tab === 'kb' && <KnowledgeBaseBridge stats={kbStats || { total: 0, aktif: 0, withEmbedding: 0 }} />}
       {tab === 'monitor' && <AiMonitorPanel compactHeader />}
       {tab === 'skills' && <AiSkillsPanel compactHeader />}
       {tab === 'router' && routerSettings && <div className="space-y-6"><ModelRouterHealthPanel /><ModelRouterClient compactHeader providerConfigs={routerSettings.providerConfigs} taskConfigs={routerSettings.taskConfigs} /></div>}
@@ -37,32 +42,64 @@ export default async function AiWorkspacePage({ searchParams }: { searchParams: 
   );
 }
 
-function KnowledgeBaseBridge() {
+function KnowledgeBaseBridge({ stats }: { stats: { total: number; aktif: number; withEmbedding: number } }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-      <section className="rounded-3xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">Knowledge Base, Rule, Log & Analytics</h2>
-            <p className="mt-2 text-sm leading-6 text-on-surface-variant">CRUD Knowledge Base dan pengaturan auto-reply sudah stabil di modul pengaturan asisten AI. Modul ini tetap dipakai supaya semua fungsi tambah, hapus, toggle, log, analytics, dan public prompts tidak berubah.</p>
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard icon={<BookOpen />} label="Total Chunks" value={stats.total} />
+        <StatCard icon={<Sparkles />} label="Aktif" value={stats.aktif} />
+        <StatCard icon={<MessageSquareText />} label="Embedded" value={stats.withEmbedding} />
+      </div>
+
+      <KnowledgeV3QuickAdd />
+
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-3xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">Knowledge Base, Rule, Log & Analytics</h2>
+              <p className="mt-2 text-sm leading-6 text-on-surface-variant">CRUD Knowledge Base dan pengaturan auto-reply tetap tersedia, tetapi pusat navigasinya sekarang disatukan di workspace ini supaya admin tidak lompat-lompat menu.</p>
+            </div>
+            <InfoButton title="Knowledge Base" description="Database pengetahuan yang dipakai AI untuk menjawab FAQ, produk, pengiriman, kebijakan, dan fallback." usage="Tambah dokumen cepat di halaman ini, lalu buka modul lengkap jika perlu CRUD detail, log, atau analytics." />
           </div>
-          <InfoButton title="Knowledge Base" description="Database pengetahuan yang dipakai AI untuk menjawab FAQ, produk, pengiriman, kebijakan, dan fallback." usage="Klik buka modul lengkap, pilih tab AI Knowledge Base, tambah dokumen, lalu gunakan Conversation Log dan Analytics untuk audit hasilnya." />
-        </div>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/bot-config?tab=kb" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-on-primary">Buka CRUD Knowledge Base</Link>
-          <Link href="/bot-config?tab=rules" className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Auto Reply Rules</Link>
-          <Link href="/bot-config?tab=logs" className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Conversation Log</Link>
-          <Link href="/bot-config?tab=analytics" className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Analytics</Link>
-        </div>
-      </section>
-      <section className="rounded-3xl border border-outline-variant bg-white p-6 shadow-sm">
-        <h2 className="font-headline-sm text-headline-sm text-on-surface">Alur Pakai Cepat</h2>
-        <div className="mt-4 space-y-3 text-sm text-on-surface-variant">
-          <Step number="1" title="Tambah pengetahuan" text="Masukkan FAQ, produk, pembayaran, atau pengiriman ke Knowledge Base." />
-          <Step number="2" title="Pantau kualitas" text="Buka AI Monitor untuk melihat error, fallback, token, latency, dan feedback gagal." />
-          <Step number="3" title="Optimalkan routing" text="Jika provider lambat/error, ubah prioritas dan fallback di Model Router." />
-        </div>
-      </section>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/bot-config?tab=kb" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-on-primary">Buka CRUD Knowledge Base</Link>
+            <Link href="/bot-config?tab=rules" className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Auto Reply Rules</Link>
+            <Link href="/bot-config?tab=logs" className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Conversation Log</Link>
+            <Link href="/bot-config?tab=analytics" className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Analytics</Link>
+            <Link href="/feedback-learning" className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Feedback Learning</Link>
+          </div>
+        </section>
+        <section className="rounded-3xl border border-outline-variant bg-white p-6 shadow-sm">
+          <h2 className="font-headline-sm text-headline-sm text-on-surface">Alur Pakai Cepat</h2>
+          <div className="mt-4 space-y-3 text-sm text-on-surface-variant">
+            <Step number="1" title="Tambah pengetahuan" text="Masukkan FAQ, produk, pembayaran, atau pengiriman ke Knowledge Base." />
+            <Step number="2" title="Pantau kualitas" text="Buka tab AI Monitor untuk melihat error, fallback, token, latency, dan feedback gagal." />
+            <Step number="3" title="Optimalkan routing" text="Jika provider lambat/error, ubah prioritas dan fallback di Model Router." />
+          </div>
+        </section>
+      </div>
+
+      <KnowledgePlayground />
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {['FAQ', 'Product Rule', 'Shipping Rule', 'Payment Rule', 'Promo', 'Persona', 'Safety Rule', 'Fallback'].map((item) => (
+          <div key={item} className="rounded-2xl border border-outline-variant bg-white p-4">
+            <p className="font-semibold text-on-surface">{item}</p>
+            <p className="mt-1 text-sm text-on-surface-variant">Kategori Blueprint V3</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-container text-primary">{icon}</div>
+      <p className="text-sm text-on-surface-variant">{label}</p>
+      <p className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-on-surface">{value}</p>
     </div>
   );
 }

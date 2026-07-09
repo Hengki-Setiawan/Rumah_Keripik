@@ -200,8 +200,8 @@ const modules = [
   },
   {
     href: '/ai-workspace',
-    title: 'Knowledge Base & AI',
-    description: 'Kelola knowledge base, router AI, observability, dan audit kemampuan aktif.',
+    title: 'Pusat AI & Pengetahuan',
+    description: 'Kelola knowledge base, router AI, observability, dan audit kemampuan aktif dari satu workspace.',
     icon: Bot,
   },
 ];

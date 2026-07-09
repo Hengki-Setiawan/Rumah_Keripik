@@ -64,7 +64,7 @@ function buildCustomerId(source: 'web' | 'telegram', chatId: string | undefined,
 
 export async function POST(req: Request) {
   try {
-    const rate = checkRateLimit(`order-web:${getClientIp(req)}`, 10, 60_000);
+    const rate = await checkRateLimit(`order-web:${getClientIp(req)}`, 10, 60_000);
     if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan order. Coba lagi sebentar.' }, { status: 429 });
     const payload = WebOrderSchema.parse(await req.json());
     const normalizedPhone = normalizePhoneNumber(payload.customer.phone);

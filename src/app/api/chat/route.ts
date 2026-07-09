@@ -11,7 +11,7 @@ import { updateChatSessionTitle } from '@/lib/chat-v3/session-title';
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`chat-v3:${getClientIp(req)}`, 40, 60_000);
+  const rate = await checkRateLimit(`chat-v3:${getClientIp(req)}`, 40, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak chat. Coba lagi sebentar.' }, { status: 429 });
 
   const parsed = SendChatSchema.safeParse(await req.json().catch(() => null));

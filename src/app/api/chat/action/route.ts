@@ -17,7 +17,7 @@ import { getChatV3Stage } from '@/lib/chat-v3/stage';
 import { chatOwnershipErrorResponse, requireOwnedChatSession } from '@/lib/chat-v3/ownership';
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`chat-action:${getClientIp(req)}`, 80, 60_000);
+  const rate = await checkRateLimit(`chat-action:${getClientIp(req)}`, 80, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak aksi. Coba lagi sebentar.' }, { status: 429 });
 
   const parsed = ChatActionSchema.safeParse(await req.json().catch(() => null));
@@ -201,7 +201,7 @@ export async function POST(req: Request) {
       (await cookies()).set('rk_order_session', orderCookieToken, {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && req.headers.get('x-forwarded-proto') === 'https',
         path: '/',
         maxAge: 60 * 60 * 24 * 30,
       });

@@ -143,24 +143,40 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
     };
   }
 
-  if (complexOrder.shouldPrepareOrder) {
+  if (complexOrder.shouldPrepareOrder && complexOrder.items) {
     const recommendations = await recommendProducts(message, customerContext.memory);
-    const selected = pickProductsForComplexOrder(recommendations, complexOrder);
-
-    if (selected.length > 0) {
-      for (const item of selected) {
-        const variantId = selectVariantId(item, complexOrder);
-        await addToChatCart(chatSessionId, item.id, variantId, complexOrder.multiFlavor ? 1 : complexOrder.quantity);
+    
+    const addedProducts: string[] = [];
+    for (const parsedItem of complexOrder.items) {
+      const matchedProduct = findMatchedProduct(recommendations, parsedItem.flavorHint);
+      if (matchedProduct) {
+        const variantId = selectVariantIdForFlavor(matchedProduct, parsedItem.flavorHint);
+        await addToChatCart(chatSessionId, matchedProduct.id, variantId, parsedItem.quantity);
+        const flavorLabel = parsedItem.flavorHint === 'pedas' ? 'Pedas' : (parsedItem.flavorHint === 'non_pedas' ? 'Original' : 'Default');
+        addedProducts.push(`${parsedItem.quantity}x ${matchedProduct.name} (${flavorLabel})`);
       }
+    }
+
+    if (addedProducts.length > 0) {
       const cart = await getChatCart(chatSessionId);
       const methods = await getActivePaymentMethods();
-      const preferredMethods = complexOrder.wantsCod
-        ? methods.filter((method) => method.type === 'cod')
-        : methods.filter((method) => ['bank_transfer', 'qris', 'ewallet', 'cod'].includes(method.type));
-      const preferredMethod = preferredMethods[0];
+      
+      let preferredMethods = methods;
+      if (complexOrder.wantsCod) {
+        preferredMethods = methods.filter((method) => method.type === 'cod');
+      } else if (complexOrder.wantsTransfer) {
+        preferredMethods = methods.filter((method) => method.type !== 'cod');
+      }
+      
+      const preferredMethod = preferredMethods[0] || methods[0];
+      const useSavedData = complexOrder.wantsOldAddress && customerContext.customer;
+
+      const reply = `Siap kak, aku sudah siapkan pesanan kakak: ${addedProducts.join(', ')}.` + 
+        (complexOrder.wantsCod && preferredMethod ? ` Pilihan pembayaran diset ke COD.` : '') +
+        (useSavedData ? ` Menggunakan data penerima dan alamat tersimpan.` : ` Silakan lengkapi alamat dan konfirmasi pesanan di bawah.`);
 
       return {
-        reply: buildComplexOrderReply(selected.map((item) => item.name), complexOrder, Boolean(preferredMethod)),
+        reply,
         intent: 'confirm_order',
         components: [
           { type: 'cart_summary', cartId: cart.id },
@@ -170,7 +186,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
             orderDraftId: chatSessionId,
             ...(preferredMethod ? { paymentMethodId: preferredMethod.id } : {}),
             ...(customerContext.customer ? { savedCustomerId: customerContext.customer.id } : {}),
-            ...(customerContext.defaultAddress ? { savedAddressId: customerContext.defaultAddress.id } : {}),
+            ...(customerContext.defaultAddress && useSavedData ? { savedAddressId: customerContext.defaultAddress.id } : {}),
             actions: ['confirm_order', 'edit_cart', 'edit_address'],
           },
         ],
@@ -351,32 +367,72 @@ type ComplexOrderIntent = {
   quantity: number;
   multiFlavor: boolean;
   wantsCod: boolean;
+  wantsTransfer?: boolean;
+  wantsOldAddress?: boolean;
+  wantsChangeAddress?: boolean;
   shouldPrepareOrder: boolean;
   needsProofUploadHelp: boolean;
   flavorHint: 'pedas' | 'non_pedas' | 'mixed' | null;
+  items?: Array<{ quantity: number; flavorHint: 'pedas' | 'non_pedas' | null }>;
 };
 
 function parseComplexOrderIntent(lower: string): ComplexOrderIntent {
-  const quantity = extractRequestedQuantity(lower);
   const wantsCod = /\bcod\b|bayar di tempat/.test(lower);
-  const multiFlavor = /dua rasa|2 rasa|campur|mix|beda/.test(lower);
-  const hasStructuredOrder = /[+/,]| dan /.test(lower);
-  const flavorHint = lower.includes('pedas')
-    ? (/(tidak pedas|ga pedas|nggak pedas|non pedas|original)/.test(lower) ? 'mixed' : 'pedas')
-    : (/(tidak pedas|ga pedas|nggak pedas|non pedas|original)/.test(lower) ? 'non_pedas' : null);
-  const hasOrderVerb = /(langsung|sekalian|tolong|bisa|mau|pesan|order|butuh|untuk)/.test(lower);
-  const hasOrderContext = /keluarga|warung|reseller|kantor|acara|stok|jual lagi|oleh/.test(lower);
+  const wantsTransfer = /\btransfer\b|\bbank\b|\bbayar manual\b/.test(lower);
   const needsProofUploadHelp = /(sudah transfer|bukti|upload).*(belum|nanti|malam|upload)|upload.*bukti|bukti.*upload/.test(lower);
+  const hasOrderVerb = /(langsung|sekalian|tolong|bisa|mau|pesan|order|butuh|untuk|tambah)/.test(lower);
+  const hasOrderContext = /keluarga|warung|reseller|kantor|acara|stok|jual lagi|oleh/.test(lower);
+  const wantsOldAddress = /alamat lama|alamat kemarin|seperti biasa/.test(lower);
+  const wantsChangeAddress = /ganti alamat|ubah alamat|pindah alamat/.test(lower);
+
+  const segments = lower.split(/\s*(?:\+|,|\/| dan | lalu | terus )\s*/i).filter(Boolean);
+  const items: Array<{ quantity: number; flavorHint: 'pedas' | 'non_pedas' | null }> = [];
+
+  for (const segment of segments) {
+    const hasDigit = /(?:^|\s)(\d{1,2})\b/.test(segment);
+    const hasWord = /\b(satu|dua|tiga|empat|lima|enam)\b/.test(segment);
+    const quantity = (hasDigit || hasWord) ? extractRequestedQuantity(segment) : 0;
+    
+    const hasPedas = segment.includes('pedas') || /balado|cabe|spicy|cabe/.test(segment);
+    const hasOriginal = /(original|non pedas|ga pedas|nggak pedas|keju|jagung|asin|gurih)/.test(segment);
+    
+    if (quantity > 0 || hasPedas || hasOriginal) {
+      items.push({
+        quantity: quantity || 1,
+        flavorHint: hasPedas ? 'pedas' : (hasOriginal ? 'non_pedas' : null),
+      });
+    }
+  }
+
+  if (items.length === 0 && (hasOrderVerb || hasOrderContext)) {
+    const quantity = extractRequestedQuantity(lower);
+    const hasPedas = lower.includes('pedas') || /balado|cabe|spicy/.test(lower);
+    const hasOriginal = /(original|non pedas|ga pedas|nggak pedas|keju|jagung|asin|gurih)/.test(lower);
+    items.push({
+      quantity: quantity || 1,
+      flavorHint: hasPedas ? 'pedas' : (hasOriginal ? 'non_pedas' : null),
+    });
+  }
+
+  const isHandoff = /admin|manusia|komplain|bantuan|marah|kecewa|refund|diskon/.test(lower);
+  const isAddressEdit = /(ubah|ganti|edit).*(nama|nomor|wa|whatsapp|penerima|alamat)|^(nama|nomor|alamat) (baru|saya)/.test(lower);
+  const isTracking = /status|lacak|cek pesanan|pesanan saya/.test(lower);
+
+  const shouldPrepareOrder = items.length > 0 && 
+    (hasOrderVerb || wantsCod || wantsTransfer || hasOrderContext || wantsOldAddress) &&
+    !isHandoff && !isAddressEdit && !isTracking;
 
   return {
-    quantity,
-    multiFlavor,
+    quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+    multiFlavor: items.length > 1,
     wantsCod,
+    wantsTransfer,
+    wantsOldAddress,
+    wantsChangeAddress,
     needsProofUploadHelp,
-    shouldPrepareOrder:
-      (hasOrderVerb || hasStructuredOrder) &&
-      (quantity > 1 || wantsCod || multiFlavor || hasOrderContext || flavorHint !== null),
-    flavorHint,
+    shouldPrepareOrder,
+    items,
+    flavorHint: items[0]?.flavorHint || null,
   };
 }
 
@@ -400,27 +456,32 @@ function extractRequestedQuantity(lower: string) {
   return 1;
 }
 
-function pickProductsForComplexOrder(products: RecommendedProduct[], intent: ComplexOrderIntent) {
-  if (products.length === 0) return [];
-  if (intent.multiFlavor) return products.slice(0, Math.min(2, products.length));
-  return products.slice(0, 1);
+function findMatchedProduct(products: RecommendedProduct[], flavorHint: 'pedas' | 'non_pedas' | null) {
+  if (products.length === 0) return null;
+  if (!flavorHint) return products[0];
+  
+  const matched = products.find((product) => {
+    const text = `${product.name} ${product.description || ''} ${product.tags.join(' ')}`.toLowerCase();
+    if (flavorHint === 'pedas') return /pedas|spicy|balado|cabe|hot/.test(text);
+    if (flavorHint === 'non_pedas') return /original|asin|manis|keju|jagung|gurih/.test(text) && !/pedas|spicy|balado|cabe/.test(text);
+    return false;
+  });
+  
+  return matched || products[0];
 }
 
-function selectVariantId(product: RecommendedProduct, intent: ComplexOrderIntent) {
+function selectVariantIdForFlavor(product: RecommendedProduct, flavorHint: 'pedas' | 'non_pedas' | null) {
   const activeVariants = product.variants.filter((variant) => variant.stock > 0);
   if (activeVariants.length === 0) return undefined;
 
   const lowered = activeVariants.map((variant) => ({ ...variant, lower: `${variant.name} ${variant.id}`.toLowerCase() }));
-  if (intent.flavorHint === 'pedas') return lowered.find((variant) => /pedas|spicy|balado|cabe/.test(variant.lower))?.id || lowered[0].id;
-  if (intent.flavorHint === 'non_pedas') return lowered.find((variant) => /original|jagung|keju|gurih/.test(variant.lower) && !/pedas|spicy|balado|cabe/.test(variant.lower))?.id || lowered[0].id;
+  if (flavorHint === 'pedas') {
+    return lowered.find((variant) => /pedas|spicy|balado|cabe|hot/.test(variant.lower))?.id || lowered[0].id;
+  }
+  if (flavorHint === 'non_pedas') {
+    return lowered.find((variant) => /original|asin|manis|keju|jagung|gurih/.test(variant.lower) && !/pedas|spicy|balado|cabe/.test(variant.lower))?.id || lowered[0].id;
+  }
   return lowered[0].id;
-}
-
-function buildComplexOrderReply(productNames: string[], intent: ComplexOrderIntent, hasPreferredMethod: boolean) {
-  const names = productNames.join(' dan ');
-  const qtyText = intent.multiFlavor ? `${productNames.length} rasa` : `${intent.quantity} item`;
-  const paymentText = intent.wantsCod && hasPreferredMethod ? ' COD' : '';
-  return `Siap kak, aku sudah siapkan ${qtyText} dari ${names}${paymentText ? ` dengan opsi${paymentText}` : ''}. Tinggal cek keranjang lalu lengkapi data penerima untuk buat order ya.`;
 }
 
 function parseJsonObject(text: string) {

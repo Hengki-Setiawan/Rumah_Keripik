@@ -6,7 +6,7 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { chatOwnershipErrorResponse, requireOwnedChatSession } from '@/lib/chat-v3/ownership';
 
 export async function GET(req: Request) {
-  const rate = checkRateLimit(`chat-state:${getClientIp(req)}`, 120, 60_000);
+  const rate = await checkRateLimit(`chat-state:${getClientIp(req)}`, 120, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak refresh chat.' }, { status: 429 });
 
   const { searchParams } = new URL(req.url);

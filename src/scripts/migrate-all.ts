@@ -8,6 +8,7 @@ const commands: Array<[string, string[]]> = [
   ['npm', ['run', 'db:migrate:v6']],
   ['npm', ['run', 'db:migrate:v7']],
   ['npm', ['run', 'db:migrate:v8']],
+  ['npm', ['run', 'db:migrate:v9']],
 ];
 
 for (const [cmd, args] of commands) {

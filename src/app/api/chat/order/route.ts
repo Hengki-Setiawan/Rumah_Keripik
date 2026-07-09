@@ -9,7 +9,7 @@ import { getChatCart } from '@/lib/ai/tools/cart';
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`chat-order:${getClientIp(req)}`, 12, 60_000);
+  const rate = await checkRateLimit(`chat-order:${getClientIp(req)}`, 12, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan order. Coba lagi sebentar.' }, { status: 429 });
 
   const parsed = CreateChatOrderSchema.safeParse(await req.json().catch(() => null));
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     (await cookies()).set('rk_order_session', result.anonymousToken, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production' && req.headers.get('x-forwarded-proto') === 'https',
       path: '/',
       maxAge: 60 * 60 * 24 * 30,
     });

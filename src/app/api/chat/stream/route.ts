@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const rate = checkRateLimit(`chat-stream:${getClientIp(req)}`, 20, 60_000);
+  const rate = await checkRateLimit(`chat-stream:${getClientIp(req)}`, 20, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak koneksi stream.' }, { status: 429 });
 
   const { searchParams } = new URL(req.url);

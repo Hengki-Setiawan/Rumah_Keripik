@@ -1,10 +1,7 @@
-import { getModelRouterSettings } from '@/actions/ai-ops';
-import { ModelRouterClient } from '@/components/dashboard/ModelRouterClient';
-import { ModelRouterHealthPanel } from '@/components/dashboard/ModelRouterHealthPanel';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ModelRouterPage() {
-  const settings = await getModelRouterSettings();
-  return <div className="space-y-6"><ModelRouterHealthPanel /><ModelRouterClient providerConfigs={settings.providerConfigs} taskConfigs={settings.taskConfigs} /></div>;
+export default function ModelRouterPage() {
+  redirect('/ai-workspace?tab=router');
 }

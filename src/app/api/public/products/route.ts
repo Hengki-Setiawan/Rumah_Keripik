@@ -4,8 +4,15 @@ import { db } from '@/lib/db';
 import { produk, produkKategori, produkVarian } from '@/lib/schema';
 import { getProductImageUrl } from '@/lib/cloudinary-url';
 import { formatRupiah } from '@/lib/utils';
+import { getCachedData, setCachedData } from '@/lib/redis-cache';
 
 export async function GET() {
+  const cacheKey = 'public_products_list';
+  const cached = await getCachedData<any[]>(cacheKey);
+  if (cached) {
+    return NextResponse.json({ ok: true, products: cached });
+  }
+
   const rows = await db
     .select({
       id: produk.id_produk,
@@ -78,17 +85,21 @@ export async function GET() {
     variantsByProduct.set(variant.productId, list);
   }
 
+  const resultProducts = products.map((product) => ({
+    ...product,
+    variants: (variantsByProduct.get(product.id) || []).map((variant) => ({
+      ...variant,
+      priceLabel: formatRupiah(variant.price),
+      stockLabel: variant.stock > 0 ? `${variant.stock} tersedia` : 'Stok habis',
+      imageUrl: variant.cloudinaryPublicId ? getProductImageUrl(variant.cloudinaryPublicId) : variant.imageUrl,
+    })),
+  }));
+
+  await setCachedData(cacheKey, resultProducts, 60);
+
   return NextResponse.json({
     ok: true,
-    products: products.map((product) => ({
-      ...product,
-      variants: (variantsByProduct.get(product.id) || []).map((variant) => ({
-        ...variant,
-        priceLabel: formatRupiah(variant.price),
-        stockLabel: variant.stock > 0 ? `${variant.stock} tersedia` : 'Stok habis',
-        imageUrl: variant.cloudinaryPublicId ? getProductImageUrl(variant.cloudinaryPublicId) : variant.imageUrl,
-      })),
-    })),
+    products: resultProducts,
   });
 }
 

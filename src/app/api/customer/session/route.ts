@@ -9,7 +9,7 @@ import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`customer-session:${getClientIp(req)}`, 120, 60_000);
+  const rate = await checkRateLimit(`customer-session:${getClientIp(req)}`, 120, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak request session. Coba lagi sebentar.' }, { status: 429 });
 
   const payload = await req.json().catch(() => ({})) as { forceNew?: boolean };
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   response.cookies.set(CUSTOMER_SESSION_COOKIE, customerSession.token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && req.headers.get('x-forwarded-proto') === 'https',
     path: '/',
     maxAge: getCustomerSessionMaxAge(),
   });

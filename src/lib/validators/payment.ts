@@ -22,8 +22,8 @@ export const PaymentProofCompleteSchema = z.object({
   cloudinaryPublicId: z.string().min(1),
   secureUrl: z.string().url(),
   originalFilename: z.string().max(255).optional(),
-  fileFormat: z.enum(['jpg', 'jpeg', 'png', 'webp']).optional(),
-  fileSizeBytes: z.number().int().min(1).max(5 * 1024 * 1024, 'Ukuran bukti pembayaran maksimal 5 MB').optional(),
+  fileFormat: z.enum(['jpg', 'jpeg', 'png', 'webp']),
+  fileSizeBytes: z.number().int().min(1).max(5 * 1024 * 1024, 'Ukuran bukti pembayaran maksimal 5 MB'),
   amountClaimed: z.number().int().min(0).optional(),
 });
 

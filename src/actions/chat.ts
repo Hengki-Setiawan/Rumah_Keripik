@@ -43,7 +43,7 @@ export async function ambilAlihChat(no_wa: string, adminName?: string) {
       })
       .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
 
-    revalidatePath('/livechat');
+    revalidatePath('/hub-komunikasi');
     return { success: true, message: 'Chat berhasil diambil alih' };
   } catch (error) {
     return { success: false, message: 'Gagal ambil alih chat' };
@@ -61,7 +61,7 @@ export async function lepasKeBot(no_wa: string) {
       })
       .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
 
-    revalidatePath('/livechat');
+    revalidatePath('/hub-komunikasi');
     return { success: true, message: 'Chat dikembalikan ke bot' };
   } catch (error) {
     return { success: false, message: 'Gagal lepas chat' };
@@ -108,7 +108,7 @@ export async function kirimPesanManual(no_wa: string, pesan: string) {
       .set({ terakhir_aktif: sql`(datetime('now', 'utc'))` })
       .where(eq(pelangganChatbot.no_wa_pelanggan, no_wa));
 
-    revalidatePath('/livechat');
+    revalidatePath('/hub-komunikasi');
     return { success: true, message: 'Pesan terkirim', id_external };
   } catch (error) {
     return { success: false, message: 'Gagal kirim pesan' };

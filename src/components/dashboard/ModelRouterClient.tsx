@@ -45,7 +45,7 @@ export function ModelRouterClient({
             <h1 className="font-headline-lg text-headline-lg text-on-surface">Model Router</h1>
           )}
           <p className="mt-1 text-on-surface-variant">
-            Atur strategi AI per beban kerja: Gemini untuk tugas berat, Cerebras untuk tugas menengah, dan Groq untuk tugas cepat. Fallback tetap berlapis sampai deterministic.
+            Atur strategi AI per beban kerja: Gemini untuk tugas berat, Cerebras dengan Qwen 32B untuk tugas menengah/terstruktur, dan Groq untuk intent cepat. Fallback tetap berlapis sampai deterministic.
           </p>
         </div>
         <button

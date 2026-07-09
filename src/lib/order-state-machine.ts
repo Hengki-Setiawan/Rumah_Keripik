@@ -57,6 +57,7 @@ export async function handleGreeting(
   const newContext: OrderContext = {
     step: 'PILIH_PRODUK',
     cart: [],
+    sessionId: `tg_sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     last_updated: new Date().toISOString(),
   };
 
@@ -451,6 +452,7 @@ export async function processOrderState(
             await tx.insert(transaksi).values({
               id_transaksi,
               no_wa_pelanggan: no_wa,
+              id_session: ctx.sessionId || null,
               tipe_penjualan: 'Online_WA',
               total_bayar: totalBayar,
               status_pembayaran: 'Menunggu_Bayar',

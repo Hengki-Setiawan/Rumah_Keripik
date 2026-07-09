@@ -1,8 +1,24 @@
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isDev = process.env.NODE_ENV !== 'production';
+
+  // Tracing: Generate or pass request Correlation ID
+  const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
+
+  // Structured Logging for API endpoints
+  if (pathname.startsWith('/api/')) {
+    console.log(JSON.stringify({
+      level: 'info',
+      message: `Incoming API Request: ${req.method} ${pathname}`,
+      requestId,
+      method: req.method,
+      pathname,
+      timestamp: new Date().toISOString(),
+    }));
+  }
 
   const isPublic =
     pathname === '/login' ||
@@ -21,14 +37,32 @@ export default auth((req) => {
     pathname === '/_not-found';
 
   if (!req.auth && pathname === '/') {
-    return Response.redirect(new URL('/pesan', req.nextUrl.origin));
+    const response = NextResponse.redirect(new URL('/pesan', req.nextUrl.origin));
+    response.headers.set('x-request-id', requestId);
+    return response;
   }
 
   if (!req.auth && !isPublic) {
     const newUrl = new URL('/login', req.nextUrl.origin);
     newUrl.searchParams.set('callbackUrl', pathname);
-    return Response.redirect(newUrl);
+    const response = NextResponse.redirect(newUrl);
+    response.headers.set('x-request-id', requestId);
+    return response;
   }
+
+  // Clone headers and attach x-request-id
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-request-id', requestId);
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  // Set response header for client correlation
+  response.headers.set('x-request-id', requestId);
+  return response;
 });
 
 export const config = {

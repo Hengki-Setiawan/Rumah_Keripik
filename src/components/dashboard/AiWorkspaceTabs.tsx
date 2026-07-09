@@ -20,8 +20,8 @@ export function AiWorkspaceTabs({ activeTab }: { activeTab: string }) {
       <div className="mb-3 flex items-center gap-3 px-2">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-on-primary"><Bot size={20} /></div>
         <div>
-          <p className="text-sm font-semibold text-on-surface">AI Workspace</p>
-          <p className="text-xs text-on-surface-variant">Semua kontrol AI dalam satu halaman</p>
+          <p className="text-sm font-semibold text-on-surface">Pusat AI & Pengetahuan</p>
+          <p className="text-xs text-on-surface-variant">Semua kontrol AI dalam satu workspace</p>
         </div>
       </div>
       <div className="grid gap-2 md:grid-cols-4">

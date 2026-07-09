@@ -39,7 +39,7 @@ type HandlerResult = {
 };
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(`public-order-event:${getClientIp(req)}`, 80, 60_000);
+  const rate = await checkRateLimit(`public-order-event:${getClientIp(req)}`, 80, 60_000);
   if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak aksi. Coba lagi sebentar.' }, { status: 429 });
 
   const cookieStore = await cookies();
@@ -314,6 +314,9 @@ async function addProductsFromText(text: string, cart: CartState, context: Publi
 }
 
 function extractQuantityForLabel(text: string, label: string) {
+  const segmentedQty = extractSegmentedQuantity(text, label);
+  if (segmentedQty) return segmentedQty;
+
   const words = label.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((word) => word.length >= 3);
   const keyword = words.find((word) => text.includes(word));
   if (!keyword) return null;
@@ -323,6 +326,44 @@ function extractQuantityForLabel(text: string, label: string) {
   if (before?.[1]) return Math.max(1, Number(before[1]));
   const after = text.match(new RegExp(`${escaped}[^,.]{0,30}?\\s+(\\d+)\\s*(?:pcs|bungkus|pack|x)?`));
   if (after?.[1]) return Math.max(1, Number(after[1]));
+  return null;
+}
+
+function extractSegmentedQuantity(text: string, label: string) {
+  const segments = text
+    .split(/\s*(?:\+|,|\/| lalu | terus | dan )\s*/i)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (segments.length <= 1) return null;
+
+  const words = label.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((word) => word.length >= 3);
+  const quantities = segments
+    .filter((segment) => words.some((word) => segment.includes(word)))
+    .map(extractSegmentQuantity)
+    .filter((qty): qty is number => qty != null);
+
+  if (!quantities.length) return null;
+  return quantities.reduce((sum, qty) => sum + qty, 0);
+}
+
+function extractSegmentQuantity(segment: string) {
+  const digit = segment.match(/(\d{1,2})/);
+  if (digit?.[1]) return Math.max(1, Number(digit[1]));
+
+  const words: Record<string, number> = {
+    satu: 1,
+    dua: 2,
+    tiga: 3,
+    empat: 4,
+    lima: 5,
+    enam: 6,
+  };
+
+  for (const [word, value] of Object.entries(words)) {
+    if (new RegExp(`\\b${word}\\b`).test(segment)) return value;
+  }
+
   return null;
 }
 

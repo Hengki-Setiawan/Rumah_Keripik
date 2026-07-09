@@ -9,7 +9,7 @@ const skills = [
   { title: 'Location Picker', icon: MapPin, status: 'Aktif', input: 'Address/location stage', output: 'location_picker', provider: 'Browser geolocation + map' },
   { title: 'Payment Flow', icon: CreditCard, status: 'Aktif', input: 'Order + method + proof upload', output: 'payment_methods/payment_upload/order_status', provider: 'Payment service + admin verification' },
   { title: 'Admin Handoff', icon: Handshake, status: 'Aktif', input: 'Low confidence/complaint/manual request', output: 'needs_admin + handoff card', provider: 'Guardrail' },
-  { title: 'Model Router', icon: Bot, status: 'Aktif', input: 'Task config + provider availability', output: 'Groq/Gemini/Cerebras/Qwen/deterministic fallback', provider: 'AI router' },
+  { title: 'Model Router', icon: Bot, status: 'Aktif', input: 'Task config + provider availability', output: 'Groq/Gemini/Cerebras-Qwen/deterministic fallback', provider: 'AI router' },
 ];
 
 export function AiSkillsPanel({ compactHeader = false }: { compactHeader?: boolean }) {
