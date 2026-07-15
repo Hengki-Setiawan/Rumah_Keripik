@@ -40,7 +40,7 @@ export async function setupOrderPaymentAfterCreate(input: {
 
   const appUrl = getPublicAppUrl();
   const overrideNotificationUrl = appUrl
-    ? `${appUrl}/api/payment/webhook/midtrans`
+    ? `${appUrl}/api/webhook/midtrans`
     : undefined;
 
   // Midtrans charge request

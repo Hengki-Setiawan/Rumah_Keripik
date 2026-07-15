@@ -27,7 +27,6 @@ export default auth((req) => {
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/cron') ||
     pathname.startsWith('/api/webhook') ||
-    pathname.startsWith('/api/payment/webhook') ||
     pathname.startsWith('/api/public') ||
     pathname === '/api/customer/session' ||
     pathname === '/api/chat' ||
@@ -67,5 +66,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ['/((?!api/payment/webhook|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };

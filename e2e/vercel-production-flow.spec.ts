@@ -30,7 +30,7 @@ async function simulateMidtransWebhook(baseUrl: string, orderId: string, amount:
     transaction_id: `tr-${Date.now()}`,
   };
 
-  const response = await fetch(`${baseUrl}/api/payment/webhook/midtrans`, {
+  const response = await fetch(`${baseUrl}/api/webhook/midtrans`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
