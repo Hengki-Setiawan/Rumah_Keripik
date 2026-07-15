@@ -1,14 +1,14 @@
 import { createHash } from 'crypto';
 
 export type MidtransQrisChargeResponse = {
-  statusCode?: string;
-  statusMessage?: string;
-  transactionId?: string;
-  orderId?: string;
-  grossAmount?: string;
-  paymentType?: string;
-  transactionTime?: string;
-  transactionStatus?: string;
+  status_code?: string;
+  status_message?: string;
+  transaction_id?: string;
+  order_id?: string;
+  gross_amount?: string;
+  payment_type?: string;
+  transaction_time?: string;
+  transaction_status?: string;
   actions?: Array<{
     name: string;
     method: string;
@@ -113,11 +113,11 @@ export async function chargeMidtransQris(input: {
 
   const result = await response.json().catch(() => ({})) as MidtransQrisChargeResponse;
 
-  if (!response.ok || (result.statusCode !== '201' && result.statusCode !== '200')) {
+  if (!response.ok || (result.status_code !== '201' && result.status_code !== '200')) {
     return {
       ok: false as const,
       error: 'MIDTRANS_CHARGE_FAILED',
-      message: result.statusMessage || `Midtrans charge gagal dengan HTTP status ${response.status}`,
+      message: result.status_message || `Midtrans charge gagal dengan HTTP status ${response.status}`,
       raw: result,
     };
   }

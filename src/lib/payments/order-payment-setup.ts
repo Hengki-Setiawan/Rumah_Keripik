@@ -104,7 +104,7 @@ export async function setupOrderPaymentAfterCreate(input: {
     label: 'QRIS (Bayar Instan)',
     provider: 'midtrans',
     qrCodeUrl,
-    reference: chargeResult.charge.transactionId || null,
+    reference: chargeResult.charge.transaction_id || null,
     note: 'Scan QRIS di bawah ini dengan aplikasi pembayaran pilihan Anda (GoPay, ShopeePay, DANA, OVO, m-BCA, Livin, dll).',
   });
 
@@ -125,7 +125,7 @@ export async function setupOrderPaymentAfterCreate(input: {
       actor: 'system',
       metadata_json: JSON.stringify({
         provider: 'midtrans',
-        reference: chargeResult.charge.transactionId || null,
+        reference: chargeResult.charge.transaction_id || null,
         qrCodeUrl,
       }),
     });
