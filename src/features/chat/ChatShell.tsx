@@ -22,6 +22,7 @@ export function ChatShell() {
   const [error, setError] = useState('');
   const [started, setStarted] = useState(false);
   const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
+  const [stage, setStage] = useState<string>('idle');
   const autoStarted = useRef(false);
 
   const loadSessions = useCallback(async () => {
@@ -50,6 +51,7 @@ export function ChatShell() {
     setMessages(sessionMessages);
     setCart(sessionCart);
     setStarted(sessionMessages.length > 0);
+    setStage(data.chatSession.stage || 'idle');
     setSidebarOpen(false);
     setLoading(false);
     loadSessions().catch(() => undefined);
@@ -149,6 +151,7 @@ export function ChatShell() {
       setMessages(data.messages || []);
       setCart(data.cart || null);
       setStarted((data.messages || []).length > 0);
+      setStage(data.stage || 'idle');
       setSidebarOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Riwayat chat gagal dibuka');
@@ -164,6 +167,7 @@ export function ChatShell() {
     if (!response.ok || !data.ok) return;
     setMessages(data.messages || []);
     setCart(data.cart || null);
+    setStage(data.stage || 'idle');
     loadSessions().catch(() => undefined);
   }, [chatSessionId, loadSessions]);
 
@@ -234,6 +238,7 @@ export function ChatShell() {
       setMessages(data.messages || []);
       setCart(data.cart || null);
       setStarted((data.messages || []).length > 0);
+      setStage(data.response?.stage || data.stage || 'idle');
       loadSessions().catch(() => undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Pesan gagal dikirim');
@@ -268,6 +273,7 @@ export function ChatShell() {
       setMessages(data.messages || []);
       setCart(data.cart || null);
       setStarted((data.messages || []).length > 0);
+      setStage(data.stage || 'idle');
       loadSessions().catch(() => undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Aksi gagal');
@@ -461,7 +467,27 @@ export function ChatShell() {
                   className="mx-auto max-w-3xl"
                 >
                 <div className="pointer-events-auto">
-                  <ChatComposer disabled={loading || sending || !chatSessionId} onSend={sendMessage} />
+                  {['completed', 'cancelled'].includes(stage) ? (
+                    <div className="mb-3 rounded-[1.5rem] border border-[#f0dfca] bg-[#fffaf3] p-4 text-center shadow-[0_12px_28px_rgba(47,36,28,0.06)]">
+                      <p className="text-sm font-semibold text-[#2f241c] mb-2">
+                        {stage === 'completed' 
+                          ? '🎉 Pesanan kakak sudah selesai diproses!' 
+                          : '❌ Pesanan kakak telah dibatalkan.'}
+                      </p>
+                      <p className="text-xs text-[#6f5d4f] mb-3">
+                        Mau memesan keripik lezat lainnya? Mulai sesi baru sekarang.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={startNewOrder}
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#7f9f3e] px-6 py-2 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(127,159,62,0.18)] transition hover:bg-[#6a8932]"
+                      >
+                        🚀 Buat Pesanan Baru
+                      </button>
+                    </div>
+                  ) : (
+                    <ChatComposer disabled={loading || sending || !chatSessionId} onSend={sendMessage} />
+                  )}
                 </div>
                 </motion.div>
               </div>

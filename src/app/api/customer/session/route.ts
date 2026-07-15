@@ -5,6 +5,7 @@ import { createChatSession, CUSTOMER_SESSION_COOKIE, ensureActiveChatSession, en
 import { getChatMessages } from '@/lib/chat-v3/messages';
 import { getChatCart } from '@/lib/ai/tools/cart';
 import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
+import { getChatV3Stage } from '@/lib/chat-v3/stage';
 
 export const runtime = 'nodejs';
 
@@ -19,10 +20,11 @@ export async function POST(req: Request) {
   const { chatSession, isNew } = payload.forceNew
     ? await createChatSession(customerSession.session.id)
     : await ensureActiveChatSession(customerSession.session.id);
-  const [messages, cart, customerContext] = await Promise.all([
+  const [messages, cart, customerContext, stage] = await Promise.all([
     getChatMessages(chatSession.id),
     getChatCart(chatSession.id),
     getCustomerContextForChat(chatSession.id),
+    getChatV3Stage(chatSession.id),
   ]);
 
   const response = NextResponse.json({
@@ -38,6 +40,7 @@ export async function POST(req: Request) {
       status: chatSession.status,
       aiMode: chatSession.aiMode,
       activeOrderId: chatSession.activeOrderId,
+      stage,
       isNew,
     },
     messages,

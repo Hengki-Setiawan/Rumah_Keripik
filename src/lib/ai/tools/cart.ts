@@ -59,6 +59,17 @@ export async function getChatCart(chatSessionId: string): Promise<ChatCartDto> {
 
 export async function addToChatCart(chatSessionId: string, productId: string, variantId: string | undefined, quantity = 1) {
   const cart = await ensureActiveCart(chatSessionId, null);
+
+  // Enforce total cart quantity limit
+  const currentItems = await db
+    .select({ quantity: chatCartItems.quantity })
+    .from(chatCartItems)
+    .where(eq(chatCartItems.cartId, cart.id));
+  const currentTotalQty = currentItems.reduce((sum, item) => sum + item.quantity, 0);
+  if (currentTotalQty + quantity > 30) {
+    throw new Error('Keranjang belanja chat maksimal 30 bungkus ya kak demi alasan logistik pengiriman.');
+  }
+
   const [product] = await db.select().from(produk).where(and(eq(produk.id_produk, productId), eq(produk.is_active, 1))).limit(1);
   if (!product) throw new Error('Produk tidak tersedia');
 
@@ -69,7 +80,10 @@ export async function addToChatCart(chatSessionId: string, productId: string, va
 
   const stock = variant ? variant.stok : product.stok_gudang_utama;
   if (stock <= 0) throw new Error('Stok produk habis');
-  const qty = Math.max(1, Math.min(quantity, stock));
+
+  // Enforce item-level limit (max 10 per item variant/product)
+  const maxAllowedQty = Math.min(10, stock);
+  const qty = Math.max(1, Math.min(quantity, maxAllowedQty));
   const unitPrice = variant ? variant.harga_jual : product.harga_jual;
 
   const [existing] = await db
@@ -79,9 +93,13 @@ export async function addToChatCart(chatSessionId: string, productId: string, va
     .limit(1);
 
   if (existing) {
+    const nextQty = Math.min(maxAllowedQty, existing.quantity + qty);
+    if (existing.quantity >= maxAllowedQty) {
+      throw new Error(`Kakak sudah menambahkan jumlah maksimal (${maxAllowedQty} bungkus) untuk produk ini di keranjang.`);
+    }
     await db
       .update(chatCartItems)
-      .set({ quantity: Math.min(stock, existing.quantity + qty), priceSnapshot: unitPrice, updatedAt: sql`(datetime('now', 'utc'))` })
+      .set({ quantity: nextQty, priceSnapshot: unitPrice, updatedAt: sql`(datetime('now', 'utc'))` })
       .where(eq(chatCartItems.id, existing.id));
   } else {
     await db.insert(chatCartItems).values({

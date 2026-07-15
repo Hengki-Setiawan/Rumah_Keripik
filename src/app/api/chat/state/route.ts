@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getChatMessages } from '@/lib/chat-v3/messages';
 import { getChatCart } from '@/lib/ai/tools/cart';
 import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
+import { getChatV3Stage } from '@/lib/chat-v3/stage';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { chatOwnershipErrorResponse, requireOwnedChatSession } from '@/lib/chat-v3/ownership';
 
@@ -22,11 +23,12 @@ export async function GET(req: Request) {
     throw error;
   }
 
-  const [messages, cart, customerContext] = await Promise.all([
+  const [messages, cart, customerContext, stage] = await Promise.all([
     getChatMessages(chatSessionId),
     getChatCart(chatSessionId),
     getCustomerContextForChat(chatSessionId),
+    getChatV3Stage(chatSessionId),
   ]);
 
-  return NextResponse.json({ ok: true, chatSession, messages, cart, customerContext });
+  return NextResponse.json({ ok: true, chatSession, messages, cart, customerContext, stage });
 }
