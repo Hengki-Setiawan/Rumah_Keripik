@@ -161,6 +161,7 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
       name: input.customer.name,
       phone: normalizedPhone,
       source: 'web',
+      pin: input.customer.pin,
       notes: customerType !== 'konsumen' ? `Tipe pelanggan: ${customerType}` : null,
       tags: [customerType, 'web-chat-v3'],
     });

@@ -168,7 +168,7 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
 
 export function OrderSummaryCard({ component, onAction }: { component: OrderSummaryComponent; onAction: (action: string, payload?: Record<string, unknown>) => void }) {
   const [step, setStep] = useState<'customer' | 'address' | 'payment' | 'review'>(component.savedCustomerId && component.savedAddressId ? 'review' : 'customer');
-  const [customer, setCustomer] = useState({ name: '', phone: '', type: 'konsumen' });
+  const [customer, setCustomer] = useState({ name: '', phone: '', type: 'konsumen', pin: '' });
   const [address, setAddress] = useState({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
   const [paymentMethodId, setPaymentMethodId] = useState(component.paymentMethodId || '');
   const [notes, setNotes] = useState('');
@@ -193,13 +193,32 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
       })
       .catch(() => undefined);
 
+    fetch('/api/public/me')
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.ok && data.profile) {
+          setCustomer({
+            name: data.profile.nama || '',
+            phone: data.profile.phone || '',
+            type: 'konsumen',
+            pin: data.profile.pin || '',
+          });
+          // Skip customer step since data is loaded, go to address step
+          if (!component.savedAddressId) {
+            setStep('address');
+          }
+        }
+      })
+      .catch(() => undefined);
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [component.savedAddressId]);
 
   function canSubmit() {
-    return customer.name.trim().length >= 2 && customer.phone.trim().length >= 8 && address.text.trim().length >= 8 && paymentMethodId.trim().length > 0;
+    return customer.name.trim().length >= 2 && customer.phone.trim().length >= 8 && customer.pin.length === 4 && address.text.trim().length >= 8 && paymentMethodId.trim().length > 0;
   }
 
   function useLocation() {
@@ -254,12 +273,13 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         {step === 'customer' && <>
         <input data-testid="order-customer-name" value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} placeholder="Nama penerima" className={inputClass} />
         <input data-testid="order-customer-phone" value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} placeholder="Nomor WhatsApp" inputMode="tel" className={inputClass} />
+        <input data-testid="order-customer-pin" value={customer.pin} onChange={(event) => setCustomer({ ...customer, pin: event.target.value.replace(/\D/g, '').slice(0, 4) })} placeholder="Buat PIN 4-Digit Baru (untuk restore data)" inputMode="numeric" maxLength={4} className={inputClass} />
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {(['konsumen', 'warung', 'reseller'] as const).map((type) => (
             <button key={type} type="button" onClick={() => setCustomer({ ...customer, type })} className={`rounded-2xl border px-3 py-2 text-xs font-medium capitalize transition ${customer.type === type ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f3f4f6]'}`}>{type}</button>
           ))}
         </div>
-        <button data-testid="order-step-address" type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
+        <button data-testid="order-step-address" type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8 || customer.pin.length < 4} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
         </>}
         {step === 'address' && <>
         {savedAddresses.length > 0 && (

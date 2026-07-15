@@ -76,7 +76,7 @@ export function buildPublicPaymentMethodOptions(methods: PaymentMethod[]) {
       id: onlineBase.id_payment_method,
       type: onlineBase.type,
       label: 'Bayar online',
-      note: 'Transfer, QRIS, dan e-wallet (OVO, GoPay, DANA, dll) dibayar langsung menggunakan QRIS.',
+      note: 'Bayar otomatis menggunakan QRIS. Cukup scan kode QR yang muncul setelah pesanan dibuat.',
       minOrderTotal: onlineBase.min_order_total,
       maxOrderTotal: onlineBase.max_order_total,
       provider: 'midtrans',

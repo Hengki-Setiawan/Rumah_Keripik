@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { aiToolCalls, chatSessions, failedConversation } from '@/lib/schema';
+import { aiToolCalls, chatSessions, failedConversation, customerProfile, customerSessions } from '@/lib/schema';
 import { generateIdAiToolCall } from '@/lib/id-generator';
 import { getChatMessages } from '@/lib/chat-v3/messages';
 import { AIChatResponseSchema } from '@/lib/chat-v3/schemas';
@@ -14,9 +14,121 @@ import { ORDER_ASSISTANT_SYSTEM_PROMPT } from '@/lib/ai/prompts/order-assistant'
 import { runChatTool } from '@/lib/ai/tool-registry';
 import { logAiLearningEvent, logRecommendationEvent } from '@/lib/ai/learning-events';
 import { searchKnowledgeBase, type KnowledgeChunk } from '@/lib/knowledge/retrieval';
+import { normalizePhoneNumber } from '@/lib/utils';
 import type { AIChatResponse, ChatComponent } from '@/lib/chat-v3/types';
 
 export async function buildChatResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
+  // ─── LOGIN FLOW INTERCEPTOR ───
+  const history = await getChatMessages(chatSessionId, 4);
+  const lastAssistantMsg = [...history].reverse().find((m) => m.role === 'assistant' || m.role === 'system');
+  const lastMetadata = (lastAssistantMsg?.metadata as Record<string, any>) || {};
+  const lowerMsg = message.toLowerCase().trim();
+
+  // Handle 'batal'
+  if (['batal', 'cancel', 'exit', 'kembali'].includes(lowerMsg) && lastMetadata.waitingFor) {
+    return {
+      reply: 'Siap kak, masuk/login dibatalkan. Kakak mau pesan keripik apa hari ini?',
+      intent: 'small_talk',
+      components: defaultQuickReplies(),
+      confidence: 1.0,
+    };
+  }
+
+  // State 1: Input Nomor WhatsApp
+  if (lastMetadata.waitingFor === 'login_phone') {
+    const phone = normalizePhoneNumber(message);
+    const [customer] = await db.select().from(customerProfile).where(eq(customerProfile.phone, phone)).limit(1);
+    
+    if (customer) {
+      if (customer.pin) {
+        return {
+          reply: `Nomor WhatsApp ditemukan atas nama kak *${customer.nama || 'Pelanggan'}*. Silakan masukkan PIN keamanan 4-digit kakak untuk memuat data pengiriman:`,
+          intent: 'small_talk',
+          metadata: { waitingFor: 'login_pin', phone, customerId: customer.id_customer },
+          confidence: 1.0,
+        };
+      } else {
+        return {
+          reply: `Nomor WhatsApp ditemukan atas nama kak *${customer.nama || 'Pelanggan'}*, tetapi kakak belum memiliki PIN keamanan. Yuk buat PIN 4-digit baru sekarang untuk mengamankan data kakak kedepannya:`,
+          intent: 'small_talk',
+          metadata: { waitingFor: 'setup_login_pin', phone, customerId: customer.id_customer },
+          confidence: 1.0,
+        };
+      }
+    } else {
+      return {
+        reply: 'Nomor WhatsApp belum terdaftar di toko kami kak. Yuk kita buat pesanan baru dan daftarkan data kakak saat checkout nanti!',
+        intent: 'small_talk',
+        components: defaultQuickReplies(),
+        confidence: 1.0,
+      };
+    }
+  }
+
+  // State 2: Input PIN Keamanan
+  if (lastMetadata.waitingFor === 'login_pin') {
+    const pin = message.replace(/\D/g, '').slice(0, 4);
+    if (pin.length !== 4) {
+      return {
+        reply: 'Harap masukkan 4-digit angka untuk PIN keamanan kakak (atau ketik "batal" untuk membatalkan):',
+        intent: 'small_talk',
+        metadata: { waitingFor: 'login_pin', phone: lastMetadata.phone, customerId: lastMetadata.customerId },
+        confidence: 1.0,
+      };
+    }
+
+    const [customer] = await db.select().from(customerProfile).where(eq(customerProfile.id_customer, lastMetadata.customerId)).limit(1);
+    if (customer && customer.pin === pin) {
+      // Link customer to this chat session
+      await db.update(chatSessions).set({ customerId: customer.id_customer }).where(eq(chatSessions.id, chatSessionId));
+      
+      const [chatSession] = await db.select().from(chatSessions).where(eq(chatSessions.id, chatSessionId)).limit(1);
+      await db.update(customerSessions).set({ customerId: customer.id_customer }).where(eq(customerSessions.id, chatSession.customerSessionId));
+
+      return {
+        reply: `Login berhasil! Selamat datang kembali kak *${customer.nama || ''}* 🎉. Semua data pengiriman dan riwayat pesanan kakak sudah berhasil dimuat. Mau buat pesanan baru?`,
+        intent: 'confirm_customer_data',
+        components: defaultQuickReplies(),
+        confidence: 1.0,
+      };
+    } else {
+      return {
+        reply: 'PIN salah kak. Silakan masukkan PIN kembali dengan benar, atau ketik "batal" untuk membatalkan:',
+        intent: 'small_talk',
+        metadata: { waitingFor: 'login_pin', phone: lastMetadata.phone, customerId: lastMetadata.customerId },
+        confidence: 1.0,
+      };
+    }
+  }
+
+  // State 3: Setup PIN Baru
+  if (lastMetadata.waitingFor === 'setup_login_pin') {
+    const pin = message.replace(/\D/g, '').slice(0, 4);
+    if (pin.length !== 4) {
+      return {
+        reply: 'Harap masukkan 4-digit angka untuk membuat PIN keamanan baru kakak (atau ketik "batal" untuk membatalkan):',
+        intent: 'small_talk',
+        metadata: { waitingFor: 'setup_login_pin', phone: lastMetadata.phone, customerId: lastMetadata.customerId },
+        confidence: 1.0,
+      };
+    }
+
+    await db.update(customerProfile).set({ pin }).where(eq(customerProfile.id_customer, lastMetadata.customerId));
+    await db.update(chatSessions).set({ customerId: lastMetadata.customerId }).where(eq(chatSessions.id, chatSessionId));
+    
+    const [chatSession] = await db.select().from(chatSessions).where(eq(chatSessions.id, chatSessionId)).limit(1);
+    await db.update(customerSessions).set({ customerId: lastMetadata.customerId }).where(eq(customerSessions.id, chatSession.customerSessionId));
+
+    const [customer] = await db.select().from(customerProfile).where(eq(customerProfile.id_customer, lastMetadata.customerId)).limit(1);
+
+    return {
+      reply: `PIN keamanan baru berhasil dibuat! Selamat datang kembali kak *${customer?.nama || ''}* 🎉. Semua data pengiriman kakak sudah berhasil dimuat. Mau buat pesanan baru?`,
+      intent: 'confirm_customer_data',
+      components: defaultQuickReplies(),
+      confidence: 1.0,
+    };
+  }
+
   const deterministic = await buildDeterministicResponse(chatSessionId, message);
   const shouldTryModel = !deterministic || deterministic.confidence == null || deterministic.confidence < 0.9;
   if (!shouldTryModel) return deterministic;
@@ -111,8 +223,29 @@ async function responseFromToolOutput(chatSessionId: string, response: AIChatRes
 }
 
 export async function buildDeterministicResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
-  const lower = message.toLowerCase();
+  const lower = message.toLowerCase().trim();
   const customerContext = await getCustomerContextForChat(chatSessionId);
+
+  // Trigger login flow
+  if (/^(saya\s+)?(pernah\s+pesan|masuk|login|pelanggan\s+lama|ya\s+pernah|ya,\s+pernah)/.test(lower)) {
+    return {
+      reply: 'Kakak ingin masuk/login untuk memuat data pengiriman sebelumnya? Silakan masukkan nomor WhatsApp yang terdaftar (contoh: 0812xxxxxxxx):',
+      intent: 'small_talk',
+      metadata: { waitingFor: 'login_phone' },
+      confidence: 1.0,
+    };
+  }
+
+  // Trigger new customer onboarding
+  if (/^(saya\s+)?(pelanggan\s+baru|baru|pertama\s+kali)/.test(lower)) {
+    return {
+      reply: 'Selamat datang di keluarga Rumah Keripik! 😊 Kakak mau pesan keripik apa hari ini? Tulis pesanan kakak di sini, atau silakan pilih opsi di bawah untuk melihat katalog.',
+      intent: 'show_products',
+      components: defaultQuickReplies(),
+      confidence: 1.0,
+    };
+  }
+
   const complexOrder = parseComplexOrderIntent(lower);
 
   if (complexOrder.needsProofUploadHelp) {

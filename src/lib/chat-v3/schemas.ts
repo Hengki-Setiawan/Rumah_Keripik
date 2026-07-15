@@ -159,6 +159,7 @@ export const CreateChatOrderSchema = z.object({
   customer: z.object({
     name: z.string().min(2).max(80),
     phone: z.string().min(8).max(24),
+    pin: z.string().length(4).regex(/^\d+$/).optional(),
     type: z.enum(['konsumen', 'warung', 'reseller']).default('konsumen'),
   }),
   address: z.object({

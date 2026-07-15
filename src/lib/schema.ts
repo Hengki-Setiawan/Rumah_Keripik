@@ -166,6 +166,7 @@ export const customerProfile = sqliteTable(
     nama: text('nama'),
     phone: text('phone'),
     email: text('email'),
+    pin: text('pin'), // 4-digit security PIN for data recovery
     default_address_id: integer('default_address_id'),
     notes: text('notes'),
     tags_json: text('tags_json').notNull().default('[]'),

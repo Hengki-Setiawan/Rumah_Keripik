@@ -7,7 +7,7 @@ type DbLike = Pick<typeof import('@/lib/db').db, 'select' | 'insert' | 'update'>
 
 export async function resolveCustomerByPhone(
   tx: DbLike,
-  input: { name: string; phone: string; source: 'web' | 'telegram'; chatId?: string; tags?: string[]; notes?: string | null },
+  input: { name: string; phone: string; source: 'web' | 'telegram'; chatId?: string; tags?: string[]; notes?: string | null; pin?: string },
 ) {
   const phone = normalizePhoneNumber(input.phone);
   const identityProvider = input.source === 'telegram' ? 'telegram' : 'web';
@@ -20,9 +20,12 @@ export async function resolveCustomerByPhone(
     .limit(1);
 
   if (existingIdentity?.id_customer) {
+    const updateData: Record<string, any> = { nama: input.name, phone, notes: input.notes ?? null, last_active_at: sql`(datetime('now', 'utc'))` };
+    if (input.pin) updateData.pin = input.pin;
+    
     await tx
       .update(customerProfile)
-      .set({ nama: input.name, phone, notes: input.notes ?? null, last_active_at: sql`(datetime('now', 'utc'))` })
+      .set(updateData)
       .where(eq(customerProfile.id_customer, existingIdentity.id_customer));
     return { idCustomer: existingIdentity.id_customer, phone, isNew: false };
   }
@@ -35,15 +38,19 @@ export async function resolveCustomerByPhone(
 
   const idCustomer = existingByPhone?.id_customer || generateIdCustomer();
   if (existingByPhone?.id_customer) {
+    const updateData: Record<string, any> = { nama: input.name, phone, notes: input.notes ?? null, last_active_at: sql`(datetime('now', 'utc'))` };
+    if (input.pin) updateData.pin = input.pin;
+
     await tx
       .update(customerProfile)
-      .set({ nama: input.name, phone, notes: input.notes ?? null, last_active_at: sql`(datetime('now', 'utc'))` })
+      .set(updateData)
       .where(eq(customerProfile.id_customer, idCustomer));
   } else {
     await tx.insert(customerProfile).values({
       id_customer: idCustomer,
       nama: input.name,
       phone,
+      pin: input.pin || null,
       notes: input.notes ?? null,
       tags_json: JSON.stringify(input.tags || ['web-order']),
     });

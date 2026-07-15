@@ -38,18 +38,17 @@ export async function POST(req: Request) {
     if (action === 'refresh_chat') {
       // Client-side refresh after external actions such as payment proof upload.
     } else if (action === 'auto_greet_new') {
-      // Greeting otomatis untuk user baru
+      // Greeting otomatis untuk user baru / kosong cache
       const hasCart = Boolean(payload.hasCart);
       await createChatMessage({
         chatSessionId,
         role: 'assistant',
-        content: 'Selamat datang di Rumah Keripik! 👋 Mau pesan keripik apa hari ini?',
+        content: 'Selamat datang di Rumah Keripik! 👋 Apakah kakak baru pertama kali memesan di sini, atau sudah pernah memesan sebelumnya?',
         components: [{
           type: 'quick_replies',
           options: [
-            { id: 'greet-rekomendasi', label: '🌶️ Rekomendasi Pedas', value: 'Rekomendasi keripik pedas', action: 'send_message' },
-            { id: 'greet-semua', label: '🛍️ Lihat Semua Produk', value: 'Lihat semua produk', action: 'send_message' },
-            { id: 'greet-keluarga', label: '👨‍👩‍👧 Untuk Keluarga', value: 'Rekomendasi untuk keluarga', action: 'send_message' },
+            { id: 'greet-baru', label: '🆕 Saya Pelanggan Baru', value: 'Saya pelanggan baru', action: 'send_message' },
+            { id: 'greet-lama', label: '🔑 Pernah Pesan (Masuk)', value: 'Saya pernah pesan', action: 'send_message' },
           ],
         }],
         metadata: { intent: 'small_talk', greeting: true },
