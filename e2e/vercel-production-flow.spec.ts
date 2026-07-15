@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { createHash } from 'crypto';
+import { db } from '@/lib/db';
+import { transaksi } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 
 const adminUsername = process.env.ADMIN_USERNAME || 'admin';
 const adminPassword = process.env.ADMIN_PASSWORD || 'hengki123';
@@ -105,6 +108,16 @@ test.describe('Vercel Production E2E Lifecycle Flow', () => {
     await expect(qrisImage).toBeVisible();
     console.log('Gambar QRIS Midtrans sukses ditampilkan langsung di chat!');
 
+    // Ambil token status dan kode pesanan dari database
+    const [dbOrder] = await db
+      .select()
+      .from(transaksi)
+      .where(eq(transaksi.id_transaksi, orderCode))
+      .limit(1);
+    if (!dbOrder) throw new Error(`Pesanan dengan ID ${orderCode} tidak ditemukan di database!`);
+    const trackingHref = `/pesan/status/${encodeURIComponent(dbOrder.kode_pesanan)}?token=${encodeURIComponent(dbOrder.status_token || '')}`;
+    console.log(`URL tracking berhasil diambil dari database: ${trackingHref}`);
+
     // 7. Simulasikan Webhook Midtrans (Settlement Lunas) ke Vercel
     console.log(`Mengirimkan simulasi webhook pembayaran lunas untuk ${orderCode}...`);
     await simulateMidtransWebhook(targetUrl, orderCode, '18000.00');
@@ -144,9 +157,8 @@ test.describe('Vercel Production E2E Lifecycle Flow', () => {
     console.log('Order berhasil diselesaikan oleh admin!');
 
     // 9. Verifikasi status publik di tracking page
-    const trackingUrl = `${targetUrl}/pesan/status/${orderCode}`;
-    console.log(`Memverifikasi halaman status pesanan publik: ${trackingUrl}`);
-    await page.goto(trackingUrl);
+    console.log(`Memverifikasi halaman status pesanan publik: ${targetUrl}${trackingHref}`);
+    await page.goto(`${targetUrl}${trackingHref}`);
     await expect(page.getByText(/Status pesanan/i).first()).toBeVisible();
     
     // Status akhir harus "completed" atau "selesai"

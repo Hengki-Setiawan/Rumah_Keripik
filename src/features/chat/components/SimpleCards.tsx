@@ -60,12 +60,74 @@ export function AddressConfirmCard({ component, onAction }: { component: Address
 }
 
 export function PaymentUploadCard({ component, onAction }: { component: PaymentUploadComponent; onAction?: (action: string, payload?: Record<string, unknown>) => void }) {
-  if (component.qrCodeUrl) {
+  const [paymentVerified, setPaymentVerified] = useState(false);
+  const [polling, setPolling] = useState(false);
+
+  // Poll status pembayaran setiap 8 detik saat QRIS ditampilkan
+  useEffect(() => {
+    if (!component.qrCodeUrl || !component.orderId) return;
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval>;
+
+    async function checkPaymentStatus() {
+      try {
+        const response = await fetch(`/api/public/payment-status?orderId=${encodeURIComponent(component.orderId)}`);
+        const data = await response.json();
+        if (cancelled) return;
+        if (data.ok && (data.status === 'settlement' || data.status === 'capture' || data.paymentStatus === 'verified' || data.paymentStatus === 'paid')) {
+          setPaymentVerified(true);
+          clearInterval(interval);
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
+
+    // Mulai polling setelah 10 detik (beri waktu user scan)
+    const startDelay = setTimeout(() => {
+      setPolling(true);
+      checkPaymentStatus();
+      interval = setInterval(checkPaymentStatus, 8000);
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(startDelay);
+      clearInterval(interval);
+      setPolling(false);
+    };
+  }, [component.qrCodeUrl, component.orderId]);
+
+  if (paymentVerified) {
     return (
       <div className={cardClass}>
         <div className="flex items-center gap-2">
-          <CreditCard size={18} className="text-[#c55a2b]" />
-          <h3 className="font-semibold text-[#2f241c]">Scan QRIS untuk Membayar</h3>
+          <CheckCircle2 size={20} className="text-[#16a34a]" />
+          <h3 className="font-semibold text-[#16a34a]">Pembayaran Diterima! 🎉</h3>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-[#4b5563]">Terima kasih kak! Pesanan kamu sudah masuk dan sedang diproses oleh tim kami.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a href="/pesan/saya" className={primaryButtonClass}>Lihat Status Pesanan</a>
+          <button type="button" onClick={() => onAction?.('refresh_chat')} className={secondaryButtonClass}>Refresh Chat</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (component.qrCodeUrl) {
+    return (
+      <div className={cardClass}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CreditCard size={18} className="text-[#c55a2b]" />
+            <h3 className="font-semibold text-[#2f241c]">Scan QRIS untuk Membayar</h3>
+          </div>
+          {polling && (
+            <span className="flex items-center gap-1 rounded-full bg-[#eef6dd] px-2 py-0.5 text-[10px] font-medium text-[#56721f]">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#56721f]"></span>
+              Menunggu pembayaran...
+            </span>
+          )}
         </div>
         <div className="mt-3 bg-white p-3 rounded-2xl border border-[#ecd8bf] text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -74,26 +136,31 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
         <p className="mt-2 text-xs leading-5 text-[#6b7280]">
           Total nominal: <span className="font-semibold text-[#2f241c]">{formatRupiah(component.amount || 0)}</span>.
           Pindai QRIS di atas dengan GoPay, ShopeePay, DANA, OVO, LinkAja, atau Mobile Banking.
+          QRIS berlaku selama 24 jam.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => onAction?.('refresh_chat')} className={primaryButtonClass}>
             Saya Sudah Bayar
           </button>
-          <Link href="/pesan/saya" className={secondaryButtonClass}>
+          <a href="/pesan/saya" className={secondaryButtonClass}>
             Buka Pesanan Saya
-          </Link>
+          </a>
         </div>
       </div>
     );
   }
 
+  // Fallback: QRIS gagal generate
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><CreditCard size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#2f241c]">Lanjutkan pembayaran</h3></div>
-      <p className="mt-2 text-sm leading-6 text-[#6b7280]">Pembayaran manual sudah tidak dipakai untuk transfer online. Buka pesanan agar bisa lanjut bayar atau cek status terbaru.</p>
+      <div className="flex items-center gap-2">
+        <CreditCard size={18} className="text-[#c55a2b]" />
+        <h3 className="font-semibold text-[#2f241c]">Lanjutkan pembayaran</h3>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-[#6b7280]">QRIS belum berhasil dimuat. Coba refresh atau buka halaman Pesanan Saya untuk melanjutkan checkout.</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link href="/pesan/saya" className={primaryButtonClass}>Buka Pesanan Saya</Link>
-        <button type="button" onClick={() => onAction?.('refresh_chat')} className={secondaryButtonClass}>Refresh chat</button>
+        <button type="button" onClick={() => onAction?.('refresh_chat')} className={primaryButtonClass}>Coba Refresh</button>
+        <a href="/pesan/saya" className={secondaryButtonClass}>Buka Pesanan Saya</a>
       </div>
     </div>
   );
@@ -146,16 +213,43 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
     <div className={cardClass}>
       <div className="flex items-center gap-2"><PackageCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Buat order dari chat</h3></div>
       <p className="mt-2 text-sm leading-6 text-[#6b7280]">Aku minta data bertahap supaya order bisa masuk dashboard dengan benar.</p>
+      
+      {/* Tombol Data Tersimpan — paling menonjol jika tersedia */}
+      {(component.savedCustomerId && component.savedAddressId) && (
+        <div className="mt-4 rounded-[1.5rem] border-2 border-[#7f9f3e] bg-[#eef6dd] p-4">
+          <p className="text-sm font-semibold text-[#3d5a13] mb-1">✅ Data tersimpan tersedia</p>
+          <p className="text-xs text-[#56721f] mb-3">Kakak sudah pernah order sebelumnya. Bisa langsung pakai data yang tersimpan tanpa isi ulang!</p>
+          <div className="grid gap-2">
+            <select
+              className="w-full rounded-[1.2rem] border border-[#c5dea0] bg-white px-4 py-2 text-sm text-[#2f241c] outline-none focus:border-[#7f9f3e]/50"
+              value={paymentMethodId}
+              onChange={(e) => setPaymentMethodId(e.target.value)}
+            >
+              <option value="">-- Pilih metode bayar dulu --</option>
+              {paymentMethods.map((method) => (
+                <option key={method.id} value={method.id}>{method.label}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!paymentMethodId.trim()}
+              onClick={() => onAction('create_order_saved', { addressId: component.savedAddressId, paymentMethodId, notes })}
+              className={`${primaryButtonClass} w-full rounded-2xl py-3 bg-[#7f9f3e] hover:bg-[#6a8932] text-base font-semibold`}
+            >
+              🚀 Pakai Data Tersimpan &amp; Buat Order
+            </button>
+          </div>
+          <button type="button" onClick={() => setStep('customer')} className="mt-2 w-full text-xs text-[#56721f] underline underline-offset-2">
+            Atau isi data baru
+          </button>
+        </div>
+      )}
+
       <div className="mt-4 grid grid-cols-2 gap-2 text-center text-[11px] font-medium text-[#6b7280] sm:grid-cols-4">
         {(['customer', 'address', 'payment', 'review'] as const).map((item, index) => (
           <button key={item} type="button" onClick={() => setStep(item)} className={`rounded-full px-2 py-2 transition ${step === item ? 'bg-[#c55a2b] text-white' : 'bg-[#f7eddf] hover:bg-[#f2e2cc]'}`}>{index + 1}. {item === 'customer' ? 'Data' : item === 'address' ? 'Alamat' : item === 'payment' ? 'Bayar' : 'Review'}</button>
         ))}
       </div>
-      {(component.savedCustomerId && component.savedAddressId && paymentMethodId) && (
-        <button type="button" onClick={() => onAction('create_order_saved', { addressId: component.savedAddressId, paymentMethodId, notes })} className={`${primaryButtonClass} mt-4 w-full rounded-2xl py-3`}>
-          Pakai Data Tersimpan & Buat Order
-        </button>
-      )}
       <div className="mt-4 grid gap-3">
         {step === 'customer' && <>
         <input data-testid="order-customer-name" value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} placeholder="Nama penerima" className={inputClass} />
@@ -203,9 +297,9 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         {(address.lat && address.lng) && <p className="rounded-[1.2rem] bg-[#eef6dd] px-4 py-3 text-xs font-medium text-[#56721f]">Koordinat tersimpan: {address.lat.slice(0, 10)}, {address.lng.slice(0, 10)}</p>}
         <button data-testid="order-step-payment" type="button" disabled={address.text.trim().length < 8} onClick={() => setStep('payment')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut pembayaran</button>
         </>}
-        {step === 'payment' && <>
+      {step === 'payment' && <>
         <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#5f4d3f]">
-          Pilih metode pembayaran langsung dari daftar di bawah. Customer tidak perlu tahu ID internal.
+          Pilih metode pembayaran untuk pesanan ini.
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {paymentMethods.map((method) => (
@@ -221,7 +315,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
             >
               <p className="text-sm font-semibold text-[#2f241c]">{method.label}</p>
               <p className="mt-1 text-xs leading-5 text-[#6b7280]">
-                {method.note || (method.type === 'cod' ? 'Bayar saat pesanan diterima.' : 'Pilih transfer, QRIS, atau e-wallet saat checkout Duitku terbuka.')}
+                {method.note || (method.type === 'cod' ? 'Bayar saat pesanan diterima.' : 'Bayar dengan QRIS — scan kode yang muncul setelah order dibuat.')}
               </p>
               {method.accountNumber && (
                 <p className="mt-2 text-xs font-medium text-[#2f241c]">
@@ -238,7 +332,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
         </div>
         <textarea data-testid="order-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Catatan pesanan opsional" className={`${inputClass} min-h-16`} />
         <button data-testid="order-step-review" type="button" disabled={!paymentMethodId.trim()} onClick={() => setStep('review')} className={`${primaryButtonClass} rounded-2xl py-3`}>Review order</button>
-        </>}
+      </>}
         {step === 'review' && <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#4b5563]">
           <p className="font-semibold text-[#2f241c]">Cek ulang sebelum order dibuat</p>
           <p className="mt-2">Nama: {customer.name || 'Data tersimpan'}</p>

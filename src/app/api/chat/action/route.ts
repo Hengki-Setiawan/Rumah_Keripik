@@ -37,6 +37,85 @@ export async function POST(req: Request) {
   try {
     if (action === 'refresh_chat') {
       // Client-side refresh after external actions such as payment proof upload.
+    } else if (action === 'auto_greet_new') {
+      // Greeting otomatis untuk user baru
+      const hasCart = Boolean(payload.hasCart);
+      await createChatMessage({
+        chatSessionId,
+        role: 'assistant',
+        content: 'Selamat datang di Rumah Keripik! 👋 Mau pesan keripik apa hari ini?',
+        components: [{
+          type: 'quick_replies',
+          options: [
+            { id: 'greet-rekomendasi', label: '🌶️ Rekomendasi Pedas', value: 'Rekomendasi keripik pedas', action: 'send_message' },
+            { id: 'greet-semua', label: '🛍️ Lihat Semua Produk', value: 'Lihat semua produk', action: 'send_message' },
+            { id: 'greet-keluarga', label: '👨‍👩‍👧 Untuk Keluarga', value: 'Rekomendasi untuk keluarga', action: 'send_message' },
+          ],
+        }],
+        metadata: { intent: 'small_talk', greeting: true },
+      });
+      if (!hasCart) {
+        // Sudah cukup, tidak perlu komponen tambahan
+      }
+    } else if (action === 'auto_greet_returning') {
+      // Greeting otomatis untuk pelanggan lama
+      const context = await getCustomerContextForChat(chatSessionId);
+      const name = context.customer?.name;
+      const hasLastOrder = !!context.lastOrder;
+      const greetingText = name
+        ? `Halo kak ${name}! 👋 Senang ketemu lagi. Mau pesan ulang atau pilih produk baru?`
+        : 'Halo kak! 👋 Senang ketemu lagi. Mau pesan ulang atau pilih produk baru?';
+
+      const components: Array<{ type: string; [key: string]: unknown }> = [];
+      if (context.customer) {
+        components.push({ type: 'customer_confirm', customerId: context.customer.id, maskedFields: true as const, customer: context.customer, actions: ['use_saved_data', 'edit_data', 'send_new_location'] });
+      }
+      if (context.defaultAddress) {
+        components.push({ type: 'address_confirm', addressId: context.defaultAddress.id, address: context.defaultAddress, actions: ['use_saved_address', 'edit_address', 'send_new_location'] });
+      }
+      if (!context.customer) {
+        components.push({
+          type: 'quick_replies',
+          options: [
+            { id: 'ret-rekomendasi', label: '🌶️ Rekomendasi', value: 'Rekomendasi produk', action: 'send_message' },
+            { id: 'ret-cart', label: '🛒 Lihat keranjang', value: 'lihat keranjang', action: 'send_message' },
+          ],
+        });
+      }
+      if (hasLastOrder) {
+        components.push({
+          type: 'order_status_card',
+          orderId: context.lastOrder!.id,
+          orderCode: context.lastOrder!.code,
+          status: context.lastOrder!.status,
+          paymentStatus: context.lastOrder!.paymentStatus,
+          totalAmount: context.lastOrder!.totalAmount,
+        });
+      }
+      await createChatMessage({
+        chatSessionId,
+        role: 'assistant',
+        content: greetingText,
+        components: components as Parameters<typeof createChatMessage>[0]['components'],
+        metadata: { intent: 'confirm_customer_data', greeting: true },
+      });
+    } else if (action === 'cart_carryover_notice') {
+      // Deteksi cart dari sesi sebelumnya
+      const cart = await getChatCart(chatSessionId);
+      const itemCount = cart.itemCount;
+      await createChatMessage({
+        chatSessionId,
+        role: 'assistant',
+        content: `Keranjang kamu masih ada ${itemCount} item dari sesi sebelumnya. Mau lanjutkan atau mulai dari awal?`,
+        components: [
+          { type: 'cart_summary', cartId: cart.id },
+          { type: 'quick_replies', options: [
+            { id: 'carryover-lanjut', label: '✅ Lanjutkan', value: 'lanjut checkout', action: 'send_message' },
+            { id: 'carryover-baru', label: '🔄 Mulai baru', value: 'kosongkan keranjang', action: 'send_message' },
+          ] },
+        ],
+        metadata: { intent: 'show_cart', carryover: true },
+      });
     } else if (action === 'message_feedback') {
       await logAiLearningEvent({
         eventType: 'chat_message_feedback',
@@ -119,10 +198,10 @@ export async function POST(req: Request) {
         chatSessionId,
         role: 'system',
         content: result.paymentMethod === 'cod'
-          ? 'Order COD berhasil dibuat. Admin akan mengecek dan mengonfirmasi pesanan kakak.'
+          ? 'Order COD berhasil dibuat! 📦 Admin akan mengecek dan mengonfirmasi pesanan kakak. Biasanya direspons dalam 1\u20132 jam kerja ya kak.'
           : result.checkoutUrl
-            ? 'Order berhasil dibuat. Silakan scan QRIS di bawah ini untuk membayar ya kak.'
-            : 'Order berhasil dibuat, tetapi QRIS belum siap. Coba buka status pesanan dulu ya kak.',
+            ? 'Order berhasil dibuat! 🎉 Silakan scan QRIS di bawah ini untuk membayar. Pembayaran akan dikonfirmasi otomatis setelah berhasil.'
+            : 'Order berhasil dibuat, tetapi QRIS belum siap. Coba buka status pesanan dulu ya kak, atau refresh chat sebentar.',
         components: [
           { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },
           ...(result.paymentMethod !== 'cod' && result.checkoutUrl ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, amount: result.totalBayar }] : []),

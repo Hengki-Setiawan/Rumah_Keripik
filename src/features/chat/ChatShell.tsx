@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { LayoutDashboard, Menu, PackageSearch, Sparkles, X } from 'lucide-react';
-import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
+import type { ChatCartDto, ChatMessageDto, CustomerContextDto } from '@/lib/chat-v3/types';
 import { ChatComposer } from './ChatComposer';
 import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
@@ -22,6 +22,7 @@ export function ChatShell() {
   const [error, setError] = useState('');
   const [started, setStarted] = useState(false);
   const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
+  const autoStarted = useRef(false);
 
   const loadSessions = useCallback(async () => {
     const response = await fetch('/api/chat/sessions');
@@ -41,19 +42,81 @@ export function ChatShell() {
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.error || 'Session gagal');
 
+    const sessionMessages: ChatMessageDto[] = data.messages || [];
+    const sessionCart: ChatCartDto | null = data.cart || null;
+    const customerCtx: CustomerContextDto | null = data.customerContext || null;
+
     setChatSessionId(data.chatSession.id);
-    setMessages(data.messages || []);
-    setCart(data.cart || null);
-    setStarted((data.messages || []).length > 0);
+    setMessages(sessionMessages);
+    setCart(sessionCart);
+    setStarted(sessionMessages.length > 0);
     setSidebarOpen(false);
     setLoading(false);
     loadSessions().catch(() => undefined);
+
+    // Auto-greeting saat sesi baru dan belum ada pesan
+    if (sessionMessages.length === 0 && !forceNew) {
+      triggerAutoGreeting(data.chatSession.id, customerCtx, sessionCart);
+    }
+    // Deteksi cart lama saat sesi baru dibuat dengan forceNew
+    if (forceNew && sessionCart && sessionCart.itemCount > 0) {
+      triggerCartCarryoverNotice(data.chatSession.id, sessionCart);
+    }
+
     return data.chatSession.id as string;
   }
 
   async function ensureSession(forceNew = false) {
     if (chatSessionId && !forceNew) return chatSessionId;
     return bootstrap(forceNew);
+  }
+
+  async function triggerAutoGreeting(sessionId: string, ctx: CustomerContextDto | null, currentCart: ChatCartDto | null) {
+    // Cegah double-trigger
+    if (autoStarted.current) return;
+    autoStarted.current = true;
+    try {
+      const response = await fetch('/api/chat/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatSessionId: sessionId,
+          action: ctx?.customer ? 'auto_greet_returning' : 'auto_greet_new',
+          payload: { hasCart: (currentCart?.itemCount ?? 0) > 0 },
+        }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        setMessages(data.messages || []);
+        setCart(data.cart || null);
+        setStarted((data.messages || []).length > 0);
+      }
+    } catch {
+      // Greeting gagal tidak block user
+      autoStarted.current = false;
+    }
+  }
+
+  async function triggerCartCarryoverNotice(sessionId: string, existingCart: ChatCartDto) {
+    try {
+      const response = await fetch('/api/chat/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatSessionId: sessionId,
+          action: 'cart_carryover_notice',
+          payload: { itemCount: existingCart.itemCount },
+        }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        setMessages(data.messages || []);
+        setCart(data.cart || null);
+        setStarted((data.messages || []).length > 0);
+      }
+    } catch {
+      // Non-blocking
+    }
   }
 
   async function startNewOrder() {
@@ -103,6 +166,15 @@ export function ChatShell() {
     setCart(data.cart || null);
     loadSessions().catch(() => undefined);
   }, [chatSessionId, loadSessions]);
+
+  // Auto-bootstrap saat halaman pertama kali dibuka
+  useEffect(() => {
+    if (autoStarted.current) return;
+    bootstrap(false).catch(() => {
+      setLoading(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
