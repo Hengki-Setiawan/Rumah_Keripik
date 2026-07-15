@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { detailTransaksi, orderStatusHistory, paymentIntent, paymentProof, transaksi } from '@/lib/schema';
+import { detailTransaksi, orderStatusHistory, paymentIntent, transaksi } from '@/lib/schema';
 import { formatRupiah } from '@/lib/utils';
-import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
 import { PaymentInstructionCard } from '@/components/order/PaymentInstructionCard';
 import { canUploadPaymentProof, getCustomerStatusMessage, isPaymentVerified } from '@/lib/order-status-policy';
 
@@ -25,16 +24,13 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
     return <StatusShell title="Token status diperlukan" message="Link status pesanan ini membutuhkan token verifikasi dari halaman sukses pesanan." />;
   }
 
-  const [items, proofs, history] = await Promise.all([
+  const [items, history] = await Promise.all([
     db.select().from(detailTransaksi).where(eq(detailTransaksi.id_transaksi, order.id_transaksi)),
-    db.select().from(paymentProof).where(eq(paymentProof.id_transaksi, order.id_transaksi)).orderBy(desc(paymentProof.uploaded_at)),
     db.select().from(orderStatusHistory).where(eq(orderStatusHistory.id_transaksi, order.id_transaksi)).orderBy(desc(orderStatusHistory.created_at)),
   ]);
   const [intent] = await db.select().from(paymentIntent).where(eq(paymentIntent.id_transaksi, order.id_transaksi)).limit(1);
 
-  const latestProof = proofs[0];
-  const hasPendingProof = proofs.some((proof) => proof.status === 'pending');
-  const canUploadProof = Boolean(order.status_token && canUploadPaymentProof(order, proofs));
+  const canUploadProof = Boolean(order.status_token && canUploadPaymentProof(order, []));
 
   return (
     <main className="min-h-screen bg-[#fafafa] px-5 py-8 text-[#111827]">
@@ -95,34 +91,23 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
         </section>
 
         <section className="mt-6 rounded-3xl border border-[#e5e7eb] bg-white p-5">
-          <h2 className="text-xl font-semibold">Bukti pembayaran</h2>
+          <h2 className="text-xl font-semibold">Pembayaran</h2>
           <p className="mt-2 text-[#6b7280]">
-            {latestProof ? `Bukti pembayaran terakhir berstatus ${latestProof.status}.` : 'Belum ada bukti pembayaran yang diupload.'}
+            {order.payment_method === 'cod'
+              ? 'Pesanan COD akan dikonfirmasi admin sebelum masuk proses pengiriman.'
+              : 'Pembayaran online memakai Duitku dan status akan diperbarui otomatis setelah transaksi sukses.'}
           </p>
-          {hasPendingProof && order.payment_status !== 'verified' && (
-            <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              Bukti pembayaran sedang menunggu verifikasi admin. Upload ulang tersedia jika bukti ditolak.
-            </p>
-          )}
-          {latestProof?.status === 'rejected' && latestProof.admin_note && (
-            <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              Alasan penolakan: {latestProof.admin_note}
-            </p>
-          )}
-          {canUploadProof && (
-            <>
-              <PaymentInstructionCard amount={order.total_bayar} instruction={parseInstruction(intent?.instruction_json)} />
-              <PaymentProofUploader orderId={order.id_transaksi} statusToken={order.status_token!} />
-            </>
+          {!isPaymentVerified(order) && (
+            <PaymentInstructionCard amount={order.total_bayar} instruction={parseInstruction(intent?.instruction_json)} />
           )}
           {!isPaymentVerified(order) && !canUploadProof && (
             <p className="mt-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
-              {order.payment_method === 'cod' ? 'Pesanan COD menunggu konfirmasi admin.' : 'Jika sudah membayar dan perlu bantuan, hubungi admin melalui kanal yang tersedia.'}
+              {order.payment_method === 'cod' ? 'Pesanan COD menunggu konfirmasi admin.' : 'Jika checkout belum terbuka atau pembayaran gagal, kamu bisa buka Pesanan Saya lalu coba lagi dari sana.'}
             </p>
           )}
           {isPaymentVerified(order) && (
             <Link href={`/dokumen/order/${encodeURIComponent(order.id_transaksi)}/receipt`} className="mt-4 inline-block rounded-2xl bg-[#16a34a] px-5 py-3 font-medium text-white">
-              Lihat bukti pembayaran
+              Lihat bukti transaksi
             </Link>
           )}
         </section>
@@ -131,7 +116,7 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
           <h2 className="text-xl font-semibold">Butuh bantuan?</h2>
           <p className="mt-2 text-sm leading-6 text-[#6b7280]">Simpan kode pesanan ini. Jika ada kendala pembayaran atau pengiriman, admin Rumah Keripik bisa membantu mengecek berdasarkan kode pesanan.</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Link href="/pesan/lacak" className="rounded-2xl border border-[#e5e7eb] bg-white px-5 py-3 text-center font-medium text-[#111827] transition hover:bg-[#f3f4f6]">Lacak pesanan lain</Link>
+            <Link href="/pesan/saya" className="rounded-2xl border border-[#e5e7eb] bg-white px-5 py-3 text-center font-medium text-[#111827] transition hover:bg-[#f3f4f6]">Pesanan saya</Link>
             <Link href="/pesan" className="rounded-2xl bg-[#111827] px-5 py-3 text-center font-medium text-white transition hover:bg-[#374151]">Buat pesanan lagi</Link>
           </div>
         </section>
@@ -143,7 +128,7 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
 function parseInstruction(value: string | null | undefined) {
   if (!value) return null;
   try {
-    return JSON.parse(value) as { type?: string; label?: string; accountName?: string; accountNumber?: string; bankName?: string; qrisImageUrl?: string; note?: string };
+    return JSON.parse(value) as { type?: string; label?: string; provider?: string; accountName?: string; accountNumber?: string; bankName?: string; qrisImageUrl?: string; paymentUrl?: string; reference?: string; unavailable?: boolean; note?: string };
   } catch {
     return null;
   }

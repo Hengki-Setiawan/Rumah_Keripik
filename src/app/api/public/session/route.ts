@@ -141,7 +141,7 @@ function buildGreetingResponse() {
     message: 'Halo! Mau pesan keripik hari ini? Kamu bisa lihat produk dulu tanpa login.',
     options: [
       { label: 'Lihat Produk', action: 'show_products' },
-      { label: 'Cek Status Pesanan', action: 'track_order' },
+      { label: 'Pesanan Saya', action: 'track_order' },
       { label: 'Tanya Admin', action: 'ask_admin' },
     ],
   };

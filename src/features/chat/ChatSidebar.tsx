@@ -227,7 +227,7 @@ export function ChatSidebar({
 
       <div className={`mt-3 grid w-full gap-1 ${compact ? 'justify-items-center' : ''}`}>
         <SidebarItem icon={<MessageSquarePlus size={16} />} label="Pesanan baru" active={!activeId} compact={compact} onClick={onNewOrder} />
-        <SidebarItem icon={<PackageSearch size={16} />} label="Lacak pesanan" href="/pesan/lacak" compact={compact} />
+        <SidebarItem icon={<PackageSearch size={16} />} label="Pesanan saya" href="/pesan/saya" compact={compact} />
         <SidebarItem
           icon={<ShoppingBag size={16} />}
           label="Keranjang"

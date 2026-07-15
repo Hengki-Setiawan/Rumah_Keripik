@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { paymentMethod } from '@/lib/schema';
-import { buildPaymentInstructionPayload } from '@/lib/payments/payment-utils';
+import { buildPublicPaymentMethodOptions } from '@/lib/payments/payment-utils';
 import { getCachedData, setCachedData } from '@/lib/redis-cache';
 
 export async function GET() {
@@ -18,12 +18,7 @@ export async function GET() {
     .where(eq(paymentMethod.is_active, 1))
     .orderBy(asc(paymentMethod.sort_order), asc(paymentMethod.label));
 
-  const resultMethods = methods.map((method) => ({
-    id: method.id_payment_method,
-    ...buildPaymentInstructionPayload(method),
-    minOrderTotal: method.min_order_total,
-    maxOrderTotal: method.max_order_total,
-  }));
+  const resultMethods = buildPublicPaymentMethodOptions(methods);
 
   await setCachedData(cacheKey, resultMethods, 60);
 

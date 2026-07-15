@@ -28,7 +28,7 @@ export function PaymentMethodsCard({ component, onAction }: { component: Payment
         <button key={method.id} type="button" data-testid={`payment-method-${method.id}`} onClick={() => onAction('select_payment_method', { methodId: method.id })} className="rounded-2xl border border-[#e5e7eb] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-[#d1d5db] hover:bg-[#f7f7f8]">
           {method.type === 'cod' ? <Truck className="mb-2 text-[#6b7280]" /> : <Store className="mb-2 text-[#6b7280]" />}
           <p className="font-semibold text-[#111827]">{method.label}</p>
-          <p className="mt-1 text-xs leading-5 text-[#6b7280]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Pembayaran dicek manual admin')}</p>
+          <p className="mt-1 text-xs leading-5 text-[#6b7280]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Pembayaran dibuka lewat checkout online dan status terupdate otomatis')}</p>
           {method.accountNumber && <p className="mt-2 text-xs font-medium text-[#111827]">{method.bankName}: {method.accountNumber}</p>}
         </button>
       ))}

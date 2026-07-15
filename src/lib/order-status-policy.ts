@@ -20,17 +20,16 @@ export function isCodOrder(order: OrderLike) {
 }
 
 export function canUploadPaymentProof(order: OrderLike, proofs: ProofLike[] = []) {
-  if (isCodOrder(order) || isPaymentVerified(order)) return false;
-  if (proofs.length >= MAX_PAYMENT_PROOF_UPLOADS) return false;
-  return !proofs.some((proof) => proof.status === 'pending');
+  void order;
+  void proofs;
+  return false;
 }
 
 export function getPaymentProofUploadBlockReason(order: OrderLike, proofs: ProofLike[] = []) {
-  if (isCodOrder(order)) return 'Pesanan COD tidak membutuhkan upload bukti pembayaran.';
-  if (isPaymentVerified(order)) return 'Pembayaran sudah terverifikasi.';
-  if (proofs.some((proof) => proof.status === 'pending')) return 'Bukti pembayaran sedang menunggu verifikasi admin.';
-  if (proofs.length >= MAX_PAYMENT_PROOF_UPLOADS) return 'Batas upload bukti pembayaran tercapai. Hubungi admin untuk bantuan.';
-  return 'Upload bukti belum tersedia untuk status pesanan ini.';
+  void proofs;
+  if (isCodOrder(order)) return 'Pesanan COD tidak membutuhkan pembayaran online tambahan.';
+  if (isPaymentVerified(order)) return 'Pembayaran sudah terverifikasi otomatis.';
+  return 'Pembayaran manual sudah dimatikan. Lanjutkan bayar dari checkout online atau buka Pesanan Saya untuk mencoba lagi.';
 }
 
 export function canApprovePaymentProof(order: OrderLike, proof: ProofLike) {
@@ -59,10 +58,11 @@ export function canRejectCod(order: OrderLike) {
 
 export function getCustomerStatusMessage(order: OrderLike) {
   if (isPaymentVerified(order)) return 'Pembayaran sudah diverifikasi. Pesanan diproses admin.';
-  if (order.payment_status === 'proof_uploaded') return 'Bukti pembayaran sedang menunggu verifikasi admin.';
-  if (order.payment_status === 'rejected') return 'Bukti pembayaran ditolak. Upload ulang bukti yang benar.';
+  if (order.payment_status === 'gateway_failed') return 'Pembayaran online belum berhasil. Coba buka lagi checkout dari halaman status atau Pesanan Saya.';
+  if (order.payment_status === 'proof_uploaded') return 'Riwayat verifikasi manual lama masih tercatat, tetapi pembayaran baru sekarang diproses otomatis.';
+  if (order.payment_status === 'rejected') return 'Verifikasi manual lama pernah ditolak. Untuk pesanan baru, gunakan checkout online agar status diperbarui otomatis.';
   if (order.payment_status === 'cod_approved') return 'COD disetujui admin. Pesanan diproses.';
   if (order.payment_status === 'cod_rejected') return 'COD ditolak admin. Pesanan dibatalkan.';
   if (isCodOrder(order)) return 'Pesanan COD menunggu persetujuan admin.';
-  return 'Silakan bayar sesuai instruksi lalu upload bukti pembayaran.';
+  return 'Lanjutkan pembayaran online lewat checkout yang tersedia. Setelah sukses, status pesanan akan diperbarui otomatis.';
 }

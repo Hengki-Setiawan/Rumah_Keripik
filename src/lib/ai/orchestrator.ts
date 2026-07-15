@@ -118,8 +118,8 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
   if (complexOrder.needsProofUploadHelp) {
     return {
       reply: customerContext.lastOrder
-        ? 'Aman kak, bukti bisa diupload nanti selama order belum diverifikasi admin. Kalau perlu, buka status pesanan terakhir dulu ya.'
-        : 'Aman kak, bukti transfer bisa diupload nanti selama pesanan belum diverifikasi admin. Simpan kode pesanan lalu buka halaman status saat siap upload.',
+        ? 'Pembayaran manual sudah dimatikan kak. Kalau order terakhir masih belum lunas, buka status pesanan untuk lanjutkan checkout online lagi ya.'
+        : 'Pembayaran sekarang langsung lewat checkout online kak. Setelah order dibuat, tinggal lanjut bayar dari tautan yang muncul.',
       intent: 'show_payment',
       components: [
         ...(customerContext.lastOrder ? [{
@@ -134,7 +134,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
         {
           type: 'quick_replies',
           options: [
-            { id: 'proof-track', label: 'Buka lacak pesanan', value: '/pesan/lacak', action: 'tool_action' },
+            { id: 'proof-track', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' },
             { id: 'proof-payment', label: 'Cara bayar', value: 'cara bayar', action: 'send_message' },
           ],
         },
@@ -227,7 +227,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
         confidence: 0.92,
       };
     }
-    return { reply: 'Bisa kak. Masukkan kode pesanan di halaman lacak, atau pilih tombol ini.', intent: 'track_order', components: [{ type: 'quick_replies', options: [{ id: 'lacak', label: 'Buka Lacak Pesanan', value: '/pesan/lacak', action: 'tool_action' }] }], confidence: 0.9 };
+    return { reply: 'Bisa kak. Buka halaman Pesanan Saya untuk melihat order yang tersimpan di browser ini.', intent: 'track_order', components: [{ type: 'quick_replies', options: [{ id: 'pesanan-saya', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }] }], confidence: 0.9 };
   }
 
   if (/bayar|pembayaran|qris|transfer|cod/.test(lower)) {
@@ -288,9 +288,9 @@ export async function buildPausedChatResponse(chatSessionId: string, message: st
       };
     }
     return {
-      reply: 'Admin sedang menangani chat ini. Kalau mau, kakak tetap bisa buka halaman lacak pesanan ya.',
+      reply: 'Admin sedang menangani chat ini. Kalau mau, kakak tetap bisa buka halaman Pesanan Saya ya.',
       intent: 'track_order',
-      components: [{ type: 'quick_replies', options: [{ id: 'paused-track', label: 'Buka lacak pesanan', value: '/pesan/lacak', action: 'tool_action' }] }],
+      components: [{ type: 'quick_replies', options: [{ id: 'paused-track', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }] }],
       confidence: 0.94,
     };
   }
@@ -320,7 +320,7 @@ export async function buildPausedChatResponse(chatSessionId: string, message: st
   if (/bayar|pembayaran|qris|transfer|cod|bukti/.test(lower)) {
     const methods = await getActivePaymentMethods();
     return {
-      reply: 'Admin sedang menangani chat ini, tapi metode pembayaran aktif tetap bisa kamu lihat ya kak.',
+      reply: 'Admin sedang menangani chat ini, tapi metode pembayaran aktif dan checkout online tetap bisa kamu lihat ya kak.',
       intent: 'show_payment',
       components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }],
       confidence: 0.91,

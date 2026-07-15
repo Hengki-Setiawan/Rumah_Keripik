@@ -74,6 +74,8 @@ export const PaymentUploadComponentSchema = z.object({
   statusToken: z.string().min(8).max(128).optional(),
   allowedTypes: z.array(z.enum(['image/jpeg', 'image/png', 'application/pdf'])).max(6).optional(),
   maxSizeMb: z.number().int().min(1).max(20).optional(),
+  qrCodeUrl: z.string().nullable().optional(),
+  amount: z.number().optional(),
 });
 
 export const OrderSummaryComponentSchema = z.object({

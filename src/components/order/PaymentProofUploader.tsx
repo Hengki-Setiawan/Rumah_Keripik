@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { UploadCloud } from 'lucide-react';
+import Link from 'next/link';
+import { CreditCard } from 'lucide-react';
 
 type Props = {
   orderId: string;
@@ -10,98 +10,29 @@ type Props = {
 };
 
 export function PaymentProofUploader({ orderId, statusToken, onUploaded }: Props) {
-  const [file, setFile] = useState<File | null>(null);
-  const [amountClaimed, setAmountClaimed] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-
-  async function upload() {
-    if (!file) {
-      setMessage('Pilih screenshot bukti pembayaran dulu.');
-      return;
-    }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setMessage('Format harus JPG, PNG, atau WEBP.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage('Ukuran file maksimal 5 MB.');
-      return;
-    }
-
-    setLoading(true);
-    setMessage('');
-    try {
-      const signRes = await fetch('/api/public/payment-proof/sign-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, statusToken }),
-      });
-      const sign = await signRes.json();
-      if (!signRes.ok || !sign.ok) throw new Error(sign.error || 'Gagal membuat signature upload');
-
-      const form = new FormData();
-      form.append('file', file);
-      form.append('api_key', sign.apiKey);
-      form.append('timestamp', String(sign.timestamp));
-      form.append('signature', sign.signature);
-      form.append('folder', sign.folder);
-      form.append('public_id', sign.publicId);
-
-      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`, {
-        method: 'POST',
-        body: form,
-      });
-      const cloud = await cloudRes.json();
-      if (!cloudRes.ok) throw new Error(cloud.error?.message || 'Upload bukti pembayaran gagal');
-
-      const completeRes = await fetch('/api/public/payment-proof/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId,
-          statusToken,
-          cloudinaryPublicId: cloud.public_id,
-          secureUrl: cloud.secure_url,
-          originalFilename: file.name,
-          fileFormat: cloud.format || file.type.replace('image/', '').replace('jpeg', 'jpg'),
-          fileSizeBytes: file.size,
-          amountClaimed: amountClaimed ? Number(amountClaimed) : undefined,
-        }),
-      });
-      const complete = await completeRes.json();
-      if (!completeRes.ok || !complete.ok) throw new Error(complete.error || 'Gagal menyimpan bukti pembayaran');
-
-      setFile(null);
-      setAmountClaimed('');
-      setMessage('Bukti pembayaran berhasil diupload. Admin akan cek dan memperbarui status pesanan.');
-      onUploaded?.();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Upload gagal');
-    } finally {
-      setLoading(false);
-    }
-  }
+  void orderId;
+  void statusToken;
+  void onUploaded;
 
   return (
     <div className="mt-6 rounded-[1.5rem] border border-[#e5e7eb] bg-[#f7f7f8] p-5">
       <div className="flex items-center gap-3">
         <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#111827] text-white">
-          <UploadCloud size={22} />
+          <CreditCard size={22} />
         </div>
         <div>
-          <p className="font-semibold">Upload bukti pembayaran</p>
-          <p className="text-sm text-[#6b7280]">JPG, PNG, atau WEBP maksimal 5 MB. Pastikan nominal terlihat jelas.</p>
+          <p className="font-semibold">Pembayaran online otomatis</p>
+          <p className="text-sm text-[#6b7280]">Upload bukti bayar manual sudah dimatikan. Lanjutkan pembayaran dari checkout Duitku agar status pesanan terupdate otomatis.</p>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px]">
-        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setFile(event.target.files?.[0] || null)} className="rounded-xl border border-[#d1d5db] bg-white px-3 py-3 text-sm" />
-        <input value={amountClaimed} onChange={(event) => setAmountClaimed(event.target.value)} inputMode="numeric" placeholder="Nominal bayar" className="rounded-xl border border-[#d1d5db] bg-white px-3 py-3 text-sm outline-none focus:border-[#111827]/30" />
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <Link href="/pesan/saya" className="rounded-2xl bg-[#111827] px-5 py-3 text-center font-medium text-white transition hover:bg-[#374151]">
+          Buka Pesanan Saya
+        </Link>
+        <Link href="/pesan" className="rounded-2xl border border-[#d1d5db] bg-white px-5 py-3 text-center font-medium text-[#111827] transition hover:bg-[#f3f4f6]">
+          Kembali ke chat
+        </Link>
       </div>
-      {message && <p className="mt-3 text-sm font-medium text-[#4b5563]">{message}</p>}
-      <button onClick={upload} disabled={loading} className="mt-4 rounded-2xl bg-[#111827] px-5 py-3 font-medium text-white transition hover:bg-[#374151] disabled:opacity-60">
-        {loading ? 'Mengupload...' : 'Upload Bukti'}
-      </button>
     </div>
   );
 }

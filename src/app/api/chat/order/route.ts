@@ -23,11 +23,24 @@ export async function POST(req: Request) {
       role: 'system',
       content: result.paymentMethod === 'cod'
         ? 'Order COD berhasil dibuat. Admin akan mengecek dan mengonfirmasi pesanan kakak.'
-        : 'Order berhasil dibuat. Silakan lakukan pembayaran sesuai instruksi, lalu upload bukti dari halaman status.',
+        : result.checkoutUrl
+          ? 'Order berhasil dibuat. Lanjutkan pembayaran online dulu ya kak, nanti status pesanan akan terupdate otomatis.'
+          : 'Order berhasil dibuat. Link pembayaran online sedang disiapkan, cek status pesanan dulu ya kak.',
       components: [
         { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },
-        ...(result.paymentMethod === 'cod' ? [] : [{ type: 'payment_upload' as const, orderId: result.idTransaksi, statusToken: result.statusToken }]),
-        { type: 'quick_replies', options: [{ id: 'lihat-status', label: 'Lihat Status', value: statusUrl, action: 'tool_action' }] },
+        ...(result.paymentMethod === 'cod'
+          ? []
+          : [{ type: 'payment_upload' as const, orderId: result.idTransaksi, statusToken: result.statusToken }]),
+        {
+          type: 'quick_replies',
+          options: [
+            ...(result.paymentMethod !== 'cod' && result.checkoutUrl
+              ? [{ id: 'bayar-sekarang', label: 'Bayar sekarang', value: result.checkoutUrl, action: 'tool_action' as const }]
+              : []),
+            { id: 'lihat-status', label: 'Lihat status', value: statusUrl, action: 'tool_action' as const },
+            { id: 'pesanan-saya', label: 'Pesanan saya', value: '/pesan/saya', action: 'tool_action' as const },
+          ],
+        },
       ],
       metadata: { order: result },
     });

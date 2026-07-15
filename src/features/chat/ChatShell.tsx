@@ -176,6 +176,10 @@ export function ChatShell() {
       window.location.href = action;
       return;
     }
+    if (/^https?:\/\//i.test(action)) {
+      window.location.href = action;
+      return;
+    }
 
     setSending(true);
     setError('');
@@ -331,11 +335,11 @@ export function ChatShell() {
                 <span className="hidden sm:inline">Admin</span>
               </Link>
               <a
-                href="/pesan/lacak"
+                href="/pesan/saya"
                 className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 px-3 py-2 text-sm font-medium text-[#2f241c] shadow-[0_8px_18px_rgba(47,36,28,0.04)] transition hover:bg-white"
               >
                 <PackageSearch size={15} />
-                <span className="hidden sm:inline">Lacak</span>
+                <span className="hidden sm:inline">Pesanan saya</span>
               </a>
               <button
                 type="button"

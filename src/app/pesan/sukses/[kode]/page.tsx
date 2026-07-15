@@ -4,7 +4,6 @@ import { CheckCircle2, ClipboardList, MessageCircle, PackageCheck } from 'lucide
 import { db } from '@/lib/db';
 import { detailTransaksi, paymentIntent, transaksi } from '@/lib/schema';
 import { formatRupiah } from '@/lib/utils';
-import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
 import { PaymentInstructionCard } from '@/components/order/PaymentInstructionCard';
 
 export const dynamic = 'force-dynamic';
@@ -46,7 +45,7 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
               Admin Rumah Keripik akan cek pesananmu.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-[#6b7280]">
-              Simpan kode pesanan ini untuk lacak status. Jika memilih transfer atau QRIS, upload bukti bayar agar admin bisa cek pembayaran.
+              Simpan halaman ini untuk melihat status pesanan. Jika memilih pembayaran online, lanjutkan checkout lewat Duitku agar status pesanan terupdate otomatis.
             </p>
           </div>
 
@@ -88,13 +87,12 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
           {order && order.status_token && hasValidToken && order.payment_status !== 'verified' && order.payment_method !== 'cod' && (
             <>
               <PaymentInstructionCard amount={order.total_bayar} instruction={instruction} />
-              <PaymentProofUploader orderId={order.id_transaksi} statusToken={order.status_token} />
             </>
           )}
 
           {order?.status_token && !hasValidToken && (
             <div className="mt-6 rounded-[1.5rem] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-              Link ini membutuhkan token pesanan untuk menampilkan detail dan upload bukti pembayaran. Gunakan link sukses/status dari proses checkout terakhir.
+              Link ini membutuhkan token pesanan untuk menampilkan detail pembayaran dan status. Gunakan link sukses atau status dari proses checkout terakhir.
             </div>
           )}
 
@@ -125,10 +123,10 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
               Lihat status pesanan
             </Link>
             <Link
-              href="/pesan/lacak"
+              href="/pesan/saya"
               className="flex-1 rounded-2xl border border-[#e5e7eb] bg-[#f7f7f8] px-5 py-4 text-center font-medium text-[#111827] transition hover:bg-[#f3f4f6]"
             >
-              Lacak dengan HP
+              Pesanan saya
             </Link>
             <Link
               href="/pesan"
@@ -146,7 +144,7 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
 function parseInstruction(value: string | null | undefined) {
   if (!value) return null;
   try {
-    return JSON.parse(value) as { type?: string; label?: string; accountName?: string; accountNumber?: string; bankName?: string; qrisImageUrl?: string; note?: string };
+    return JSON.parse(value) as { type?: string; label?: string; provider?: string; accountName?: string; accountNumber?: string; bankName?: string; qrisImageUrl?: string; paymentUrl?: string; reference?: string; unavailable?: boolean; note?: string };
   } catch {
     return null;
   }

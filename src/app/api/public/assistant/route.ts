@@ -26,19 +26,19 @@ export async function POST(req: Request) {
     ], 220, 0.2, [
       'Kamu adalah asisten public ordering Rumah Keripik.',
       'Jawab singkat dalam Bahasa Indonesia.',
-      'Boleh bantu rekomendasi umum, cara order, cara bayar manual, QRIS, COD, dan upload bukti.',
+      'Boleh bantu rekomendasi umum, cara order, cara bayar online via Duitku, QRIS, transfer, e-wallet, dan COD.',
       'Jangan membuat order, jangan mengubah stok/harga, jangan klaim pembayaran valid, jangan meminta data sensitif.',
       'Arahkan user memakai tombol/form di halaman untuk tindakan transaksi.',
     ].join(' '));
     return NextResponse.json({ ok: true, source: result.provider, answer: result.text });
   } catch {
-    return NextResponse.json({ ok: true, source: 'fallback', answer: 'Maaf, asisten sedang terbatas. Kamu tetap bisa pilih produk, isi alamat, pilih metode pembayaran, lalu upload bukti setelah bayar.' });
+    return NextResponse.json({ ok: true, source: 'fallback', answer: 'Maaf, asisten sedang terbatas. Kamu tetap bisa pilih produk, isi alamat, lalu lanjut bayar online dari checkout yang muncul.' });
   }
 }
 
 function answerDeterministic(text: string) {
   const lower = text.toLowerCase();
-  if (/bayar|transfer|qris|bukti/.test(lower)) return 'Pembayaran Rumah Keripik memakai transfer/QRIS/e-wallet manual. Setelah bayar sesuai nominal, upload screenshot bukti agar admin bisa verifikasi.';
+  if (/bayar|transfer|qris|duitku|e-wallet|virtual account|va/.test(lower)) return 'Pembayaran Rumah Keripik dilakukan lewat checkout online Duitku. Setelah transaksi sukses, status pesanan akan diperbarui otomatis.';
   if (/cod|bayar di tempat/.test(lower)) return 'COD bisa dipilih jika aktif. Order COD akan menunggu persetujuan admin sebelum diproses.';
   if (/stok|harga|produk|varian|rasa/.test(lower)) return 'Stok dan harga yang tampil di kartu produk berasal dari dashboard. Pilih varian di kartu produk untuk melihat harga dan stoknya.';
   if (/alamat|kirim|ongkir|lokasi/.test(lower)) return 'Isi alamat lengkap dan patokan. Kamu juga bisa pakai tombol ambil titik lokasi jika browser mengizinkan.';

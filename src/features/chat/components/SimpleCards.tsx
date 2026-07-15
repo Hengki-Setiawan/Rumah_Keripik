@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, CreditCard, Edit3, MapPinned, Navigation, PackageCheck, ShieldCheck, UserRound } from 'lucide-react';
-import { PaymentProofUploader } from '@/components/order/PaymentProofUploader';
 import { formatRupiah } from '@/lib/utils';
 import type { AddressConfirmComponent, AdminHandoffComponent, CustomerConfirmComponent, OrderStatusComponent, OrderSummaryComponent, PaymentUploadComponent } from '@/lib/chat-v3/types';
 
@@ -61,15 +60,41 @@ export function AddressConfirmCard({ component, onAction }: { component: Address
 }
 
 export function PaymentUploadCard({ component, onAction }: { component: PaymentUploadComponent; onAction?: (action: string, payload?: Record<string, unknown>) => void }) {
-  if (component.statusToken) {
-    return <PaymentProofUploader orderId={component.orderId} statusToken={component.statusToken} onUploaded={() => onAction?.('refresh_chat')} />;
+  if (component.qrCodeUrl) {
+    return (
+      <div className={cardClass}>
+        <div className="flex items-center gap-2">
+          <CreditCard size={18} className="text-[#c55a2b]" />
+          <h3 className="font-semibold text-[#2f241c]">Scan QRIS untuk Membayar</h3>
+        </div>
+        <div className="mt-3 bg-white p-3 rounded-2xl border border-[#ecd8bf] text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={component.qrCodeUrl} alt="QRIS Midtrans" className="mx-auto max-h-60 object-contain rounded-xl" />
+        </div>
+        <p className="mt-2 text-xs leading-5 text-[#6b7280]">
+          Total nominal: <span className="font-semibold text-[#2f241c]">{formatRupiah(component.amount || 0)}</span>.
+          Pindai QRIS di atas dengan GoPay, ShopeePay, DANA, OVO, LinkAja, atau Mobile Banking.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" onClick={() => onAction?.('refresh_chat')} className={primaryButtonClass}>
+            Saya Sudah Bayar
+          </button>
+          <Link href="/pesan/saya" className={secondaryButtonClass}>
+            Buka Pesanan Saya
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><CreditCard size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#2f241c]">Upload bukti pembayaran</h3></div>
-      <p className="mt-2 text-sm leading-6 text-[#6b7280]">Upload bukti tersedia di halaman status/sukses pesanan.</p>
-      <Link href={`/pesan/lacak?code=${encodeURIComponent(component.orderId)}`} className={`${primaryButtonClass} mt-3`}>Buka status</Link>
+      <div className="flex items-center gap-2"><CreditCard size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#2f241c]">Lanjutkan pembayaran</h3></div>
+      <p className="mt-2 text-sm leading-6 text-[#6b7280]">Pembayaran manual sudah tidak dipakai untuk transfer online. Buka pesanan agar bisa lanjut bayar atau cek status terbaru.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link href="/pesan/saya" className={primaryButtonClass}>Buka Pesanan Saya</Link>
+        <button type="button" onClick={() => onAction?.('refresh_chat')} className={secondaryButtonClass}>Refresh chat</button>
+      </div>
     </div>
   );
 }
@@ -196,7 +221,7 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
             >
               <p className="text-sm font-semibold text-[#2f241c]">{method.label}</p>
               <p className="mt-1 text-xs leading-5 text-[#6b7280]">
-                {method.note || (method.type === 'cod' ? 'Bayar saat pesanan diterima.' : 'Pembayaran akan dicek admin.')}
+                {method.note || (method.type === 'cod' ? 'Bayar saat pesanan diterima.' : 'Pilih transfer, QRIS, atau e-wallet saat checkout Duitku terbuka.')}
               </p>
               {method.accountNumber && (
                 <p className="mt-2 text-xs font-medium text-[#2f241c]">
@@ -264,7 +289,7 @@ export function AdminHandoffCard({
         >
           Lihat katalog
         </button>
-        <Link href="/pesan/lacak" className={primaryButtonClass}>
+        <Link href="/pesan/saya" className={primaryButtonClass}>
           Buka order lama
         </Link>
       </div>

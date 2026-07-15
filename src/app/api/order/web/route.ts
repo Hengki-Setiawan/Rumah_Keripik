@@ -22,6 +22,7 @@ import { normalizePhoneNumber } from '@/lib/utils';
 import { buildPaymentInstructionPayload, generatePaymentIntentId } from '@/lib/payments/payment-utils';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
+import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
 
 export const runtime = 'nodejs';
 
@@ -300,10 +301,51 @@ export async function POST(req: Request) {
         metadata_json: JSON.stringify({ kodePesanan, idSession, idCustomer: customer.idCustomer, paymentMethodId: configuredMethod.id_payment_method, paymentMethod: methodType }),
       });
 
-      return { idTransaksi, kodePesanan, totalBayar, statusPembayaran, statusToken, anonymousToken };
+      return {
+        idTransaksi,
+        kodePesanan,
+        totalBayar,
+        statusPembayaran,
+        statusToken,
+        anonymousToken,
+        customer: {
+          name: payload.customer.name,
+          phone: normalizedPhone,
+          address: payload.address.text,
+        },
+        method: configuredMethod,
+        items: details.map((detail) => ({
+          name: detail.nama_varian_snapshot ? `${detail.nama_produk_snapshot} - ${detail.nama_varian_snapshot}` : detail.nama_produk_snapshot,
+          price: detail.harga_snapshot,
+          quantity: detail.qty_terjual,
+        })),
+      };
     });
 
-    const response = NextResponse.json({ ok: true, order: result });
+    const paymentSetup = await setupOrderPaymentAfterCreate({
+      idTransaksi: result.idTransaksi,
+      kodePesanan: result.kodePesanan,
+      totalBayar: result.totalBayar,
+      statusToken: result.statusToken,
+      customer: result.customer,
+      method: result.method,
+      items: result.items,
+    });
+
+    const response = NextResponse.json({
+      ok: true,
+      order: {
+        idTransaksi: result.idTransaksi,
+        kodePesanan: result.kodePesanan,
+        totalBayar: result.totalBayar,
+        statusPembayaran: result.statusPembayaran,
+        statusToken: result.statusToken,
+        anonymousToken: result.anonymousToken,
+        checkoutUrl: paymentSetup.checkoutUrl,
+        paymentInstruction: paymentSetup.instruction,
+        paymentProvider: paymentSetup.provider,
+      },
+    });
     (await cookies()).set('rk_order_session', result.anonymousToken, {
       httpOnly: true,
       sameSite: 'lax',

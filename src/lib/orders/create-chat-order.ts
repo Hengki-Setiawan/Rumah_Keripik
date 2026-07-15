@@ -22,6 +22,7 @@ import { generateAnonymousToken, generateIdTransaksi, generateIdWebSession, gene
 import { normalizePhoneNumber } from '@/lib/utils';
 import { buildPaymentInstructionPayload, generatePaymentIntentId } from '@/lib/payments/payment-utils';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
+import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
 
 export type CreateChatOrderInput = {
   chatSessionId: string;
@@ -54,7 +55,7 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
   const lat = parseCoordinate(input.address.lat);
   const lng = parseCoordinate(input.address.lng);
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [cart] = await tx
       .select()
       .from(chatCarts)
@@ -268,6 +269,56 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
       await tx.update(customerSessions).set({ customerId: customer.idCustomer, lastSeenAt: sql`(datetime('now', 'utc'))` }).where(eq(customerSessions.id, updatedSession.customerSessionId));
     }
 
-    return { idTransaksi, kodePesanan, totalBayar, statusPembayaran, statusToken, anonymousToken, paymentMethod: methodType, paymentLabel: configuredMethod.label, customerId: customer.idCustomer, productIds, chatSessionId: input.chatSessionId };
+    return {
+      idTransaksi,
+      kodePesanan,
+      totalBayar,
+      statusPembayaran,
+      statusToken,
+      anonymousToken,
+      paymentMethod: methodType,
+      paymentLabel: configuredMethod.label,
+      customerId: customer.idCustomer,
+      productIds,
+      chatSessionId: input.chatSessionId,
+      customer: {
+        name: input.customer.name,
+        phone: normalizedPhone,
+        address: input.address.text,
+      },
+      method: configuredMethod,
+      items: details.map((detail) => ({
+        name: detail.nama_varian_snapshot ? `${detail.nama_produk_snapshot} - ${detail.nama_varian_snapshot}` : detail.nama_produk_snapshot,
+        price: detail.harga_snapshot,
+        quantity: detail.qty_terjual,
+      })),
+    };
   });
+
+  const paymentSetup = await setupOrderPaymentAfterCreate({
+    idTransaksi: result.idTransaksi,
+    kodePesanan: result.kodePesanan,
+    totalBayar: result.totalBayar,
+    statusToken: result.statusToken,
+    customer: result.customer,
+    method: result.method,
+    items: result.items,
+  });
+
+  return {
+    idTransaksi: result.idTransaksi,
+    kodePesanan: result.kodePesanan,
+    totalBayar: result.totalBayar,
+    statusPembayaran: result.statusPembayaran,
+    statusToken: result.statusToken,
+    anonymousToken: result.anonymousToken,
+    paymentMethod: result.paymentMethod,
+    paymentLabel: result.paymentLabel,
+    customerId: result.customerId,
+    productIds: result.productIds,
+    chatSessionId: result.chatSessionId,
+    checkoutUrl: paymentSetup.checkoutUrl,
+    paymentInstruction: paymentSetup.instruction,
+    paymentProvider: paymentSetup.provider,
+  };
 }

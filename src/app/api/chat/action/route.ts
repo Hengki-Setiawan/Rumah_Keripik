@@ -67,14 +67,14 @@ export async function POST(req: Request) {
       await createChatMessage({
         chatSessionId,
         role: 'assistant',
-        content: 'Aku bisa bantu cek keranjang, ubah alamat, pilih pembayaran, lacak pesanan, atau teruskan ke admin kalau perlu.',
+        content: 'Aku bisa bantu cek keranjang, ubah alamat, pilih pembayaran, buka Pesanan Saya, atau teruskan ke admin kalau perlu.',
         components: [{
           type: 'quick_replies',
           options: [
             { id: 'bantuan-produk', label: 'Lihat produk', value: 'Lihat produk', action: 'send_message' },
             { id: 'bantuan-keranjang', label: 'Lihat keranjang', value: 'Lihat keranjang saya', action: 'send_message' },
             { id: 'bantuan-alamat', label: 'Ubah alamat', value: 'Saya mau ubah alamat pengiriman', action: 'send_message' },
-            { id: 'bantuan-lacak', label: 'Lacak pesanan', value: '/pesan/lacak', action: 'tool_action' },
+            { id: 'bantuan-lacak', label: 'Pesanan saya', value: '/pesan/saya', action: 'tool_action' },
             { id: 'bantuan-admin', label: 'Hubungi admin', value: 'Saya butuh bantuan admin', action: 'send_message' },
           ],
         }],
@@ -120,11 +120,16 @@ export async function POST(req: Request) {
         role: 'system',
         content: result.paymentMethod === 'cod'
           ? 'Order COD berhasil dibuat. Admin akan mengecek dan mengonfirmasi pesanan kakak.'
-          : 'Order berhasil dibuat. Silakan bayar sesuai instruksi, lalu upload bukti dari halaman status.',
+          : result.checkoutUrl
+            ? 'Order berhasil dibuat. Silakan scan QRIS di bawah ini untuk membayar ya kak.'
+            : 'Order berhasil dibuat, tetapi QRIS belum siap. Coba buka status pesanan dulu ya kak.',
         components: [
           { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },
-          ...(result.paymentMethod === 'cod' ? [] : [{ type: 'payment_upload' as const, orderId: result.idTransaksi, statusToken: result.statusToken }]),
-          { type: 'quick_replies', options: [{ id: 'lihat-status', label: 'Lihat Status', value: statusUrl, action: 'tool_action' }] },
+          ...(result.paymentMethod !== 'cod' && result.checkoutUrl ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, amount: result.totalBayar }] : []),
+          { type: 'quick_replies', options: [
+            { id: 'lihat-status', label: 'Lihat status', value: statusUrl, action: 'tool_action' as const },
+            { id: 'pesanan-saya', label: 'Pesanan saya', value: '/pesan/saya', action: 'tool_action' as const },
+          ] },
         ],
         metadata: { order: result },
       });
@@ -151,11 +156,16 @@ export async function POST(req: Request) {
         role: 'system',
         content: result.paymentMethod === 'cod'
           ? 'Order COD berhasil dibuat memakai data tersimpan. Admin akan mengecek dan mengonfirmasi pesanan kakak.'
-          : 'Order berhasil dibuat memakai data tersimpan. Silakan bayar sesuai instruksi, lalu upload bukti dari halaman status.',
+          : result.checkoutUrl
+            ? 'Order berhasil dibuat memakai data tersimpan. Silakan scan QRIS di bawah ini untuk membayar ya kak.'
+            : 'Order berhasil dibuat memakai data tersimpan, tetapi QRIS belum siap. Coba buka status pesanan dulu ya kak.',
         components: [
           { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },
-          ...(result.paymentMethod === 'cod' ? [] : [{ type: 'payment_upload' as const, orderId: result.idTransaksi, statusToken: result.statusToken }]),
-          { type: 'quick_replies', options: [{ id: 'lihat-status', label: 'Lihat Status', value: statusUrl, action: 'tool_action' }] },
+          ...(result.paymentMethod !== 'cod' && result.checkoutUrl ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, amount: result.totalBayar }] : []),
+          { type: 'quick_replies', options: [
+            { id: 'lihat-status', label: 'Lihat status', value: statusUrl, action: 'tool_action' as const },
+            { id: 'pesanan-saya', label: 'Pesanan saya', value: '/pesan/saya', action: 'tool_action' as const },
+          ] },
         ],
         metadata: { order: result, savedCheckout: true },
       });

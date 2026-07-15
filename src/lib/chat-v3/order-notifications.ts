@@ -14,9 +14,9 @@ type OrderNotificationType =
   | 'order_cancelled';
 
 const templates: Record<OrderNotificationType, string> = {
-  payment_uploaded: 'Bukti pembayaran kakak sudah diterima. Admin akan cek dan memperbarui status pesanan ya.',
+  payment_uploaded: 'Riwayat pembayaran pesanan sudah masuk. Status akan diperbarui setelah verifikasi selesai ya kak.',
   payment_verified: 'Pembayaran kakak sudah berhasil diverifikasi. Pesanan sedang kami proses ya.',
-  payment_rejected: 'Bukti pembayaran belum bisa kami verifikasi. Mohon cek kembali atau kirim ulang bukti pembayaran ya.',
+  payment_rejected: 'Pembayaran belum berhasil diverifikasi. Coba buka lagi checkout online dari status pesanan atau Pesanan Saya ya.',
   order_processing: 'Pesanan kakak sedang disiapkan.',
   order_shipping: 'Pesanan kakak sudah masuk proses pengiriman.',
   order_completed: 'Pesanan sudah selesai. Terima kasih sudah pesan di Rumah Keripik.',

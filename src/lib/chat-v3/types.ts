@@ -97,6 +97,8 @@ export type PaymentUploadComponent = {
   statusToken?: string;
   allowedTypes?: Array<'image/jpeg' | 'image/png' | 'application/pdf'>;
   maxSizeMb?: number;
+  qrCodeUrl?: string | null;
+  amount?: number;
 };
 
 export type OrderSummaryComponent = {

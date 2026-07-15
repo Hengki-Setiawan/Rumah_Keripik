@@ -13,7 +13,7 @@ export function deriveChatSessionTitle(message: string, intent?: string | null) 
   const normalized = normalizeMessage(message);
   const lower = normalized.toLowerCase();
 
-  if (intent === 'track_order' || /status|lacak|cek pesanan/.test(lower)) return 'Lacak Pesanan';
+  if (intent === 'track_order' || /status|lacak|cek pesanan|pesanan saya/.test(lower)) return 'Pesanan Saya';
   if (intent === 'show_payment' || /bayar|pembayaran|qris|transfer|cod/.test(lower)) return 'Pembayaran Pesanan';
   if (intent === 'show_cart' || /keranjang|checkout|lanjut pesanan/.test(lower)) return 'Keranjang Belanja';
   if (intent === 'request_location' || /alamat|lokasi|pengiriman|kirim/.test(lower)) return 'Alamat Pengiriman';
