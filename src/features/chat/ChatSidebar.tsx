@@ -33,7 +33,9 @@ export type ChatSessionSummary = {
 };
 
 function formatSessionTime(value: string) {
-  const date = new Date(value);
+  // SQLite returns string "YYYY-MM-DD HH:MM:SS" without Z. Append Z to force UTC parsing.
+  const dateString = value.includes('Z') || value.includes('+') ? value : `${value.replace(' ', 'T')}Z`;
+  const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return 'Waktu belum tersedia';
 
   const now = new Date();

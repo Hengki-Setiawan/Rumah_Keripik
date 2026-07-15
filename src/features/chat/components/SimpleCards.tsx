@@ -347,7 +347,9 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
         <input data-testid="order-address-note" value={address.note} onChange={(event) => setAddress({ ...address, note: event.target.value })} placeholder="Patokan/catatan kurir" className={inputClass} />
         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
           <input data-testid="order-address-maps" value={address.mapsLink} onChange={(event) => setAddress({ ...address, mapsLink: event.target.value })} placeholder="Link Google Maps (opsional)" className={inputClass} />
-          <button data-testid="order-address-geolocate" type="button" onClick={useLocation} className={`${secondaryButtonClass} rounded-2xl px-4 py-3`}>Ambil titik</button>
+          <button data-testid="order-address-geolocate" type="button" onClick={useLocation} className={`${secondaryButtonClass} rounded-2xl px-4 py-3 gap-1.5`}>
+            <Navigation size={14} className="text-[#c55a2b] animate-pulse" /> Ambil titik GPS
+          </button>
         </div>
         {(address.lat && address.lng) && <p className="rounded-[1.2rem] bg-[#eef6dd] px-4 py-3 text-xs font-medium text-[#56721f]">Koordinat tersimpan: {address.lat.slice(0, 10)}, {address.lng.slice(0, 10)}</p>}
         <button data-testid="order-step-payment" type="button" disabled={address.text.trim().length < 8} onClick={() => setStep('payment')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut pembayaran</button>
