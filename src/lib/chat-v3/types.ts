@@ -151,6 +151,7 @@ export type AIChatResponse = {
   toolName?: string;
   toolArgs?: Record<string, unknown>;
   confidence?: number;
+  metadata?: Record<string, unknown>;
 };
 
 export type ChatMessageDto = {

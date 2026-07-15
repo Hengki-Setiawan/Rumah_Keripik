@@ -141,6 +141,7 @@ export const AIChatResponseSchema = z.object({
   toolName: z.string().max(80).optional(),
   toolArgs: z.record(z.unknown()).optional(),
   confidence: z.number().min(0).max(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export const SendChatSchema = z.object({

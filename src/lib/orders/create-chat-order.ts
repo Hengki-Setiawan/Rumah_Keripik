@@ -29,6 +29,7 @@ export type CreateChatOrderInput = {
   customer: {
     name: string;
     phone: string;
+    pin?: string;
     type?: 'konsumen' | 'warung' | 'reseller';
   };
   address: {
