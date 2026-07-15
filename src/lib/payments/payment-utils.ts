@@ -68,7 +68,7 @@ export function buildPublicPaymentMethodOptions(methods: PaymentMethod[]) {
     note?: string;
     minOrderTotal?: number | null;
     maxOrderTotal?: number | null;
-    provider?: 'duitku';
+    provider?: 'midtrans' | 'duitku';
   }> = [];
 
   if (onlineBase) {
@@ -76,10 +76,10 @@ export function buildPublicPaymentMethodOptions(methods: PaymentMethod[]) {
       id: onlineBase.id_payment_method,
       type: onlineBase.type,
       label: 'Bayar online',
-      note: 'Transfer, QRIS, dan e-wallet dipilih di halaman Duitku setelah pesanan dibuat.',
+      note: 'Transfer, QRIS, dan e-wallet (OVO, GoPay, DANA, dll) dibayar langsung menggunakan QRIS.',
       minOrderTotal: onlineBase.min_order_total,
       maxOrderTotal: onlineBase.max_order_total,
-      provider: 'duitku',
+      provider: 'midtrans',
     });
   }
 
