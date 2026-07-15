@@ -109,16 +109,15 @@ test.describe('Vercel Production E2E Lifecycle Flow', () => {
     console.log(`Mengirimkan simulasi webhook pembayaran lunas untuk ${orderCode}...`);
     await simulateMidtransWebhook(targetUrl, orderCode, '18000.00');
 
-    // 8. Buka tab baru atau kunjungi halaman admin untuk memproses pesanan
+    // 8. Kunjungi halaman login dengan callbackUrl agar auto-redirect ke /transaksi setelah sukses
     console.log('Melakukan login admin...');
-    await page.goto(`${targetUrl}/login`);
+    await page.goto(`${targetUrl}/login?callbackUrl=%2Ftransaksi`);
     await page.locator('#username').fill(adminUsername);
     await page.locator('#password').fill(adminPassword);
     await page.getByRole('button', { name: /masuk ke dashboard/i }).click();
 
-    // Masuk ke dashboard transaksi
-    console.log('Membuka daftar transaksi admin...');
-    await page.goto(`${targetUrl}/transaksi`);
+    // Tunggu sistem memproses login dan redirect secara otomatis
+    console.log('Menunggu navigasi otomatis ke dashboard transaksi...');
     await expect(page).toHaveURL(/\/transaksi/);
 
     // Cari transaksi berdasarkan kode pesanan

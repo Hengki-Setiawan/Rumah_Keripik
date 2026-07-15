@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { orderStatusHistory, paymentIntent, transaksi } from '@/lib/schema';
 import { markOrderPaidFromGateway } from '@/lib/orders/payment-settlement';
@@ -38,7 +38,10 @@ export async function POST(req: Request) {
   const [order] = await db
     .select()
     .from(transaksi)
-    .where(eq(transaksi.kode_pesanan, orderId))
+    .where(or(
+      eq(transaksi.kode_pesanan, orderId),
+      eq(transaksi.id_transaksi, orderId)
+    ))
     .limit(1);
 
   if (!order) return NextResponse.json({ ok: true, ignored: true });
