@@ -166,7 +166,7 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
   );
 }
 
-export function OrderSummaryCard({ component, onAction }: { component: OrderSummaryComponent; onAction: (action: string, payload?: Record<string, unknown>) => void }) {
+export function OrderSummaryCard({ component, onSend, onAction }: { component: OrderSummaryComponent; onSend?: (message: string) => void; onAction: (action: string, payload?: Record<string, unknown>) => void }) {
   const [step, setStep] = useState<'customer' | 'address' | 'payment' | 'review'>(component.savedCustomerId && component.savedAddressId ? 'review' : 'customer');
   const [customer, setCustomer] = useState({ name: '', phone: '', type: 'konsumen', pin: '' });
   const [address, setAddress] = useState({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
@@ -233,6 +233,21 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
       <div className="flex items-center gap-2"><PackageCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Buat order dari chat</h3></div>
       <p className="mt-2 text-sm leading-6 text-[#6b7280]">Aku minta data bertahap supaya order bisa masuk dashboard dengan benar.</p>
       
+      {/* Banner login interaktif jika belum terdaftar */}
+      {!component.savedCustomerId && (
+        <div className="mt-3 rounded-[1.35rem] border border-[#ecd8bf] bg-[#fffaf3] p-3 text-center shadow-[0_8px_20px_rgba(47,36,28,0.03)]">
+          <p className="text-xs font-semibold text-[#8b4c31] mb-1">🔑 Sudah Pernah Memesan Sebelumnya?</p>
+          <p className="text-[11px] text-[#6f5d4f] mb-2.5">Kakak bisa masuk lewat chat untuk memuat data alamat secara otomatis.</p>
+          <button
+            type="button"
+            onClick={() => onSend?.('Saya pernah pesan')}
+            className="inline-flex min-h-8 items-center justify-center rounded-full bg-[#c55a2b] px-4 py-1.5 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(197,90,43,0.12)] transition hover:bg-[#ae4d23]"
+          >
+            Masuk / Login Sekarang
+          </button>
+        </div>
+      )}
+
       {/* Tombol Data Tersimpan — paling menonjol jika tersedia */}
       {(component.savedCustomerId && component.savedAddressId) && (
         <div className="mt-4 rounded-[1.5rem] border-2 border-[#7f9f3e] bg-[#eef6dd] p-4">
@@ -258,9 +273,29 @@ export function OrderSummaryCard({ component, onAction }: { component: OrderSumm
               🚀 Pakai Data Tersimpan &amp; Buat Order
             </button>
           </div>
-          <button type="button" onClick={() => setStep('customer')} className="mt-2 w-full text-xs text-[#56721f] underline underline-offset-2">
-            Atau isi data baru
-          </button>
+
+          {/* Opsi Ubah Profil & Alamat Baru secara explisit */}
+          <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-[#c5dea0]/35 pt-3 text-[11px]">
+            <button
+              type="button"
+              onClick={() => {
+                setAddress({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
+                setStep('address');
+              }}
+              className="font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
+            >
+              🆕 Kirim ke Alamat Baru
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep('customer');
+              }}
+              className="font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
+            >
+              👤 Ubah Profil Penerima
+            </button>
+          </div>
         </div>
       )}
 

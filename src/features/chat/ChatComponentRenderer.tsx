@@ -20,7 +20,7 @@ export function ChatComponentRenderer({ components, cart, onSend, onAction }: { 
         if (component.type === 'customer_confirm') return <CustomerConfirmCard key={index} component={component} onAction={onAction} />;
         if (component.type === 'address_confirm') return <AddressConfirmCard key={index} component={component} onAction={onAction} />;
         if (component.type === 'payment_upload') return <PaymentUploadCard key={index} component={component} onAction={onAction} />;
-        if (component.type === 'order_summary') return <OrderSummaryCard key={index} component={component} onAction={onAction} />;
+        if (component.type === 'order_summary') return <OrderSummaryCard key={index} component={component} onSend={onSend} onAction={onAction} />;
         if (component.type === 'order_status_card') return <OrderStatusCard key={index} component={component} />;
         if (component.type === 'admin_handoff_card') return <AdminHandoffCard key={index} component={component} onSend={onSend} />;
         return null;
