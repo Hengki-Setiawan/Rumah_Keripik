@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chatSessions, transaksi } from '@/lib/schema';
 import { createChatMessage } from './messages';
+import { sendOrderPushNotification } from '@/lib/expo-push';
 import type { ChatComponent } from './types';
 
 type OrderNotificationType =
@@ -45,13 +46,14 @@ export async function notifyChatForOrderEvent(orderId: string, type: OrderNotifi
   }
 
   const content = options.note ? `${templates[type]}\n${options.note}` : templates[type];
-  await Promise.all(
-    sessions.map((session) => createChatMessage({
+  await Promise.all([
+    ...sessions.map((session) => createChatMessage({
       chatSessionId: session.id,
       role: 'system',
       content,
       components,
       metadata: { eventType: type, orderId },
-    }))
-  );
+    })),
+    sendOrderPushNotification(orderId, order.order_status),
+  ]);
 }

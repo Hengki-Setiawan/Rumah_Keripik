@@ -1318,6 +1318,27 @@ export type InsertDeliveryAssignment = typeof deliveryAssignment.$inferInsert;
 export type DeliveryRoutePoint = typeof deliveryRoutePoint.$inferSelect;
 export type InsertDeliveryRoutePoint = typeof deliveryRoutePoint.$inferInsert;
 
+// ─── EXPO PUSH TOKENS ──────────────────────────────────────────────────────────
+export const expoPushTokens = sqliteTable(
+  'expo_push_tokens',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    token: text('token').notNull().unique(),
+    customerId: text('customer_id').references(() => customerProfile.id_customer),
+    orderSessionId: text('order_session_id'),
+    platform: text('platform', { enum: ['android', 'ios'] }).notNull().default('android'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    lastActiveAt: text('last_active_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    customerIdx: index('idx_expo_push_customer').on(table.customerId),
+    tokenIdx: unique('idx_expo_push_token').on(table.token),
+  })
+);
+
+export type ExpoPushToken = typeof expoPushTokens.$inferSelect;
+export type InsertExpoPushToken = typeof expoPushTokens.$inferInsert;
+
 export const rateLimits = sqliteTable('rate_limits', {
   key: text('key').primaryKey(),
   count: integer('count').notNull().default(0),
