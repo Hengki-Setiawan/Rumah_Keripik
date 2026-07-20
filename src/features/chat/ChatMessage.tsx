@@ -13,12 +13,14 @@ export function ChatMessage({
   onSend,
   onAction,
   isFirstAssistant = false,
+  hideQuickReplies,
 }: {
   message: ChatMessageDto;
   cart?: ChatCartDto | null;
   onSend: (message: string) => void;
   onAction: (action: string, payload?: Record<string, unknown>) => void;
   isFirstAssistant?: boolean;
+  hideQuickReplies?: boolean;
 }) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
@@ -141,9 +143,14 @@ export function ChatMessage({
           </div>
         )}
 
-        {message.components.length > 0 && (
+        {message.components.filter((c) => !hideQuickReplies || c.type !== 'quick_replies').length > 0 && (
           <div className={`${!isUser ? 'w-full' : 'max-w-full'}`}>
-            <ChatComponentRenderer components={message.components} cart={cart} onSend={onSend} onAction={onAction} />
+            <ChatComponentRenderer
+              components={message.components.filter((c) => !hideQuickReplies || c.type !== 'quick_replies')}
+              cart={cart}
+              onSend={onSend}
+              onAction={onAction}
+            />
           </div>
         )}
       </div>

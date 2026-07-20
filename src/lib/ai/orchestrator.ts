@@ -248,6 +248,42 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
 
   const complexOrder = parseComplexOrderIntent(lower);
 
+  if (complexOrder.wantsReOrder && customerContext.lastOrder) {
+    return {
+      reply: `Siap kak, aku buatkan pesanan yang sama dengan order sebelumnya ya.`,
+      intent: 'confirm_order',
+      components: [
+        { type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, deliveryStatus: customerContext.lastOrder.status, totalAmount: customerContext.lastOrder.totalAmount },
+        ...(customerContext.customer ? [{ type: 'customer_confirm' as const, customerId: customerContext.customer.id, maskedFields: true, customer: customerContext.customer, actions: ['use_saved_data', 'edit_data'] }] : []),
+      ],
+      nextAction: 'reorder',
+      confidence: 0.92,
+    };
+  }
+
+  if (complexOrder.wantsReduceCart) {
+    const cart = await getChatCart(chatSessionId);
+    return {
+      reply: cart.itemCount > 0
+        ? `Siap kak, item di keranjang mau dikurangi. Silakan pilih yang mau dihapus di bawah.`
+        : 'Keranjang masih kosong kak, tidak ada yang bisa dikurangi.',
+      intent: 'update_cart',
+      components: cart.itemCount > 0 ? [{ type: 'cart_summary', cartId: cart.id }] : defaultQuickReplies(),
+      confidence: 0.9,
+    };
+  }
+
+  if (complexOrder.wantsAddMore) {
+    const products = await recommendProducts('rekomendasi produk', customerContext.memory);
+    return {
+      reply: 'Mau tambah produk lagi? Silakan pilih di bawah kak.',
+      intent: 'add_to_cart',
+      components: productComponents(products.map((p) => p.id)),
+      nextAction: 'wait_product_selection',
+      confidence: 0.9,
+    };
+  }
+
   if (complexOrder.needsProofUploadHelp) {
     return {
       reply: customerContext.lastOrder
@@ -363,6 +399,21 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
     return { reply: 'Bisa kak. Buka halaman Pesanan Saya untuk melihat order yang tersimpan di browser ini.', intent: 'track_order', components: [{ type: 'quick_replies', options: [{ id: 'pesanan-saya', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }] }], confidence: 0.9 };
   }
 
+  if (/ganti (ke|jadi) (transfer|bank|cod|bayar)/.test(lower) || complexOrder.wantsTransfer) {
+    const methods = await getActivePaymentMethods();
+    const isCod = /cod/.test(lower);
+    const filtered = isCod ? methods.filter((m) => m.type === 'cod') : methods.filter((m) => m.type !== 'cod');
+    return {
+      reply: isCod
+        ? 'Siap kak, pembayaran diganti ke COD (Bayar di Tempat). Silakan lanjutkan pesanan.'
+        : 'Siap kak, pembayaran diganti ke transfer/online. Silakan pilih metode di bawah.',
+      intent: 'show_payment',
+      components: [{ type: 'payment_methods', methodIds: (filtered.length > 0 ? filtered : methods).map((method) => method.id) }],
+      nextAction: 'select_payment_method',
+      confidence: 0.93,
+    };
+  }
+
   if (/bayar|pembayaran|qris|transfer|cod/.test(lower)) {
     const methods = await getActivePaymentMethods();
     return { reply: 'Ini metode pembayaran yang sedang aktif ya kak.', intent: 'show_payment', components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }], nextAction: 'select_payment_method', confidence: 0.9 };
@@ -383,6 +434,15 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
   if (/admin|manusia|komplain|bantuan|marah|kecewa|refund|diskon/.test(lower)) {
     await db.update(chatSessions).set({ status: 'needs_admin', aiMode: 'paused', updatedAt: sql`(datetime('now', 'utc'))` }).where(eq(chatSessions.id, chatSessionId));
     return { reply: 'Sebentar ya kak, aku teruskan ke admin supaya dicek lebih pasti.', intent: 'handoff_to_admin', components: [{ type: 'admin_handoff_card', reason: 'Customer meminta bantuan admin' }], confidence: 0.94 };
+  }
+
+  if (/stok (habis|kosong|0)|produk (habis|kosong)|tidak (ada|tersedia)/.test(lower)) {
+    return {
+      reply: 'Kalau produk yang kakak cari sedang habis, kakak bisa daftar tunggu biar dikabarin kalau stok udah ada lagi. Atau mau lihat produk lain yang tersedia?',
+      intent: 'recommend_products',
+      components: defaultQuickReplies(),
+      confidence: 0.88,
+    };
   }
 
   if (/produk|keripik|kripik|rasa|pedas|original|keluarga|oleh|budget|hemat|rekomendasi|mau/.test(lower)) {
@@ -502,32 +562,41 @@ type ComplexOrderIntent = {
   wantsCod: boolean;
   wantsTransfer?: boolean;
   wantsOldAddress?: boolean;
+  wantsReOrder?: boolean;
   wantsChangeAddress?: boolean;
+  wantsReduceCart?: boolean;
+  wantsAddMore?: boolean;
+  wantsRemoveProduct?: string | null;
   shouldPrepareOrder: boolean;
   needsProofUploadHelp: boolean;
+  isWholesaleContext: boolean;
   flavorHint: 'pedas' | 'non_pedas' | 'mixed' | null;
   items?: Array<{ quantity: number; flavorHint: 'pedas' | 'non_pedas' | null }>;
 };
 
 function parseComplexOrderIntent(lower: string): ComplexOrderIntent {
   const wantsCod = /\bcod\b|bayar di tempat/.test(lower);
-  const wantsTransfer = /\btransfer\b|\bbank\b|\bbayar manual\b/.test(lower);
+  const wantsTransfer = /\btransfer\b|\bbank\b|\bbayar manual\b|\bganti.*transfer\b/.test(lower);
   const needsProofUploadHelp = /(sudah transfer|bukti|upload).*(belum|nanti|malam|upload)|upload.*bukti|bukti.*upload/.test(lower);
   const hasOrderVerb = /(langsung|sekalian|tolong|bisa|mau|pesan|order|butuh|untuk|tambah)/.test(lower);
   const hasOrderContext = /keluarga|warung|reseller|kantor|acara|stok|jual lagi|oleh/.test(lower);
-  const wantsOldAddress = /alamat lama|alamat kemarin|seperti biasa/.test(lower);
-  const wantsChangeAddress = /ganti alamat|ubah alamat|pindah alamat/.test(lower);
+  const wantsOldAddress = /alamat lama|alamat kemarin|seperti biasa|alamat (yang )?dulu|pakai alamat/.test(lower);
+  const wantsReOrder = /pesan ulang|order (lagi|ulang)|sama (kayak|seperti) (yang )?kemarin|sama (lagi|ya)|beli (lagi|ulang)/.test(lower);
+  const wantsReduceCart = /kurangi|hapus|buang|dikurangi|dihapus|jangan jadi/.test(lower);
+  const wantsAddMore = /tambah (lagi|sekali|dong|ya|deh)|nambah|lagi donk|masih ada|masih kurang/.test(lower);
+  const wantsRemoveProduct = lower.match(/(?:hapus|buang|keluarkan)\s+(\w+)/)?.[1] || null;
+  const isWholesaleContext = /banyak|grosir|warung|reseller|jual (lagi|kembali)|partai|borongan/.test(lower);
 
-  const segments = lower.split(/\s*(?:\+|,|\/| dan | lalu | terus )\s*/i).filter(Boolean);
+  const segments = lower.split(/\s*(?:\+|,|\/| dan | lalu | terus | sama )\s*/i).filter(Boolean);
   const items: Array<{ quantity: number; flavorHint: 'pedas' | 'non_pedas' | null }> = [];
 
   for (const segment of segments) {
     const hasDigit = /(?:^|\s)(\d{1,2})\b/.test(segment);
-    const hasWord = /\b(satu|dua|tiga|empat|lima|enam)\b/.test(segment);
+    const hasWord = /\b(satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh)\b/.test(segment);
     const quantity = (hasDigit || hasWord) ? extractRequestedQuantity(segment) : 0;
     
     const hasPedas = segment.includes('pedas') || /balado|cabe|spicy|cabe/.test(segment);
-    const hasOriginal = /(original|non pedas|ga pedas|nggak pedas|keju|jagung|asin|gurih)/.test(segment);
+    const hasOriginal = /(original|non pedas|ga pedas|nggak pedas|keju|jagung|asin|gurih|bawang|mix)/.test(segment);
     
     if (quantity > 0 || hasPedas || hasOriginal) {
       items.push({
@@ -540,7 +609,7 @@ function parseComplexOrderIntent(lower: string): ComplexOrderIntent {
   if (items.length === 0 && (hasOrderVerb || hasOrderContext)) {
     const quantity = extractRequestedQuantity(lower);
     const hasPedas = lower.includes('pedas') || /balado|cabe|spicy/.test(lower);
-    const hasOriginal = /(original|non pedas|ga pedas|nggak pedas|keju|jagung|asin|gurih)/.test(lower);
+    const hasOriginal = /(original|non pedas|ga pedas|nggak pedas|keju|jagung|asin|gurih|bawang|mix)/.test(lower);
     items.push({
       quantity: quantity || 1,
       flavorHint: hasPedas ? 'pedas' : (hasOriginal ? 'non_pedas' : null),
@@ -552,7 +621,7 @@ function parseComplexOrderIntent(lower: string): ComplexOrderIntent {
   const isTracking = /status|lacak|cek pesanan|pesanan saya/.test(lower);
 
   const shouldPrepareOrder = items.length > 0 && 
-    (hasOrderVerb || wantsCod || wantsTransfer || hasOrderContext || wantsOldAddress) &&
+    (hasOrderVerb || wantsCod || wantsTransfer || hasOrderContext || wantsOldAddress || wantsReOrder) &&
     !isHandoff && !isAddressEdit && !isTracking;
 
   return {
@@ -561,25 +630,34 @@ function parseComplexOrderIntent(lower: string): ComplexOrderIntent {
     wantsCod,
     wantsTransfer,
     wantsOldAddress,
-    wantsChangeAddress,
+    wantsReOrder,
+    wantsChangeAddress: /ganti alamat|ubah alamat|pindah alamat/.test(lower),
+    wantsReduceCart,
+    wantsAddMore,
+    wantsRemoveProduct,
     needsProofUploadHelp,
     shouldPrepareOrder,
+    isWholesaleContext,
     items,
     flavorHint: items[0]?.flavorHint || null,
   };
 }
 
 function extractRequestedQuantity(lower: string) {
-  const digitMatch = lower.match(/(?:^|\s)(\d{1,2})(?:\s*(?:pcs?|pack|paket|bungkus|item|rasa|varian))?/);
-  if (digitMatch) return Math.max(1, Math.min(6, Number(digitMatch[1])));
+  const digitMatch = lower.match(/(?:^|\s)(\d{1,3})(?:\s*(?:pcs?|pack|paket|bungkus|item|rasa|varian|dus|karton))?/);
+  if (digitMatch) return Math.max(1, Math.min(30, Number(digitMatch[1])));
 
   const words: Record<string, number> = {
-    satu: 1,
-    dua: 2,
-    tiga: 3,
-    empat: 4,
-    lima: 5,
-    enam: 6,
+    satu: 1, pertama: 1,
+    dua: 2, kedua: 2,
+    tiga: 3, ketiga: 3,
+    empat: 4, keempat: 4,
+    lima: 5, kelima: 5,
+    enam: 6, keenam: 6,
+    tujuh: 7, ketujuh: 7,
+    delapan: 8, kedelapan: 8,
+    sembilan: 9, kesembilan: 9,
+    sepuluh: 10, kesepuluh: 10,
   };
 
   for (const [word, value] of Object.entries(words)) {

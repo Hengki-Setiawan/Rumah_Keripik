@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { motion, useReducedMotion } from 'motion/react';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { PackageSearch, ShoppingBag, Sparkles } from 'lucide-react';
 import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
+
 import { ChatMessage } from './ChatMessage';
+import { QuickReplies } from './components/QuickReplies';
 
 const starterPrompts = [
   { icon: <ShoppingBag size={16} />, label: 'Lihat produk' },
@@ -41,6 +43,18 @@ export function ChatWindow({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length, loading]);
+
+  // Sticky quick replies: ambil komponen quick_replies dari pesan asisten/sistem terakhir
+  const stickyReplies = useMemo(() => {
+    if (loading || idle) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== 'assistant' && msg.role !== 'system') continue;
+      const qr = msg.components?.find((c) => c.type === 'quick_replies');
+      if (qr) return qr;
+    }
+    return null;
+  }, [messages, loading, idle]);
 
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-gutter-stable px-3 pb-6 pt-2 md:px-6 md:pb-8 md:pt-3">
@@ -93,6 +107,7 @@ export function ChatWindow({
                   onSend={onSend}
                   onAction={onAction}
                   isFirstAssistant={isFirstAssistant}
+                  hideQuickReplies // Sembunyikan quick replies di dalam pesan
                 />
               );
             })}
@@ -113,6 +128,11 @@ export function ChatWindow({
                   </span>
                 </div>
               </div>
+            )}
+
+            {/* Sticky quick replies — selalu tampil di bawah pesan terakhir */}
+            {stickyReplies && (
+              <QuickReplies component={stickyReplies} onSend={onSend} onAction={onAction} />
             )}
           </div>
         )}
