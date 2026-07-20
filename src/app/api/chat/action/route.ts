@@ -284,7 +284,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Aksi belum tersedia' }, { status: 400 });
     }
 
-    const response = NextResponse.json({ ok: true, statusUrl: orderStatusUrl, messages: await getChatMessages(chatSessionId), cart: await getChatCart(chatSessionId) });
+    const response = NextResponse.json({ ok: true, statusUrl: orderStatusUrl, messages: await getChatMessages(chatSessionId), cart: await getChatCart(chatSessionId), stage: await getChatV3Stage(chatSessionId) });
     if (orderCookieToken) {
       (await cookies()).set('rk_order_session', orderCookieToken, {
         httpOnly: true,

@@ -72,5 +72,6 @@ export async function POST(req: Request) {
 
   await updateChatSessionTitle(chatSessionId, parsed.data.message, aiResponse.intent);
 
-  return NextResponse.json({ ok: true, userMessage, assistantMessage, response: aiResponse, messages: await getChatMessages(chatSessionId), cart: await getChatCart(chatSessionId) });
+  const { getChatV3Stage } = await import('@/lib/chat-v3/stage');
+  return NextResponse.json({ ok: true, userMessage, assistantMessage, response: aiResponse, messages: await getChatMessages(chatSessionId), cart: await getChatCart(chatSessionId), stage: await getChatV3Stage(chatSessionId) });
 }
