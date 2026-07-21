@@ -945,6 +945,7 @@ export const deliveryAssignment = sqliteTable(
     pickup_at: text('pickup_at'),
     delivered_at: text('delivered_at'),
     proof_url: text('proof_url'),
+    signature_url: text('signature_url'),
     notes: text('notes'),
     created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
     updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),

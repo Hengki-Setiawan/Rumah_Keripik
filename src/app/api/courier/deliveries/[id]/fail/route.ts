@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { deliveryAssignment, transaksi } from '@/lib/schema';
+import { deliveryAssignment, orderEvents, transaksi } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierFailDeliverySchema } from '@/lib/courier-types';
 import { eq, and } from 'drizzle-orm';
@@ -61,6 +61,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .update(transaksi)
       .set({ order_status: 'cancelled', updated_at: now })
       .where(eq(transaksi.id_transaksi, assignment.id_transaksi));
+
+    const [tx] = await db
+      .select({ no_wa: transaksi.no_wa })
+      .from(transaksi)
+      .where(eq(transaksi.id_transaksi, assignment.id_transaksi))
+      .limit(1);
+
+    if (tx?.no_wa) {
+      await db.insert(orderEvents).values({
+        no_wa_pelanggan: tx.no_wa,
+        id_transaksi: assignment.id_transaksi,
+        event_type: 'DELIVERY_FAILED',
+        event_payload: JSON.stringify({ reason: parsed.data.reason, notes: parsed.data.notes, courier_name: assignment.kurir_name, delivery_id: deliveryId }),
+      });
+    }
 
     await sendOrderPushNotification(assignment.id_transaksi, 'cancelled');
 

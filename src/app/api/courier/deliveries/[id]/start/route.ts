@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { deliveryAssignment } from '@/lib/schema';
+import { deliveryAssignment, orderEvents, transaksi } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { eq, and } from 'drizzle-orm';
+import { sendOrderPushNotification } from '@/lib/expo-push';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -45,6 +46,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         updated_at: now,
       })
       .where(eq(deliveryAssignment.id, deliveryId));
+
+    await db
+      .update(transaksi)
+      .set({ order_status: 'shipping', updated_at: now })
+      .where(eq(transaksi.id_transaksi, assignment.id_transaksi));
+
+    const [tx] = await db
+      .select({ no_wa: transaksi.no_wa })
+      .from(transaksi)
+      .where(eq(transaksi.id_transaksi, assignment.id_transaksi))
+      .limit(1);
+
+    if (tx?.no_wa) {
+      await db.insert(orderEvents).values({
+        no_wa_pelanggan: tx.no_wa,
+        id_transaksi: assignment.id_transaksi,
+        event_type: 'DELIVERY_STARTED',
+        event_payload: JSON.stringify({ courier_name: assignment.kurir_name, delivery_id: deliveryId }),
+      });
+    }
+
+    await sendOrderPushNotification(assignment.id_transaksi, 'shipping');
 
     return NextResponse.json({ ok: true });
   } catch (error) {
