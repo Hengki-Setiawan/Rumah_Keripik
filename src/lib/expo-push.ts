@@ -1,6 +1,6 @@
 import { desc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { expoPushTokens, transaksi } from '@/lib/schema';
+import { expoPushTokens, transaksi, couriers } from '@/lib/schema';
 import type { ExpoPushToken } from '@/lib/schema';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
@@ -125,5 +125,22 @@ export async function sendOrderPushNotification(orderId: string, orderStatus: st
     title,
     body,
     { orderId, kodePesanan: order.kode_pesanan || '', orderStatus: orderStatus || '' }
+  );
+}
+
+export async function sendCourierPushNotification(courierId: number, title: string, body: string, data?: Record<string, string>) {
+  const tokens = await db
+    .select({ token: expoPushTokens.token })
+    .from(expoPushTokens)
+    .where(eq(expoPushTokens.courierId, courierId))
+    .orderBy(desc(expoPushTokens.lastActiveAt));
+
+  if (tokens.length === 0) return;
+
+  await sendPushNotification(
+    tokens.map((t) => t.token),
+    title,
+    body,
+    data
   );
 }

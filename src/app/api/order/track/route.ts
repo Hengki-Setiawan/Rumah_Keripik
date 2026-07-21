@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { desc, eq, and } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { detailTransaksi, orderEvents, produk, transaksi, webOrderSession, customerProfile } from '@/lib/schema';
+import { detailTransaksi, orderEvents, produk, transaksi, webOrderSession, customerProfile, deliveryAssignment, couriers } from '@/lib/schema';
 import { normalizePhoneNumber } from '@/lib/utils';
 import { checkRateLimit, getClientIp, isRateLimited } from '@/lib/rate-limit';
 
@@ -136,6 +136,33 @@ export async function GET(req: Request) {
     .from(orderEvents)
     .where(eq(orderEvents.id_transaksi, order.id_transaksi));
 
+  // Ambil data kurir (jika pesanan sudah ditugaskan)
+  let courier: { name: string; vehicle: string | null; plat_no: string | null; last_lat: number | null; last_lng: number | null; last_location_at: string | null } | null = null;
+  const [assignment] = await db
+    .select()
+    .from(deliveryAssignment)
+    .where(eq(deliveryAssignment.id_transaksi, order.id_transaksi))
+    .limit(1);
+
+  if (assignment?.kurir_id) {
+    const [kurir] = await db
+      .select({
+        name: couriers.name,
+        vehicle: couriers.vehicle,
+        plat_no: couriers.plat_no,
+        last_lat: couriers.last_lat,
+        last_lng: couriers.last_lng,
+        last_location_at: couriers.last_location_at,
+      })
+      .from(couriers)
+      .where(eq(couriers.id, assignment.kurir_id))
+      .limit(1);
+
+    if (kurir) {
+      courier = kurir;
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     order: {
@@ -157,5 +184,14 @@ export async function GET(req: Request) {
     items,
     events,
     recentOrders,
+    courier: courier ? {
+      name: courier.name,
+      vehicle: courier.vehicle,
+      plat_no: courier.plat_no,
+      lat: courier.last_lat,
+      lng: courier.last_lng,
+      last_location_at: courier.last_location_at,
+    } : null,
+    delivery_status: assignment?.status || null,
   });
 }

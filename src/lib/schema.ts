@@ -904,6 +904,32 @@ export const aiLearningReview = sqliteTable('ai_learning_review', {
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
 });
 
+export const couriers = sqliteTable('couriers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  phone: text('phone').notNull().unique(),
+  pin_hash: text('pin_hash').notNull(),
+  vehicle: text('vehicle', { enum: ['motor', 'mobil'] }),
+  plat_no: text('plat_no'),
+  is_active: integer('is_active').notNull().default(1),
+  last_lat: text('last_lat'),
+  last_lng: text('last_lng'),
+  last_location_at: text('last_location_at'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export const courierSessions = sqliteTable('courier_sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  last_active_at: text('last_active_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  expires_at: text('expires_at').notNull(),
+  created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  courierIdx: index('idx_courier_sessions_courier').on(table.courierId),
+}));
+
 export const deliveryAssignment = sqliteTable(
   'delivery_assignment',
   {
@@ -911,6 +937,7 @@ export const deliveryAssignment = sqliteTable(
     id_transaksi: text('id_transaksi')
       .notNull()
       .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
+    kurir_id: integer('kurir_id').references(() => couriers.id),
     kurir_name: text('kurir_name'),
     status: text('status', {
       enum: ['Siap_Dikirim', 'Dalam_Pengiriman', 'Terkirim', 'Gagal'],
@@ -925,6 +952,7 @@ export const deliveryAssignment = sqliteTable(
   (table) => ({
     txIdx: index('idx_delivery_assignment_tx').on(table.id_transaksi),
     statusIdx: index('idx_delivery_assignment_status').on(table.status),
+    kurirIdx: index('idx_delivery_assignment_kurir').on(table.kurir_id),
   })
 );
 
@@ -1313,6 +1341,10 @@ export type AiResponseCache = typeof aiResponseCache.$inferSelect;
 export type InsertAiResponseCache = typeof aiResponseCache.$inferInsert;
 export type AiLearningReview = typeof aiLearningReview.$inferSelect;
 export type InsertAiLearningReview = typeof aiLearningReview.$inferInsert;
+export type Courier = typeof couriers.$inferSelect;
+export type InsertCourier = typeof couriers.$inferInsert;
+export type CourierSession = typeof courierSessions.$inferSelect;
+export type InsertCourierSession = typeof courierSessions.$inferInsert;
 export type DeliveryAssignment = typeof deliveryAssignment.$inferSelect;
 export type InsertDeliveryAssignment = typeof deliveryAssignment.$inferInsert;
 export type DeliveryRoutePoint = typeof deliveryRoutePoint.$inferSelect;
@@ -1326,6 +1358,7 @@ export const expoPushTokens = sqliteTable(
     token: text('token').notNull().unique(),
     customerId: text('customer_id').references(() => customerProfile.id_customer),
     orderSessionId: text('order_session_id'),
+    courierId: integer('courier_id').references(() => couriers.id),
     platform: text('platform', { enum: ['android', 'ios'] }).notNull().default('android'),
     createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
     lastActiveAt: text('last_active_at').notNull().default(sql`(datetime('now', 'utc'))`),
@@ -1333,6 +1366,7 @@ export const expoPushTokens = sqliteTable(
   (table) => ({
     customerIdx: index('idx_expo_push_customer').on(table.customerId),
     tokenIdx: unique('idx_expo_push_token').on(table.token),
+    courierIdx: index('idx_expo_push_courier').on(table.courierId),
   })
 );
 

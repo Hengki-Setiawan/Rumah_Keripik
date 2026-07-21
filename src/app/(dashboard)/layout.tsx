@@ -18,6 +18,7 @@ import {
   Plus,
   ShieldAlert,
   ShoppingCart,
+  Truck,
   Users,
   X,
 } from 'lucide-react';
@@ -35,6 +36,7 @@ const coreMenuItems = [
   { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
+  { href: '/kurir', label: 'Kurir', icon: Truck },
   { href: '/ai-workspace', label: 'Pusat AI', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router'] },
 ];
 
