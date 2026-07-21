@@ -185,22 +185,32 @@ export function ChatShell() {
     };
   }, []);
 
+  const sinceRef = useRef<string>('');
+
   useEffect(() => {
-    if (!chatSessionId || typeof EventSource === 'undefined') return;
-    const source = new EventSource(`/api/chat/stream?chatSessionId=${encodeURIComponent(chatSessionId)}`);
-    source.addEventListener('chat_state', (event) => {
+    if (!chatSessionId) return;
+
+    let cancelled = false;
+
+    async function poll() {
       try {
-        const data = JSON.parse((event as MessageEvent).data);
-        if (data.ok) {
+        const params = `chatSessionId=${encodeURIComponent(chatSessionId!)}${sinceRef.current ? `&since=${encodeURIComponent(sinceRef.current)}` : ''}`;
+        const res = await fetch(`/api/chat/poll?${params}`);
+        const data = await res.json();
+        if (!cancelled && data.ok && data.changed) {
           setMessages(data.messages || []);
           setCart(data.cart || null);
+          const last = data.messages?.[data.messages.length - 1];
+          if (last?.createdAt) sinceRef.current = last.createdAt;
         }
       } catch {
-        // Ignore malformed payloads.
+        // silently retry on next tick
       }
-    });
-    source.onerror = () => source.close();
-    return () => source.close();
+    }
+
+    poll();
+    const timer = setInterval(poll, 3_000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [chatSessionId]);
 
 
