@@ -2,11 +2,17 @@ import { db } from '@/lib/db';
 import { couriers, courierSessions } from '@/lib/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const SESSION_DURATION_DAYS = 30;
+const BCRYPT_ROUNDS = 10;
 
-function hashPin(pin: string): string {
-  return crypto.createHash('sha256').update(pin).digest('hex');
+export async function hashPin(pin: string): Promise<string> {
+  return bcrypt.hash(pin, BCRYPT_ROUNDS);
+}
+
+export async function verifyPin(pin: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(pin, hash);
 }
 
 function generateToken(): string {
@@ -14,7 +20,6 @@ function generateToken(): string {
 }
 
 export async function verifyCourierLogin(phone: string, pin: string) {
-  const pinHash = hashPin(pin);
   const [courier] = await db
     .select()
     .from(couriers)
@@ -22,7 +27,9 @@ export async function verifyCourierLogin(phone: string, pin: string) {
     .limit(1);
 
   if (!courier) return null;
-  if (courier.pin_hash !== pinHash) return null;
+
+  const valid = await verifyPin(pin, courier.pin_hash);
+  if (!valid) return null;
 
   return courier;
 }

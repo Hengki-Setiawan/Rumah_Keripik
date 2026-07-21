@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { CourierLoginSchema } from '@/lib/courier-types';
 import { verifyCourierLogin, createCourierSession } from '@/lib/courier-auth';
+import { checkRateLimit, getClientIp, isRateLimited } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const blocked = await isRateLimited(`courier-login-fail:${ip}`, 5);
+    if (blocked) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan. Coba lagi 5 menit.' }, { status: 429 });
+    }
+
     const body = await request.json();
     const parsed = CourierLoginSchema.safeParse(body);
     if (!parsed.success) {
@@ -13,6 +20,7 @@ export async function POST(request: Request) {
     const { phone, pin } = parsed.data;
     const courier = await verifyCourierLogin(phone, pin);
     if (!courier) {
+      await checkRateLimit(`courier-login-fail:${ip}`, 5, 300_000);
       return NextResponse.json({ ok: false, error: 'Phone atau PIN salah' }, { status: 401 });
     }
 

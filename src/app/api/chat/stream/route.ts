@@ -51,9 +51,16 @@ export async function GET(req: Request) {
         push().catch((error) => controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'Stream error' })}\n\n`)));
       }, 8_000);
 
+      const vercelTimeout = setTimeout(() => {
+        closed = true;
+        clearInterval(timer);
+        controller.close();
+      }, 50_000);
+
       req.signal.addEventListener('abort', () => {
         closed = true;
         clearInterval(timer);
+        clearTimeout(vercelTimeout);
         controller.close();
       });
     },

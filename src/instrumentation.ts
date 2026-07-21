@@ -1,8 +1,9 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     try {
-      const { OTLPHttpProtoTraceExporter } = await import('@vercel/otel');
-      const { registerOTel } = await import('@vercel/otel');
+      const mod = await import('@vercel/otel');
+      const { registerOTel } = mod;
+      const { OTLPHttpProtoTraceExporter } = mod;
       registerOTel({
         serviceName: 'rumah-kripik-web',
         attributes: {

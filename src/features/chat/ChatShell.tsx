@@ -160,17 +160,6 @@ export function ChatShell() {
     }
   }
 
-  const refreshChatState = useCallback(async () => {
-    if (!chatSessionId) return;
-    const response = await fetch(`/api/chat/state?chatSessionId=${encodeURIComponent(chatSessionId)}`);
-    const data = await response.json();
-    if (!response.ok || !data.ok) return;
-    setMessages(data.messages || []);
-    setCart(data.cart || null);
-    setStage(data.stage || 'idle');
-    loadSessions().catch(() => undefined);
-  }, [chatSessionId, loadSessions]);
-
   // Auto-bootstrap saat halaman pertama kali dibuka
   useEffect(() => {
     if (autoStarted.current) return;
@@ -214,13 +203,7 @@ export function ChatShell() {
     return () => source.close();
   }, [chatSessionId]);
 
-  useEffect(() => {
-    if (!chatSessionId || sending) return;
-    const timer = window.setInterval(() => {
-      refreshChatState().catch(() => undefined);
-    }, 12000);
-    return () => window.clearInterval(timer);
-  }, [chatSessionId, refreshChatState, sending]);
+
 
   async function sendMessage(text: string) {
     setSending(true);

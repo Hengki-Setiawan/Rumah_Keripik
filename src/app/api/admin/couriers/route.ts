@@ -4,11 +4,7 @@ import { couriers } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
 import { requireAdminRole } from '@/lib/admin-actor';
 import { CourierRegisterSchema } from '@/lib/courier-types';
-import crypto from 'crypto';
-
-function hashPin(pin: string): string {
-  return crypto.createHash('sha256').update(pin).digest('hex');
-}
+import { hashPin } from '@/lib/courier-auth';
 
 export async function GET() {
   try {
@@ -68,7 +64,7 @@ export async function POST(request: Request) {
       .values({
         name: parsed.data.name,
         phone: parsed.data.phone,
-        pin_hash: hashPin(parsed.data.pin),
+        pin_hash: await hashPin(parsed.data.pin),
         vehicle: parsed.data.vehicle,
         plat_no: parsed.data.plat_no,
       })
