@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 
-export default auth(async (req: NextRequest) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
 
   const isPublicPage =
