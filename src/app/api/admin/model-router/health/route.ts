@@ -47,7 +47,7 @@ async function runDirectProviderHealthCheck(provider: AIProviderConfig) {
   }
 
   if (provider.name === 'gemini') {
-    return generateGeminiText(input.messages, input.maxTokens || 8, input.temperature || 0, input.systemPrompt, provider.defaultModel || 'gemini-2.0-flash');
+    return generateGeminiText(input.messages, input.maxTokens || 8, input.temperature || 0, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
   }
 
   return callOpenAICompatibleProvider(provider, input, input.maxTokens || 8, input.temperature || 0);

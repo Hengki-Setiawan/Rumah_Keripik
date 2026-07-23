@@ -13,7 +13,7 @@
 - `CLOUDINARY_API_SECRET`
 - `CRON_SECRET` for production cron endpoints
 - `OCR_MODE` (recommended: `conditional`)
-- `GEMINI_VISION_MODEL` (recommended: `gemini-2.0-flash`)
+- `GEMINI_VISION_MODEL` (recommended: `gemini-2.5-flash-lite`)
 
 ## Optional Environment Variables
 

@@ -97,7 +97,7 @@ async function callConditionalGeminiOcr(payload: PaymentOcrPayload): Promise<Pro
   const image = await fetchImageAsBase64(payload.secureUrl);
   if (!image) return null;
 
-  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash';
+  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-flash-lite';
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

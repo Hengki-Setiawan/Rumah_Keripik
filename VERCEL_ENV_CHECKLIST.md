@@ -33,7 +33,7 @@ AUTH_URL=https://your-domain.vercel.app
 GROQ_API_KEY
 GEMINI_API_KEY
 OCR_MODE=conditional
-GEMINI_VISION_MODEL=gemini-2.0-flash
+GEMINI_VISION_MODEL=gemini-2.5-flash-lite
 ```
 
 ## Optional

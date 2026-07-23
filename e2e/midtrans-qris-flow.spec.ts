@@ -23,7 +23,7 @@ test.describe('E2E Midtrans QRIS Flow', () => {
     // 4. Isi Form Pemesan
     await page.locator('[data-testid="order-customer-name"], input[placeholder*="Nama penerima"]').first().fill('Tester Midtrans QRIS');
     await page.locator('[data-testid="order-customer-phone"], input[placeholder*="WhatsApp"]').first().fill(phone);
-    await page.locator('[data-testid="order-customer-pin'], input[placeholder*="PIN"]').first().fill('1234');
+    await page.locator('[data-testid="order-customer-pin"], input[placeholder*="PIN"]').first().fill('1234');
     await page.getByRole('button', { name: /lanjut alamat/i }).click();
 
     // 5. Isi Alamat

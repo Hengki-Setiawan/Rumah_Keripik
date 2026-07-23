@@ -1374,6 +1374,139 @@ export const expoPushTokens = sqliteTable(
 export type ExpoPushToken = typeof expoPushTokens.$inferSelect;
 export type InsertExpoPushToken = typeof expoPushTokens.$inferInsert;
 
+// ─── LOYALTY & REFERRAL ────────────────────────────────────────────────────────
+export const loyaltyAccounts = sqliteTable(
+  'loyalty_accounts',
+  {
+    id: text('id').primaryKey(),
+    customerId: text('customer_id').notNull().references(() => customerProfile.id_customer, { onDelete: 'cascade' }),
+    pointsBalance: integer('points_balance').notNull().default(0),
+    tier: text('tier', { enum: ['bronze', 'silver', 'gold'] }).notNull().default('bronze'),
+    referralCode: text('referral_code').notNull().unique(),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    customerIdx: index('idx_loyalty_customer').on(table.customerId),
+    tierIdx: index('idx_loyalty_tier').on(table.tier),
+    referralCodeUnique: unique('uq_loyalty_referral_code').on(table.referralCode),
+  })
+);
+
+export const loyaltyLedger = sqliteTable(
+  'loyalty_ledger',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id').notNull().references(() => loyaltyAccounts.id, { onDelete: 'cascade' }),
+    delta: integer('delta').notNull(),
+    reason: text('reason', { enum: ['order_completed', 'referral_bonus', 'redeemed', 'admin_adjustment'] }).notNull(),
+    relatedOrderId: text('related_order_id'),
+    balanceAfter: integer('balance_after').notNull(),
+    note: text('note'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    accountIdx: index('idx_loyalty_ledger_account').on(table.accountId, table.createdAt),
+  })
+);
+
+export const referrals = sqliteTable(
+  'referrals',
+  {
+    id: text('id').primaryKey(),
+    referrerAccountId: text('referrer_account_id').notNull().references(() => loyaltyAccounts.id, { onDelete: 'cascade' }),
+    refereeCustomerId: text('referee_customer_id').references(() => customerProfile.id_customer),
+    code: text('code').notNull().unique(),
+    status: text('status', { enum: ['pending', 'used', 'expired'] }).notNull().default('pending'),
+    bonusPointsAwarded: integer('bonus_points_awarded'),
+    usedAt: text('used_at'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    referrerIdx: index('idx_referrals_referrer').on(table.referrerAccountId),
+    statusIdx: index('idx_referrals_status').on(table.status),
+  })
+);
+
+// ─── FINANCIAL / ACCOUNTING BRIDGE ─────────────────────────────────────────────
+export const expenseCategories = sqliteTable(
+  'expense_categories',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    type: text('type', { enum: ['cogs', 'operational', 'marketing', 'other'] }).notNull(),
+    description: text('description'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  }
+);
+
+export const ledgerEntries = sqliteTable(
+  'ledger_entries',
+  {
+    id: text('id').primaryKey(),
+    entryType: text('entry_type', { enum: ['revenue', 'expense', 'refund', 'adjustment'] }).notNull(),
+    amount: integer('amount').notNull(),
+    categoryId: text('category_id').references(() => expenseCategories.id),
+    relatedOrderId: text('related_order_id'),
+    note: text('note'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    createdBy: text('created_by'),
+  },
+  (table) => ({
+    entryTypeIdx: index('idx_ledger_entry_type').on(table.entryType, table.createdAt),
+    categoryIdx: index('idx_ledger_category').on(table.categoryId, table.createdAt),
+    orderIdx: index('idx_ledger_order').on(table.relatedOrderId),
+  })
+);
+
+export const cashReconciliation = sqliteTable(
+  'cash_reconciliation',
+  {
+    id: text('id').primaryKey(),
+    periodStart: text('period_start').notNull(),
+    periodEnd: text('period_end').notNull(),
+    systemBalance: integer('system_balance').notNull(),
+    actualBalance: integer('actual_balance'),
+    discrepancyNote: text('discrepancy_note'),
+    reconciledBy: text('reconciled_by'),
+    reconciledAt: text('reconciled_at'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  }
+);
+
+// ─── DISASTER RECOVERY ──────────────────────────────────────────────────────────
+export const backupRestoreDrills = sqliteTable(
+  'backup_restore_drills',
+  {
+    id: text('id').primaryKey(),
+    drillDate: text('drill_date').notNull(),
+    backupSnapshotId: text('backup_snapshot_id').notNull(),
+    restoreTargetEnv: text('restore_target_env').notNull().default('staging'),
+    success: integer('success', { mode: 'boolean' }).notNull().default(false),
+    durationSeconds: integer('duration_seconds'),
+    issuesFound: text('issues_found'),
+    performedBy: text('performed_by'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  }
+);
+
+export type LoyaltyAccount = typeof loyaltyAccounts.$inferSelect;
+export type InsertLoyaltyAccount = typeof loyaltyAccounts.$inferInsert;
+export type LoyaltyLedger = typeof loyaltyLedger.$inferSelect;
+export type InsertLoyaltyLedger = typeof loyaltyLedger.$inferInsert;
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = typeof referrals.$inferInsert;
+
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+export type InsertExpenseCategory = typeof expenseCategories.$inferInsert;
+export type LedgerEntry = typeof ledgerEntries.$inferSelect;
+export type InsertLedgerEntry = typeof ledgerEntries.$inferInsert;
+export type CashReconciliation = typeof cashReconciliation.$inferSelect;
+export type InsertCashReconciliation = typeof cashReconciliation.$inferInsert;
+
+export type BackupRestoreDrill = typeof backupRestoreDrills.$inferSelect;
+export type InsertBackupRestoreDrill = typeof backupRestoreDrills.$inferInsert;
+
 export const rateLimits = sqliteTable('rate_limits', {
   key: text('key').primaryKey(),
   count: integer('count').notNull().default(0),

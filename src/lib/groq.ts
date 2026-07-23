@@ -153,7 +153,7 @@ async function callGeminiLLM(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: {
@@ -181,7 +181,7 @@ async function callGeminiLLM(
     return {
       text,
       provider: 'gemini',
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
     };
   } catch (error) {
     console.error('❌ Error Gemini:', error);

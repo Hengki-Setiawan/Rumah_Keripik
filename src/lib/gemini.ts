@@ -6,7 +6,7 @@
 
 const EMBEDDING_MODEL = 'models/gemini-embedding-001';
 const EMBEDDING_DIMENSIONS = 3072; // F32, dari Gemini embedding-001
-const DEFAULT_TEXT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_TEXT_MODEL = 'gemini-2.5-flash';
 
 interface EmbeddingResult {
   embedding: number[];

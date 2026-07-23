@@ -41,7 +41,7 @@ async function main() {
         15,
         0,
         'Jawab singkat.',
-        'gemini-2.0-flash'
+        'gemini-2.5-flash'
       );
     }));
   } else {
