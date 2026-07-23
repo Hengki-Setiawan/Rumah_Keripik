@@ -113,7 +113,11 @@ export async function awardPointsForCompletedOrder(customerId: string, orderId: 
 }
 
 export async function getLoyaltyInfo(customerId: string) {
-  const account = await ensureLoyaltyAccount(customerId);
+  const existing = await db.select().from(loyaltyAccounts).where(eq(loyaltyAccounts.customerId, customerId)).limit(1);
+  if (existing.length === 0) {
+    return { account: null, pointsHistory: [] };
+  }
+  const account = existing[0];
   const pointsHistory = await db.select().from(loyaltyLedger).where(eq(loyaltyLedger.accountId, account.id)).orderBy(desc(loyaltyLedger.createdAt)).limit(20);
   return { account, pointsHistory };
 }
