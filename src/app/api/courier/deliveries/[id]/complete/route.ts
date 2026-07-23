@@ -5,6 +5,8 @@ import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierCompleteDeliverySchema } from '@/lib/courier-types';
 import { eq, and } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
+import { awardPointsForCompletedOrder } from '@/services/loyalty-service';
+import { recordRevenue, ensureDefaultCategories } from '@/services/ledger-service';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -79,6 +81,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     await sendOrderPushNotification(assignment.id_transaksi, 'completed');
+
+    try {
+      await ensureDefaultCategories();
+      const [tx] = await db.select({ total: transaksi.total_bayar, customer: transaksi.id_customer }).from(transaksi).where(eq(transaksi.id_transaksi, assignment.id_transaksi)).limit(1);
+      if (tx) {
+        if (tx.customer) await awardPointsForCompletedOrder(tx.customer, assignment.id_transaksi, tx.total);
+        await recordRevenue(assignment.id_transaksi, tx.total);
+      }
+    } catch (svcErr) {
+      console.error('[COURIER_COMPLETE_INTEGRATION]', svcErr);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

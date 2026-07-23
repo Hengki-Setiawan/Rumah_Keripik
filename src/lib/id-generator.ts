@@ -118,6 +118,39 @@ export function generateIdAdminAuditLog(): string {
   return `AUD-${randomUUID()}`;
 }
 
+export function generateIdLoyaltyAccount(): string {
+  return `LYL-${randomUUID().slice(0, 12).toUpperCase()}`;
+}
+
+export function generateIdLoyaltyLedger(): string {
+  return `LYG-${randomUUID().slice(0, 12).toUpperCase()}`;
+}
+
+export function generateIdReferral(): string {
+  return `REF-${randomUUID().slice(0, 12).toUpperCase()}`;
+}
+
+export function generateReferralCode(customerId: string): string {
+  const suffix = randomBytes(4).toString('hex').toUpperCase();
+  return `RK${customerId.slice(-4)}${suffix}`;
+}
+
+export function generateIdExpenseCategory(): string {
+  return `EXP-${randomUUID().slice(0, 8).toUpperCase()}`;
+}
+
+export function generateIdLedgerEntry(): string {
+  return `LED-${randomUUID().slice(0, 12).toUpperCase()}`;
+}
+
+export function generateIdCashReconciliation(): string {
+  return `CSH-${randomUUID().slice(0, 12).toUpperCase()}`;
+}
+
+export function generateIdBackupRestoreDrill(): string {
+  return `DRL-${randomUUID().slice(0, 12).toUpperCase()}`;
+}
+
 export function generateSecureSessionToken(): string {
   return randomBytes(32).toString('base64url');
 }

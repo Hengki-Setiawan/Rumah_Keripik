@@ -12,7 +12,9 @@ export async function requireAdminActor() {
   return actor;
 }
 
-export async function requireAdminRole(permission: 'chat:manage' | 'payment:verify' | 'order:update' | 'audit:read') {
+export type AdminPermission = 'chat:manage' | 'payment:verify' | 'order:update' | 'audit:read' | 'ledger:view' | 'ledger:write';
+
+export async function requireAdminRole(permission: AdminPermission) {
   const actor = await requireAdminActor();
   const roleMap = parseRoleMap(process.env.ADMIN_ROLE_MAP);
   const role = roleMap[actor] || roleMap['*'] || 'owner';
@@ -29,10 +31,11 @@ export function isForbiddenAdminPermissionError(error: unknown) {
   return error instanceof Error && error.message === 'FORBIDDEN_ADMIN_PERMISSION';
 }
 
-const rolePermissions: Record<string, Array<'chat:manage' | 'payment:verify' | 'order:update' | 'audit:read'>> = {
+const rolePermissions: Record<string, AdminPermission[]> = {
   operator: ['chat:manage', 'order:update'],
-  finance: ['payment:verify', 'audit:read'],
-  viewer: ['audit:read'],
+  finance: ['payment:verify', 'audit:read', 'ledger:view', 'ledger:write'],
+  owner: ['chat:manage', 'payment:verify', 'order:update', 'audit:read', 'ledger:view', 'ledger:write'],
+  viewer: ['audit:read', 'ledger:view'],
 };
 
 function parseRoleMap(value?: string) {
