@@ -137,7 +137,7 @@ export async function GET(req: Request) {
     .where(eq(orderEvents.id_transaksi, order.id_transaksi));
 
   // Ambil data kurir (jika pesanan sudah ditugaskan)
-  let courier: { name: string; vehicle: string | null; plat_no: string | null; last_lat: number | null; last_lng: number | null; last_location_at: string | null } | null = null;
+  let courier: { name: string; vehicle: string | null; plat_no: string | null; last_lat: string | null; last_lng: string | null; last_location_at: string | null } | null = null;
   const [assignment] = await db
     .select()
     .from(deliveryAssignment)

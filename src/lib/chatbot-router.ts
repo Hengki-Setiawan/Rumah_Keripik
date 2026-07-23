@@ -224,11 +224,12 @@ async function processIncomingMessageInternal(
       tokensUsed: llmResult.tokensUsed,
     };
   } catch (error) {
-    console.error('LLM chain failed:', error);
-    const fallback = 'Maaf, saya sedang mengalami gangguan teknis. Silakan coba lagi nanti atau hubungi admin.';
-    await logChat(no_wa, message, fallback, 'not_found');
+    console.error('[Router] LLM chain failed, applying graceful rule fallback:', error);
+    const menuText = await getMenuText();
+    const fallbackResponse = `Halo Kak! Ada yang bisa kami bantu? 😊\n\nKetik *pesan* untuk memulai order, atau pilih produk dari katalog berikut:\n\n${menuText}`;
+    await logChat(no_wa, message, fallbackResponse, 'rule');
     await touchPelanggan(no_wa);
-    return { response: fallback, source: 'not_found' };
+    return { response: fallbackResponse, source: 'rule' };
   }
 }
 

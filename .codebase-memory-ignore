@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+playwright-report/
+test-results/
+patches/
+tmp/
+.cache/
+*.log
+*.tmp
+*.tsbuildinfo
+next-env.d.ts

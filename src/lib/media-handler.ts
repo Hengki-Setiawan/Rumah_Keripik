@@ -98,6 +98,21 @@ export async function processPaymentProof(
     const fileUrl = uploadResult.secure_url;
     console.log(`[MediaHandler] Saved file to Cloudinary: ${fileUrl}`);
 
+    // Check if proof URL already uploaded for another transaction
+    const [existingProof] = await db
+      .select()
+      .from(buktiPembayaran)
+      .where(eq(buktiPembayaran.url_gambar, fileUrl))
+      .limit(1);
+
+    if (existingProof && existingProof.id_transaksi !== ctx.id_transaksi) {
+      return {
+        response: 'Foto bukti pembayaran ini sudah pernah digunakan untuk transaksi lain kak. Silakan kirimkan foto bukti transfer asli yang baru ya.',
+        source: 'rule',
+        newContext: ctx,
+      };
+    }
+
     // Insert to bukti_pembayaran table
     await db.insert(buktiPembayaran).values({
       id_transaksi: ctx.id_transaksi,

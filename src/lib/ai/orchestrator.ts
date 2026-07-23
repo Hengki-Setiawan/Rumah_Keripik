@@ -254,7 +254,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
       intent: 'confirm_order',
       components: [
         { type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, deliveryStatus: customerContext.lastOrder.status, totalAmount: customerContext.lastOrder.totalAmount },
-        ...(customerContext.customer ? [{ type: 'customer_confirm' as const, customerId: customerContext.customer.id, maskedFields: true, customer: customerContext.customer, actions: ['use_saved_data', 'edit_data'] }] : []),
+        ...(customerContext.customer ? [{ type: 'customer_confirm' as const, customerId: customerContext.customer.id, maskedFields: true as true, customer: customerContext.customer, actions: ['use_saved_data', 'edit_data'] }] : []),
       ],
       nextAction: 'reorder',
       confidence: 0.92,

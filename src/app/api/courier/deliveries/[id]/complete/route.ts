@@ -64,7 +64,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .where(eq(transaksi.id_transaksi, assignment.id_transaksi));
 
     const [tx] = await db
-      .select({ no_wa: transaksi.no_wa })
+      .select({ no_wa: transaksi.no_wa_pelanggan })
       .from(transaksi)
       .where(eq(transaksi.id_transaksi, assignment.id_transaksi))
       .limit(1);

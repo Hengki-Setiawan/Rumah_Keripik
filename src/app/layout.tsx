@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Hanken_Grotesk, JetBrains_Mono, Geist } from "next/font/google";
+import { Hanken_Grotesk, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 const hankenGrotesk = Hanken_Grotesk({
   variable: "--font-heading",
@@ -18,6 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Rumah Keripik",
   description: "Workspace pemesanan dan dashboard operasional Rumah Keripik",
+  manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/brand/rumah-keripik-mark.png", type: "image/png" }],
     shortcut: ["/brand/rumah-keripik-mark.png"],
@@ -35,7 +37,10 @@ export default function RootLayout({
       lang="id"
       className={cn("h-full", "antialiased", hankenGrotesk.variable, jetbrainsMono.variable, "font-sans", geist.variable)}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <PwaInstallPrompt />
+      </body>
     </html>
   );
 }

@@ -115,7 +115,7 @@ test.describe('Vercel Production E2E Lifecycle Flow', () => {
       .where(eq(transaksi.id_transaksi, orderCode))
       .limit(1);
     if (!dbOrder) throw new Error(`Pesanan dengan ID ${orderCode} tidak ditemukan di database!`);
-    const trackingHref = `/pesan/status/${encodeURIComponent(dbOrder.kode_pesanan)}?token=${encodeURIComponent(dbOrder.status_token || '')}`;
+    const trackingHref = `/pesan/status/${encodeURIComponent(dbOrder.kode_pesanan || '')}?token=${encodeURIComponent(dbOrder.status_token || '')}`;
     console.log(`URL tracking berhasil diambil dari database: ${trackingHref}`);
 
     // 7. Simulasikan Webhook Midtrans (Settlement Lunas) ke Vercel

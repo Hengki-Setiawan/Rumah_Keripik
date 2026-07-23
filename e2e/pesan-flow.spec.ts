@@ -25,7 +25,10 @@ async function fillChatOrderForm(page: Page, {
 }) {
   await page.locator('[data-testid="order-customer-name"], input[placeholder*="Nama penerima"]').first().fill(name);
   await page.locator('[data-testid="order-customer-phone"], input[placeholder*="WhatsApp"]').first().fill(phone);
-  await page.getByRole('button', { name: /lanjut alamat/i }).click();
+  await page.locator('[data-testid="order-customer-phone"], input[placeholder*="WhatsApp"]').first().blur();
+  const addressStepButton = page.getByRole('button', { name: /lanjut alamat/i });
+  await expect(addressStepButton).toBeEnabled({ timeout: 10000 });
+  await addressStepButton.click();
   await page.locator('[data-testid="order-address-text"], textarea[placeholder*="Alamat lengkap"]').first().fill(address);
   await page.locator('[data-testid="order-address-note"], input[placeholder*="Patokan"], input[placeholder*="kurir"]').first().fill('Dekat masjid besar');
   await page.getByRole('button', { name: /lanjut pembayaran/i }).click();

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, gt } from 'drizzle-orm';
+import { eq, gt, and } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chatMessages, chatSessions } from '@/lib/schema';
 import { getChatCart } from '@/lib/ai/tools/cart';
@@ -47,10 +47,9 @@ export async function GET(req: Request) {
     ? await db
         .select({ id: chatMessages.id })
         .from(chatMessages)
-        .where(eq(chatMessages.chatSessionId, chatSessionId))
-        .where(gt(chatMessages.createdAt, lastCreatedAt))
+        .where(and(eq(chatMessages.chatSessionId, chatSessionId), gt(chatMessages.createdAt, lastCreatedAt)))
         .limit(1)
-        .then((rows) => rows.length > 0)
+        .then((rows: Array<{ id: string }>) => rows.length > 0)
     : true;
 
   if (!hasChanges) {
