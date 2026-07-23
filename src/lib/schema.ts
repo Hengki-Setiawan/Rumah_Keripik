@@ -5,6 +5,7 @@ import {
   blob,
   index,
   unique,
+  uniqueIndex,
   check,
 } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
@@ -912,6 +913,7 @@ export const couriers = sqliteTable('couriers', {
   vehicle: text('vehicle', { enum: ['motor', 'mobil'] }),
   plat_no: text('plat_no'),
   is_active: integer('is_active').notNull().default(1),
+  device_id: text('device_id'),
   last_lat: text('last_lat'),
   last_lng: text('last_lng'),
   last_location_at: text('last_location_at'),
@@ -923,6 +925,8 @@ export const courierSessions = sqliteTable('courier_sessions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
+  device_id: text('device_id'),
+  is_active: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   last_active_at: text('last_active_at').notNull().default(sql`(datetime('now', 'utc'))`),
   expires_at: text('expires_at').notNull(),
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
@@ -1506,6 +1510,21 @@ export type InsertCashReconciliation = typeof cashReconciliation.$inferInsert;
 
 export type BackupRestoreDrill = typeof backupRestoreDrills.$inferSelect;
 export type InsertBackupRestoreDrill = typeof backupRestoreDrills.$inferInsert;
+
+// ─── IDEMPOTENCY ─────────────────────────────────────────────────────────────
+export const idempotencyKeys = sqliteTable(
+  'idempotency_keys',
+  {
+    key: text('key').primaryKey(),
+    responseJson: text('response_json').notNull(),
+    status: integer('status').notNull(),
+    expiresAt: text('expires_at').notNull(),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    expiresIdx: index('idx_idempotency_expires').on(table.expiresAt),
+  })
+);
 
 export const rateLimits = sqliteTable('rate_limits', {
   key: text('key').primaryKey(),

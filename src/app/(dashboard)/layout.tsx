@@ -6,10 +6,13 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import {
+  BarChart3,
   Bell,
   Bot,
   ChevronLeft,
   ChevronRight,
+  Cpu,
+  Gift,
   Home,
   LogOut,
   Menu,
@@ -37,7 +40,9 @@ const coreMenuItems = [
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/kurir', label: 'Kurir', icon: Truck },
-  { href: '/ai-workspace', label: 'Pusat AI', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router'] },
+  { href: '/loyalty', label: 'Loyalitas', icon: Gift },
+  { href: '/keuangan', label: 'Keuangan', icon: BarChart3 },
+  { href: '/ai-workspace', label: 'Pusat AI', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router', '/ai-ops'] },
 ];
 
 const supportMenuItems = [

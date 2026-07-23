@@ -37,6 +37,8 @@
     "db:migrate:v10": "tsx src/scripts/migrate-v10-loyalty-referral.ts",
     "db:migrate:v11": "tsx src/scripts/migrate-v11-financial-ledger.ts",
     "db:migrate:v12": "tsx src/scripts/migrate-v12-dr-drills.ts",
+    "db:migrate:v13": "tsx src/scripts/migrate-v13-idempotency.ts",
+    "db:migrate:v14": "tsx src/scripts/migrate-v14-courier-device-binding.ts",
     "db:drill-restore": "tsx src/scripts/drill-restore.ts",
     "db:migrate:all": "tsx src/scripts/migrate-all.ts",
     "db:backup": "tsx src/scripts/backup-turso.ts",

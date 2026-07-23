@@ -5,6 +5,7 @@ import { generateIdAiRun } from '@/lib/id-generator';
 import { callGroqLLM } from '@/lib/groq';
 import { generateGeminiText } from '@/lib/gemini';
 import { callOpenAICompatibleProvider } from './openai-compatible';
+import { sanitizeMessages } from '@/lib/ai/data-sanitizer';
 import type { AIModelTaskConfig, AIProviderConfig, GenerateTextInput, GenerateTextResult } from './provider-types';
 
 export const defaultProviderConfigs: AIProviderConfig[] = [
@@ -32,24 +33,26 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
   const maxTokens = input.maxTokens || taskConfig?.maxOutputTokens || 180;
   const temperature = input.temperature ?? taskConfig?.temperature ?? 0.2;
 
+  const sanitizedMessages = sanitizeMessages(input.messages);
+
   for (const providerId of providerOrder) {
     const provider = providerConfigs.find((item) => item.id === providerId || item.name === providerId);
     if (!provider?.enabled) continue;
     if (provider.name !== 'deterministic' && provider.apiKeyEnv && !process.env[provider.apiKeyEnv]) continue;
     try {
       if (provider.name === 'groq') {
-        const result = await callGroqLLM(input.messages, maxTokens, temperature, input.systemPrompt);
+        const result = await callGroqLLM(sanitizedMessages, maxTokens, temperature, input.systemPrompt);
         const routed = { text: result.text, provider: result.provider, model: result.model || provider.defaultModel, tokensUsed: result.tokensUsed };
         await logRun(id, input, routed, Date.now() - started, 'success');
         return routed;
       }
       if (provider.name === 'gemini') {
-        const routed = await generateGeminiText(input.messages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
+        const routed = await generateGeminiText(sanitizedMessages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
         await logRun(id, input, routed, Date.now() - started, 'success');
         return routed;
       }
       if (provider.name === 'cerebras' || provider.name === 'qwen') {
-        const routed = await callOpenAICompatibleProvider(provider, input, maxTokens, temperature);
+        const routed = await callOpenAICompatibleProvider(provider, { ...input, messages: sanitizedMessages }, maxTokens, temperature);
         await logRun(id, input, routed, Date.now() - started, 'success');
         return routed;
       }
