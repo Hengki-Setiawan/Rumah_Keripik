@@ -15,7 +15,7 @@ export function sanitizeForAi(text: string): string {
   return sanitized;
 }
 
-export function sanitizeMessages(messages: Array<{ role: string; content: string }>) {
+export function sanitizeMessages(messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>) {
   return messages.map((msg) => ({
     ...msg,
     content: sanitizeForAi(msg.content || ''),

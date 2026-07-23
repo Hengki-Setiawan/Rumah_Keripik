@@ -65,12 +65,12 @@ export async function getOrSetDailyBudgetCap(capUsd?: number) {
   const existing = await db.select().from(botSetting).where(eq(botSetting.key, key)).limit(1);
 
   if (capUsd != null) {
-    await db.insert(botSetting).values({ key, value: String(capUsd), value_json: null, updated_at: new Date().toISOString() }).onConflictDoUpdate({
+    await db.insert(botSetting).values({ key, value_json: String(capUsd), updated_at: new Date().toISOString() }).onConflictDoUpdate({
       target: botSetting.key,
-      set: { value: String(capUsd), updated_at: new Date().toISOString() },
+      set: { value_json: String(capUsd), updated_at: new Date().toISOString() },
     });
     return { dailyCapUsd: capUsd };
   }
 
-  return { dailyCapUsd: existing.length > 0 ? Number(existing[0].value) : null };
+  return { dailyCapUsd: existing.length > 0 ? Number(existing[0].value_json) : null };
 }

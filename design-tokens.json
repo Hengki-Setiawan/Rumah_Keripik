@@ -1,0 +1,73 @@
+{
+  "brand": {
+    "name": "Rumah Keripik",
+    "primary": "#D97706",
+    "primaryDark": "#B45309",
+    "primaryLight": "#FBBF24",
+    "secondary": "#1F2937",
+    "secondaryLight": "#374151",
+    "accent": "#059669"
+  },
+  "semantic": {
+    "success": "#16A34A",
+    "warning": "#D97706",
+    "error": "#DC2626",
+    "info": "#2563EB"
+  },
+  "neutral": {
+    "white": "#FFFFFF",
+    "background": "#F9FAFB",
+    "surface": "#FFFFFF",
+    "border": "#E5E7EB",
+    "textPrimary": "#111827",
+    "textSecondary": "#6B7280",
+    "textMuted": "#9CA3AF"
+  },
+  "radius": {
+    "sm": "4px",
+    "md": "8px",
+    "lg": "12px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px",
+    "2xl": "48px",
+    "3xl": "64px"
+  },
+  "font": {
+    "family": "Inter, system-ui, -apple-system, sans-serif",
+    "scale": {
+      "xs": "12px",
+      "sm": "14px",
+      "base": "16px",
+      "lg": "18px",
+      "xl": "20px",
+      "2xl": "24px",
+      "3xl": "30px",
+      "4xl": "36px"
+    },
+    "weight": {
+      "normal": "400",
+      "medium": "500",
+      "semibold": "600",
+      "bold": "700"
+    }
+  },
+  "shadow": {
+    "sm": "0 1px 2px rgba(0,0,0,0.05)",
+    "md": "0 4px 6px -1px rgba(0,0,0,0.1)",
+    "lg": "0 10px 15px -3px rgba(0,0,0,0.1)",
+    "xl": "0 20px 25px -5px rgba(0,0,0,0.1)"
+  },
+  "breakpoint": {
+    "sm": "640px",
+    "md": "768px",
+    "lg": "1024px",
+    "xl": "1280px"
+  }
+}

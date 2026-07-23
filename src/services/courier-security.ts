@@ -7,9 +7,9 @@ export async function bindDeviceToCourier(courierId: number, deviceId: string) {
   if (existing.length === 0) throw new Error('Kurir tidak ditemukan');
 
   if (existing[0].device_id && existing[0].device_id !== deviceId) {
-    await db.update(courierSessions).set({ is_active: 0 }).where(and(
-      eq(courierSessions.courier_id, courierId),
-      eq(courierSessions.is_active, 1),
+    await db.update(courierSessions).set({ is_active: false }).where(and(
+      eq(courierSessions.courierId, courierId),
+      eq(courierSessions.is_active, true),
     ));
   }
 
@@ -26,9 +26,9 @@ export async function verifyDeviceBinding(courierId: number, deviceId: string): 
 
 export async function unbindDevice(courierId: number) {
   await db.update(couriers).set({ device_id: null }).where(eq(couriers.id, courierId));
-  await db.update(courierSessions).set({ is_active: 0 }).where(and(
-    eq(courierSessions.courier_id, courierId),
-    eq(courierSessions.is_active, 1),
+  await db.update(courierSessions).set({ is_active: false }).where(and(
+    eq(courierSessions.courierId, courierId),
+    eq(courierSessions.is_active, true),
   ));
   return { deviceUnbound: true };
 }

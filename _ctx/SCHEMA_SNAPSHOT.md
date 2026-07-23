@@ -1,5 +1,5 @@
 # Schema Snapshot — Rumah Keripik
-> Generated: 2026-07-23T13:04:22.361Z
+> Generated: 2026-07-23T14:01:58.193Z
 
 **Total Tables: 68**
 
