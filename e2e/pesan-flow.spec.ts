@@ -26,6 +26,7 @@ async function fillChatOrderForm(page: Page, {
   await page.locator('[data-testid="order-customer-name"], input[placeholder*="Nama penerima"]').first().fill(name);
   await page.locator('[data-testid="order-customer-phone"], input[placeholder*="WhatsApp"]').first().fill(phone);
   await page.locator('[data-testid="order-customer-phone"], input[placeholder*="WhatsApp"]').first().blur();
+  await page.locator('[data-testid="order-customer-pin"], input[placeholder*="PIN"]').first().fill('1234');
   const addressStepButton = page.getByRole('button', { name: /lanjut alamat/i });
   await expect(addressStepButton).toBeEnabled({ timeout: 10000 });
   await addressStepButton.click();
