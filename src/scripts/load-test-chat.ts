@@ -11,20 +11,24 @@ interface LoadTestResult {
   bytesReceived?: number;
 }
 
+let cookieJar = '';
+
 async function sendChatRequest(): Promise<LoadTestResult> {
   const start = Date.now();
   try {
     const sessRes = await fetch(`${BASE}/api/customer/session`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookieJar }, body: '{}',
     });
     if (!sessRes.ok) return { success: false, latencyMs: Date.now() - start, status: sessRes.status, error: `Session ${sessRes.status}` };
+    const setCookie = sessRes.headers.get('set-cookie') || '';
+    if (setCookie) cookieJar = setCookie.split(';')[0];
     const sess = await sessRes.json();
     const chatSessionId = sess.chatSession?.id;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
     const res = await fetch(`${BASE}/api/chat/stream?chatSessionId=${chatSessionId}`, {
-      signal: controller.signal,
+      headers: { Cookie: cookieJar }, signal: controller.signal,
     });
     clearTimeout(timeout);
     const latency = Date.now() - start;
