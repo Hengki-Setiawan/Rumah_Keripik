@@ -28,6 +28,8 @@ export default auth((req) => {
     pathname.startsWith('/api/cron') ||
     pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/api/public') ||
+    pathname.startsWith('/api/admin/') ||
+    pathname.startsWith('/api/loyalty') ||
     pathname === '/api/customer/session' ||
     pathname === '/api/chat' ||
     pathname.startsWith('/api/chat/') ||
