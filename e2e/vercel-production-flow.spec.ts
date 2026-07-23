@@ -74,6 +74,7 @@ test.describe('Vercel Production E2E Lifecycle Flow', () => {
     console.log('Mengisi data penerima...');
     await page.locator('[data-testid="order-customer-name"], input[placeholder*="Nama penerima"]').first().fill('Tester E2E Vercel');
     await page.locator('[data-testid="order-customer-phone"], input[placeholder*="WhatsApp"]').first().fill(phone);
+    await page.locator('[data-testid="order-customer-pin"], input[placeholder*="PIN"]').first().fill('1234');
     await page.getByRole('button', { name: /lanjut alamat/i }).click();
 
     console.log('Mengisi alamat pengiriman...');
