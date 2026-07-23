@@ -29,16 +29,12 @@ async function sendChatRequest(): Promise<LoadTestResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-    const sessRes = await fetch(`${BASE}/api/customer/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    const sessData = await sessRes.json().catch(() => ({}));
-    const chatSessionId = sessData.chatSession?.id || `load-test-${Date.now()}`;
-
-    const res = await fetch(`${BASE}/api/chat/order`, {
+    const res = await fetch(`${BASE}/api/chat/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chatSessionId,
-        message: MESSAGE,
+        no_wa: `6281${String(Date.now()).slice(-9)}`,
+        teks: MESSAGE,
       }),
       signal: controller.signal,
     });
