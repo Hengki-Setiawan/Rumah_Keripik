@@ -64,6 +64,7 @@ export default auth((req) => {
 
   // Set response header for client correlation
   response.headers.set('x-request-id', requestId);
+  response.headers.set('x-middleware-version', '2');
   return response;
 });
 
