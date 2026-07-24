@@ -125,3 +125,9 @@ export async function updateChatCartItem(chatSessionId: string, itemId: string, 
   await db.update(chatCartItems).set({ quantity, updatedAt: sql`(datetime('now', 'utc'))` }).where(and(eq(chatCartItems.id, itemId), eq(chatCartItems.cartId, cart.id)));
   return getChatCart(chatSessionId);
 }
+
+export async function removeChatCartItem(chatSessionId: string, itemId: string) {
+  const cart = await ensureActiveCart(chatSessionId, null);
+  await db.delete(chatCartItems).where(and(eq(chatCartItems.id, itemId), eq(chatCartItems.cartId, cart.id)));
+  return getChatCart(chatSessionId);
+}

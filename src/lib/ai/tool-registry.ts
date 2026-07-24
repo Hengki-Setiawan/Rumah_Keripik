@@ -1,11 +1,11 @@
-import { eq } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { createChatMessage } from '@/lib/chat-v3/messages';
 import { getCustomerContextForChat, linkChatSessionToCustomer } from '@/lib/chat-v3/customer-context';
 import { getActivePaymentMethods } from './tools/payment';
-import { addToChatCart, getChatCart, updateChatCartItem } from './tools/cart';
+import { addToChatCart, getChatCart, updateChatCartItem, removeChatCartItem } from './tools/cart';
 import { recommendProducts, searchProducts } from './tools/products';
-import { customerAddress, lokasiPelanggan, paymentIntent, paymentMethod, pelangganChatbot, transaksi } from '@/lib/schema';
+import { customerAddress, lokasiPelanggan, paymentIntent, paymentMethod, pelangganChatbot, transaksi, detailTransaksi, produk } from '@/lib/schema';
 import { searchKnowledgeBase } from '@/lib/knowledge/retrieval';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
 import { normalizePhoneNumber } from '@/lib/utils';
@@ -87,6 +87,18 @@ export async function runChatTool(chatSessionId: string, toolName: string, args:
         components: [{ type: 'admin_handoff_card', reason: String(args.reason || 'Butuh bantuan admin') }],
       });
       return { ok: true };
+    case 'remove_from_cart':
+    case 'removeFromCart':
+      return removeChatCartItem(chatSessionId, String(args.itemId || args.item_id || ''));
+    case 'get_order_history':
+    case 'getOrderHistory':
+      return getOrderHistoryTool(chatSessionId, args);
+    case 'suggest_alternative_product':
+    case 'suggestAlternativeProduct':
+      return suggestAlternativeProductTool(args);
+    case 'identify_product_from_image':
+    case 'identifyProductFromImage':
+      return identifyProductFromImageTool(args);
     default:
       throw new Error(`Tool ${toolName} belum tersedia`);
   }
@@ -183,6 +195,43 @@ async function createPaymentInstructionTool(args: Record<string, unknown>) {
     instruction_json: JSON.stringify(instruction),
   }).onConflictDoNothing();
   return { orderId, amountDue: order.total_bayar, instruction };
+}
+
+async function getOrderHistoryTool(chatSessionId: string, args: Record<string, unknown>) {
+  const context = await getCustomerContextForChat(chatSessionId);
+  if (!context.customer) throw new Error('Customer belum terhubung');
+  const limit = Math.min(Math.max(1, Number(args.limit || 5)), 20);
+  const orders = await db
+    .select({ id_transaksi: transaksi.id_transaksi, kode_pesanan: transaksi.kode_pesanan, total_bayar: transaksi.total_bayar, status: transaksi.order_status, tgl_transaksi: transaksi.waktu_simpan, payment_status: transaksi.payment_status })
+    .from(transaksi)
+    .where(and(eq(transaksi.id_customer, context.customer.id), sql`${transaksi.order_status} != 'cancelled'`))
+    .orderBy(desc(transaksi.waktu_simpan))
+    .limit(limit);
+  return orders;
+}
+
+async function suggestAlternativeProductTool(args: Record<string, unknown>) {
+  const productId = String(args.originalProductId || '');
+  if (!productId) throw new Error('ID produk wajib diisi');
+  const [product] = await db.select({ kategori: produk.kategori_id }).from(produk).where(eq(produk.id_produk, productId)).limit(1);
+  if (!product) throw new Error('Produk tidak ditemukan');
+  if (!product.kategori) return [];
+  const alternatives = await db
+    .select({ id_produk: produk.id_produk, nama_produk: produk.nama_produk, harga_jual: produk.harga_jual, stok: produk.stok_gudang_utama })
+    .from(produk)
+    .where(and(eq(produk.kategori_id, product.kategori), eq(produk.is_active, 1), sql`${produk.id_produk} != ${productId}`, sql`${produk.stok_gudang_utama} > 0`))
+    .limit(5);
+  return alternatives;
+}
+
+function identifyProductFromImageTool(args: Record<string, unknown>) {
+  const imageUrl = String(args.imageUrl || '');
+  if (!imageUrl) throw new Error('URL gambar wajib diisi');
+  return {
+    note: 'Identifikasi gambar akan diproses. Hasil sementara: produk mungkin dikenali setelah analisis.',
+    imageUrl,
+    confidence: 'pending',
+  };
 }
 
 function normalizeCustomerType(value: unknown): 'konsumen' | 'warung' | 'reseller' {

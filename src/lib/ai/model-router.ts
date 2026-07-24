@@ -29,6 +29,17 @@ const circuitBreakerState = new Map<string, { failures: number; lastFailureAt: n
 const CIRCUIT_BREAKER_THRESHOLD = 3;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 120_000;
 
+const promptCache = new Map<string, { result: GenerateTextResult; cachedAt: number }>();
+const PROMPT_CACHE_TTL_MS = 60_000;
+const CACHE_MIN_TOKEN_LENGTH = 100;
+
+function getCacheKey(input: GenerateTextInput): string | null {
+  if (!input.systemPrompt || input.systemPrompt.length < CACHE_MIN_TOKEN_LENGTH) return null;
+  const prefix = input.systemPrompt.slice(0, 200);
+  const lastMsg = input.messages?.[input.messages.length - 1]?.content?.slice(0, 100) || '';
+  return `${input.task}|${input.temperature}|${prefix}|${lastMsg}`;
+}
+
 function isCircuitOpen(providerId: string): boolean {
   const state = circuitBreakerState.get(providerId);
   if (!state) return false;
@@ -101,6 +112,14 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
 
   const sanitizedMessages = sanitizeMessages(input.messages);
 
+  const cacheKey = getCacheKey(input);
+  if (cacheKey) {
+    const cached = promptCache.get(cacheKey);
+    if (cached && Date.now() - cached.cachedAt < PROMPT_CACHE_TTL_MS) {
+      return cached.result;
+    }
+  }
+
   for (const providerId of providerOrder) {
     const provider = providerConfigs.find((item) => item.id === providerId || item.name === providerId);
     if (!provider?.enabled) continue;
@@ -119,12 +138,14 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         const routed = { text: result.text, provider: result.provider, model: result.model || provider.defaultModel, tokensUsed: result.tokensUsed };
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
+        if (cacheKey) promptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
         return routed;
       }
       if (provider.name === 'gemini') {
         const routed = await generateGeminiText(sanitizedMessages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
+        if (cacheKey) promptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
         return routed;
       }
       if (provider.name === 'cerebras' || provider.name === 'qwen') {

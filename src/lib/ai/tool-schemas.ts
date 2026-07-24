@@ -87,6 +87,24 @@ export const requestAdminHandoffSchema = z.object({
   reason: z.string().min(1).max(300).optional().default('Butuh bantuan admin'),
 });
 
+export const removeFromCartSchema = z.object({
+  itemId: z.string().min(1, 'ID item keranjang wajib diisi'),
+});
+
+export const getOrderHistorySchema = z.object({
+  customerId: z.string().optional(),
+  limit: z.number().int().positive().max(20).optional().default(5),
+});
+
+export const suggestAlternativeProductSchema = z.object({
+  originalProductId: z.string().min(1),
+  reason: z.enum(['out_of_stock', 'discontinued', 'not_found']).optional(),
+});
+
+export const identifyProductFromImageSchema = z.object({
+  imageUrl: z.string().url('URL gambar tidak valid'),
+});
+
 export const toolSchemaRegistry: Record<string, z.ZodTypeAny> = {
   search_products: searchProductsSchema,
   searchProducts: searchProductsSchema,
@@ -119,4 +137,12 @@ export const toolSchemaRegistry: Record<string, z.ZodTypeAny> = {
   search_knowledge_base: searchKnowledgeBaseSchema,
   request_admin_handoff: requestAdminHandoffSchema,
   requestAdminHandoff: requestAdminHandoffSchema,
+  remove_from_cart: removeFromCartSchema,
+  removeFromCart: removeFromCartSchema,
+  get_order_history: getOrderHistorySchema,
+  getOrderHistory: getOrderHistorySchema,
+  suggest_alternative_product: suggestAlternativeProductSchema,
+  suggestAlternativeProduct: suggestAlternativeProductSchema,
+  identify_product_from_image: identifyProductFromImageSchema,
+  identifyProductFromImage: identifyProductFromImageSchema,
 };
