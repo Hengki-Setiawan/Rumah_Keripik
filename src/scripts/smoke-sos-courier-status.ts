@@ -1,9 +1,9 @@
-const BASE = process.env.BASE_URL || 'https://rumah-keripik.vercel.app';
+const BASE_URL = process.env.BASE_URL || 'https://rumah-keripik.vercel.app';
 
 async function main() {
   console.log('Smoke test: GET /api/courier/sos (unauthorized — should 401)\n');
 
-  const res = await fetch(`${BASE}/api/courier/sos`);
+  const res = await fetch(`${BASE_URL}/api/courier/sos`);
   const status = res.status;
   const contentType = res.headers.get('content-type') || '';
   const bodyText = await res.text();
@@ -16,3 +16,5 @@ async function main() {
 }
 
 main();
+
+export {};
