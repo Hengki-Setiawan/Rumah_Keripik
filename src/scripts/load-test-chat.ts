@@ -64,6 +64,9 @@ async function main() {
     results.push(...batchResults);
     const ok = batchResults.filter((r) => r.success).length;
     console.log(`   Batch ${batch + 1}/${batches}: ${ok}/${batchSize} success`);
+    if (batch < batches - 1) {
+      await new Promise((r) => setTimeout(r, 500 + Math.random() * 1000));
+    }
   }
 
   const totalSuccess = results.filter((r) => r.success).length;

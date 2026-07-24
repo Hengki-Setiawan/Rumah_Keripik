@@ -154,3 +154,7 @@ export function generateIdBackupRestoreDrill(): string {
 export function generateSecureSessionToken(): string {
   return randomBytes(32).toString('base64url');
 }
+
+export function generateIdCourierEarning(): string {
+  return `CRN-${randomUUID().slice(0, 12).toUpperCase()}`;
+}

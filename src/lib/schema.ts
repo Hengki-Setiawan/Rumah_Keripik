@@ -1121,6 +1121,7 @@ export const aiRuns = sqliteTable(
     latencyMs: integer('latency_ms'),
     status: text('status', { enum: ['success', 'error', 'fallback'] }).notNull(),
     errorMessage: text('error_message'),
+    costEstimateUsd: integer('cost_estimate_usd'),
     createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
   },
   (table) => ({
@@ -1535,4 +1536,58 @@ export const rateLimits = sqliteTable('rate_limits', {
 
 export type RateLimit = typeof rateLimits.$inferSelect;
 export type InsertRateLimit = typeof rateLimits.$inferInsert;
+
+// ─── COURIER EARNINGS ─────────────────────────────────────────────────────────
+export const courierEarnings = sqliteTable('courier_earnings', {
+  id: text('id').primaryKey(),
+  courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
+  deliveryAssignmentId: integer('delivery_assignment_id').references(() => deliveryAssignment.id, { onDelete: 'set null' }),
+  orderId: text('order_id').notNull(),
+  baseFee: integer('base_fee').notNull(),
+  bonusAmount: integer('bonus_amount').notNull().default(0),
+  status: text('status', { enum: ['pending', 'confirmed', 'paid_out'] }).notNull().default('pending'),
+  note: text('note'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  paidOutAt: text('paid_out_at'),
+}, (table) => ({
+  courierEarningsIdx: index('idx_courier_earnings_courier').on(table.courierId, table.createdAt),
+}));
+
+export type CourierEarning = typeof courierEarnings.$inferSelect;
+export type InsertCourierEarning = typeof courierEarnings.$inferInsert;
+
+// ─── TRACKING EVENTS ──────────────────────────────────────────────────────────
+export const trackingEvents = sqliteTable('tracking_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  orderId: text('order_id').notNull(),
+  eventType: text('event_type', { enum: ['courier_location', 'status_change', 'eta_update', 'proof_uploaded'] }).notNull(),
+  lat: text('lat'),
+  lng: text('lng'),
+  etaMinutes: integer('eta_minutes'),
+  status: text('status'),
+  metadataJson: text('metadata_json'),
+  courierId: integer('courier_id'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  orderIdx: index('idx_tracking_events_order').on(table.orderId, table.createdAt),
+  courierIdx: index('idx_tracking_events_courier').on(table.courierId, table.createdAt),
+}));
+
+export type TrackingEvent = typeof trackingEvents.$inferSelect;
+export type InsertTrackingEvent = typeof trackingEvents.$inferInsert;
+
+// ─── AI BUDGET CONFIG ─────────────────────────────────────────────────────────
+export const aiBudgetConfig = sqliteTable('ai_budget_config', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  provider: text('provider').notNull().unique(),
+  dailyBudgetUsd: integer('daily_budget_usd').notNull().default(0),
+  monthlyBudgetUsd: integer('monthly_budget_usd').notNull().default(0),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  alertThresholdPercent: integer('alert_threshold_percent').notNull().default(80),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type AiBudgetConfig = typeof aiBudgetConfig.$inferSelect;
+export type InsertAiBudgetConfig = typeof aiBudgetConfig.$inferInsert;
 

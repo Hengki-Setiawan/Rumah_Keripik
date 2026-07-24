@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, and, gte, sum, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { aiRuns, botSetting } from '@/lib/schema';
+import { aiRuns, aiBudgetConfig, botSetting } from '@/lib/schema';
 import { generateIdAiRun } from '@/lib/id-generator';
 import { callGroqLLM } from '@/lib/groq';
 import { generateGeminiText } from '@/lib/gemini';
@@ -24,6 +24,71 @@ export const defaultTaskConfigs: AIModelTaskConfig[] = [
   { task: 'admin_summary', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 4000, maxOutputTokens: 260, temperature: 0.2, timeoutMs: 14000 },
 ];
 
+const circuitBreakerState = new Map<string, { failures: number; lastFailureAt: number; cooldownUntil: number }>();
+const CIRCUIT_BREAKER_THRESHOLD = 3;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 120_000;
+
+function isCircuitOpen(providerId: string): boolean {
+  const state = circuitBreakerState.get(providerId);
+  if (!state) return false;
+  if (state.failures < CIRCUIT_BREAKER_THRESHOLD) return false;
+  if (Date.now() > state.cooldownUntil) {
+    circuitBreakerState.delete(providerId);
+    return false;
+  }
+  return true;
+}
+
+function recordFailure(providerId: string) {
+  const state = circuitBreakerState.get(providerId) || { failures: 0, lastFailureAt: 0, cooldownUntil: 0 };
+  state.failures++;
+  state.lastFailureAt = Date.now();
+  if (state.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+    state.cooldownUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS;
+    console.warn(`[CIRCUIT_BREAKER] ${providerId} opened for ${CIRCUIT_BREAKER_COOLDOWN_MS}ms after ${state.failures} failures`);
+  }
+  circuitBreakerState.set(providerId, state);
+}
+
+function recordSuccess(providerId: string) {
+  circuitBreakerState.delete(providerId);
+}
+
+async function checkBudget(providerId: string): Promise<boolean> {
+  try {
+    const [config] = await db.select().from(aiBudgetConfig).where(eq(aiBudgetConfig.provider, providerId)).limit(1);
+    if (!config || !config.enabled || config.dailyBudgetUsd <= 0) return true;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const [spent] = await db
+      .select({ total: sum(aiRuns.costEstimateUsd) })
+      .from(aiRuns)
+      .where(and(eq(aiRuns.provider, providerId), gte(aiRuns.createdAt, todayStart.toISOString())));
+
+    const dailySpent = Number(spent?.total || 0) / 100;
+    if (dailySpent >= config.dailyBudgetUsd) {
+      console.warn(`[BUDGET] ${providerId} daily budget $${config.dailyBudgetUsd} exceeded (spent: $${dailySpent})`);
+      return false;
+    }
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+const ESTIMATED_COST_PER_1K_TOKENS: Record<string, number> = {
+  groq: 0.05,
+  gemini: 0.30,
+  cerebras: 0.08,
+  qwen: 0.08,
+};
+
+function estimateCost(provider: string, tokensUsed: number): number {
+  const rate = ESTIMATED_COST_PER_1K_TOKENS[provider] || 0.10;
+  return Math.ceil((tokensUsed / 1000) * rate * 100);
+}
+
 export async function generateTextWithRouter(input: GenerateTextInput): Promise<GenerateTextResult> {
   const started = Date.now();
   const id = generateIdAiRun();
@@ -38,22 +103,33 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
   for (const providerId of providerOrder) {
     const provider = providerConfigs.find((item) => item.id === providerId || item.name === providerId);
     if (!provider?.enabled) continue;
+    if (isCircuitOpen(providerId)) {
+      console.warn(`[CIRCUIT_BREAKER] Skipping ${providerId} (circuit open)`);
+      continue;
+    }
     if (provider.name !== 'deterministic' && provider.apiKeyEnv && !process.env[provider.apiKeyEnv]) continue;
+    if (provider.name !== 'deterministic' && !(await checkBudget(providerId))) {
+      console.warn(`[BUDGET] Skipping ${providerId} (budget exhausted)`);
+      continue;
+    }
     try {
       if (provider.name === 'groq') {
         const result = await callGroqLLM(sanitizedMessages, maxTokens, temperature, input.systemPrompt);
         const routed = { text: result.text, provider: result.provider, model: result.model || provider.defaultModel, tokensUsed: result.tokensUsed };
         await logRun(id, input, routed, Date.now() - started, 'success');
+        recordSuccess(providerId);
         return routed;
       }
       if (provider.name === 'gemini') {
         const routed = await generateGeminiText(sanitizedMessages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
         await logRun(id, input, routed, Date.now() - started, 'success');
+        recordSuccess(providerId);
         return routed;
       }
       if (provider.name === 'cerebras' || provider.name === 'qwen') {
         const routed = await callOpenAICompatibleProvider(provider, { ...input, messages: sanitizedMessages }, maxTokens, temperature);
         await logRun(id, input, routed, Date.now() - started, 'success');
+        recordSuccess(providerId);
         return routed;
       }
       if (provider.name === 'deterministic') {
@@ -62,6 +138,7 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         return result;
       }
     } catch (error) {
+      recordFailure(providerId);
       await logRun(id, input, { text: '', provider: provider.name, model: provider.defaultModel }, Date.now() - started, 'error', error instanceof Error ? error.message : 'AI provider error');
     }
   }
@@ -111,6 +188,8 @@ export function normalizeTaskConfigs(configs: AIModelTaskConfig[]) {
 
 async function logRun(id: string, input: GenerateTextInput, result: GenerateTextResult, latencyMs: number, status: 'success' | 'error' | 'fallback', errorMessage?: string) {
   try {
+    const tokensUsed = result.tokensUsed || 0;
+    const costEstimate = estimateCost(String(result.provider), tokensUsed);
     await db.insert(aiRuns).values({
       id,
       chatSessionId: input.chatSessionId || null,
@@ -118,7 +197,8 @@ async function logRun(id: string, input: GenerateTextInput, result: GenerateText
       provider: String(result.provider),
       model: result.model,
       inputTokens: 0,
-      outputTokens: result.tokensUsed || 0,
+      outputTokens: tokensUsed,
+      costEstimateUsd: costEstimate,
       latencyMs,
       status,
       errorMessage: errorMessage || null,

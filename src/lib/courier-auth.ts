@@ -3,6 +3,7 @@ import { couriers, courierSessions } from '@/lib/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { verifyAccessToken } from '@/lib/auth-jwt';
 
 const SESSION_DURATION_DAYS = 30;
 const BCRYPT_ROUNDS = 10;
@@ -48,7 +49,7 @@ export async function createCourierSession(courierId: number) {
   return token;
 }
 
-export async function getCourierFromToken(token: string) {
+async function getCourierFromDbSession(token: string) {
   const [session] = await db
     .select({
       courier: couriers,
@@ -79,5 +80,18 @@ export async function requireCourierAuth(request: Request) {
     return null;
   }
   const token = authHeader.slice(7);
-  return getCourierFromToken(token);
+
+  const jwtPayload = await verifyAccessToken(token);
+  if (jwtPayload && jwtPayload.role === 'courier') {
+    const courierId = parseInt(jwtPayload.sub, 10);
+    if (isNaN(courierId)) return null;
+    const [courier] = await db
+      .select()
+      .from(couriers)
+      .where(and(eq(couriers.id, courierId), eq(couriers.is_active, 1)))
+      .limit(1);
+    return courier || null;
+  }
+
+  return getCourierFromDbSession(token);
 }
