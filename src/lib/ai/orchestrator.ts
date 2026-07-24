@@ -16,6 +16,8 @@ import { logAiLearningEvent, logRecommendationEvent } from '@/lib/ai/learning-ev
 import { searchKnowledgeBase, type KnowledgeChunk } from '@/lib/knowledge/retrieval';
 import { normalizePhoneNumber } from '@/lib/utils';
 import type { AIChatResponse, ChatComponent } from '@/lib/chat-v3/types';
+import { getAgentLoopConfig, shouldUseAgentLoop } from '@/lib/ai/feature-flags';
+import { runAgentLoop } from '@/lib/ai/agent-loop';
 
 export async function buildChatResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
   // ─── LOGIN FLOW INTERCEPTOR ───
@@ -132,6 +134,27 @@ export async function buildChatResponse(chatSessionId: string, message: string):
   const deterministic = await buildDeterministicResponse(chatSessionId, message);
   const shouldTryModel = !deterministic || deterministic.confidence == null || deterministic.confidence < 0.9;
   if (!shouldTryModel) return deterministic;
+
+  const agentLoopConfig = await getAgentLoopConfig();
+  const useAgentLoop = shouldUseAgentLoop(agentLoopConfig, chatSessionId) && isComplexMessage(message);
+
+  if (useAgentLoop) {
+    try {
+      const agentResult = await runAgentLoop({
+        chatSessionId,
+        userMessage: message,
+        maxIterations: agentLoopConfig.maxIterations,
+      });
+      return {
+        reply: agentResult.reply,
+        intent: agentResult.intent,
+        components: agentResult.components,
+        confidence: 0.85,
+      };
+    } catch (loopError) {
+      console.error('[AgentLoop] Agent loop error, falling back to standard AI:', loopError);
+    }
+  }
 
   try {
     const [history, customerContext, cart] = await Promise.all([
@@ -719,6 +742,24 @@ async function logToolCall(chatSessionId: string, toolName: string, input: unkno
   } catch {
     // Tool logging must not break chat.
   }
+}
+
+function isComplexMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  const multiIntentPatterns = [
+    /dan\s*(bayar|kirim|pakai|pake)/,
+    /lalu\s*(bayar|kirim|pakai|pake)/,
+    /terus\s*(bayar|kirim|pakai|pake)/,
+    /sekalian\s*(bayar|kirim|pakai|pake)/,
+    /sama\s+(bayar|kirim)/,
+  ];
+  if (multiIntentPatterns.some((p) => p.test(lower))) return true;
+
+  const keywordCount = ['pesan', 'beli', 'order', 'bayar', 'kirim', 'alamat', 'pakai', 'pake', 'cod', 'qris', 'transfer']
+    .filter((keyword) => lower.includes(keyword)).length;
+  if (keywordCount >= 3) return true;
+
+  return false;
 }
 
 async function logFailedConversation(chatSessionId: string, userMessage: string, reason: 'low_confidence' | 'invalid_json' | 'no_product_found' | 'provider_error' | 'ambiguous_address' | 'payment_issue' | 'unknown', rawAiOutput?: string, modelUsed?: string) {

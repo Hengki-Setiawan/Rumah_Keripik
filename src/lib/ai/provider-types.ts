@@ -8,7 +8,8 @@ export type AITask =
   | 'admin_summary'
   | 'product_recommendation'
   | 'conversation_summary'
-  | 'image_or_payment_receipt_analysis';
+  | 'image_or_payment_receipt_analysis'
+  | 'agentic_reasoning';
 
 export type AIProviderConfig = {
   id: string;

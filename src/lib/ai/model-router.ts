@@ -22,6 +22,7 @@ export const defaultTaskConfigs: AIModelTaskConfig[] = [
   { task: 'faq_answer', primaryProviderId: 'cerebras', fallbackProviderIds: ['gemini', 'groq', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 180, temperature: 0.15, timeoutMs: 12000 },
   { task: 'memory_extraction', primaryProviderId: 'cerebras', fallbackProviderIds: ['gemini', 'groq', 'deterministic'], maxInputTokens: 2500, maxOutputTokens: 180, temperature: 0.1, timeoutMs: 12000 },
   { task: 'admin_summary', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 4000, maxOutputTokens: 260, temperature: 0.2, timeoutMs: 14000 },
+  { task: 'agentic_reasoning', primaryProviderId: 'groq', fallbackProviderIds: ['cerebras', 'gemini', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 400, temperature: 0.15, timeoutMs: 18000 },
 ];
 
 const circuitBreakerState = new Map<string, { failures: number; lastFailureAt: number; cooldownUntil: number }>();
