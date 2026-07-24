@@ -38,7 +38,7 @@ async function sendChatRequest(): Promise<LoadTestResult> {
     const reader = res.body?.getReader();
     let bytes = 0;
     if (reader) {
-      await reader.read().then(async function read({ done, value }) {
+      await reader.read().then(async function read({ done, value }): Promise<void> {
         if (done) return;
         bytes += value.length;
         return reader.read().then(read);

@@ -1,45 +1,82 @@
 import { NextResponse } from 'next/server';
-import { CourierLoginSchema } from '@/lib/courier-types';
-import { verifyCourierLogin, createCourierSession } from '@/lib/courier-auth';
-import { checkRateLimit, getClientIp, isRateLimited } from '@/lib/rate-limit';
+import { z } from 'zod';
+import bcrypt from 'bcryptjs';
+import { db } from '@/lib/db';
+import { couriers, courierSessions } from '@/lib/schema';
+import { eq, and } from 'drizzle-orm';
+import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
 
-export async function POST(request: Request) {
+const LoginSchema = z.object({
+  phone: z.string().min(10).max(20),
+  pin: z.string().length(4).regex(/^\d+$/),
+  deviceId: z.string().optional(),
+});
+
+export async function POST(req: Request) {
   try {
-    const ip = getClientIp(request);
-    const blocked = await isRateLimited(`courier-login-fail:${ip}`, 5);
-    if (blocked) {
-      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan. Coba lagi 5 menit.' }, { status: 429 });
+    const body = LoginSchema.safeParse(await req.json());
+    if (!body.success) {
+      return NextResponse.json({ ok: false, error: 'Data tidak valid', details: body.error.flatten() }, { status: 400 });
     }
 
-    const body = await request.json();
-    const parsed = CourierLoginSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: 'Format phone atau PIN salah' }, { status: 400 });
-    }
+    const { phone, pin, deviceId } = body.data;
 
-    const { phone, pin } = parsed.data;
-    const courier = await verifyCourierLogin(phone, pin);
+    const [courier] = await db
+      .select()
+      .from(couriers)
+      .where(and(eq(couriers.phone, phone), eq(couriers.is_active, 1)))
+      .limit(1);
+
     if (!courier) {
-      await checkRateLimit(`courier-login-fail:${ip}`, 5, 300_000);
-      return NextResponse.json({ ok: false, error: 'Phone atau PIN salah' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Kurir tidak ditemukan' }, { status: 401 });
     }
 
-    const token = await createCourierSession(courier.id);
+    const pinMatch = await bcrypt.compare(pin, courier.pin_hash);
+    if (!pinMatch) {
+      return NextResponse.json({ ok: false, error: 'PIN salah' }, { status: 401 });
+    }
+
+    const sessionId = generateRefreshTokenId();
+    const accessToken = await signAccessToken({
+      sub: String(courier.id),
+      role: 'courier',
+      sessionId,
+      name: courier.name,
+    });
+    const refreshToken = await signRefreshToken({
+      sub: String(courier.id),
+      role: 'courier',
+      sessionId,
+      name: courier.name,
+    });
+
+    await db.insert(courierSessions).values({
+      courierId: courier.id,
+      token: refreshToken,
+      device_id: deviceId || null,
+      is_active: true,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    if (deviceId && courier.device_id && courier.device_id !== deviceId) {
+      console.warn(`[SECURITY] Courier ${courier.id} login dari device baru: ${deviceId}`);
+    }
+
+    await db.update(couriers).set({ device_id: deviceId || courier.device_id }).where(eq(couriers.id, courier.id));
 
     return NextResponse.json({
       ok: true,
-      token,
+      accessToken,
+      refreshToken,
       courier: {
         id: courier.id,
         name: courier.name,
         phone: courier.phone,
         vehicle: courier.vehicle,
-        plat_no: courier.plat_no,
-        is_active: courier.is_active === 1,
+        platNo: courier.plat_no,
       },
     });
   } catch (error) {
-    console.error('[COURIER_LOGIN]', error);
-    return NextResponse.json({ ok: false, error: 'Terjadi kesalahan server' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal login' }, { status: 500 });
   }
 }

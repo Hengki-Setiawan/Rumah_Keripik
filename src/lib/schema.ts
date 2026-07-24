@@ -15,7 +15,7 @@ export const pelangganChatbot = sqliteTable('pelanggan_chatbot', {
   no_wa_pelanggan: text('no_wa_pelanggan').primaryKey(), // WA: 62812..., Telegram: tg_<chat_id>
   nama_pelanggan: text('nama_pelanggan'),
   alamat_pengiriman: text('alamat_pengiriman'),
-  channel: text('channel', { enum: ['wa', 'telegram'] })
+  channel: text('channel', { enum: ['wa', 'telegram', 'mobile'] })
     .notNull()
     .default('wa'),
   status_handle: text('status_handle', {
@@ -32,6 +32,7 @@ export const pelangganChatbot = sqliteTable('pelanggan_chatbot', {
   terakhir_aktif: text('terakhir_aktif')
     .notNull()
     .default(sql`(datetime('now', 'utc'))`),
+  pin_hash: text('pin_hash'),
 });
 
 // ─── KATALOG PRODUK WEB ───────────────────────────────────────────────────────
