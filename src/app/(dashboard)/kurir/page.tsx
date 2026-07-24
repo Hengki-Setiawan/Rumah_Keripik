@@ -138,9 +138,14 @@ export default function KurirPage() {
           <h1 className="text-2xl font-bold text-gray-800">Manajemen Kurir</h1>
         </div>
         <div className="flex gap-2">
+          <Link href="/kurir/live">
+            <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+              <Navigation className="w-4 h-4 mr-1" /> Live Map
+            </Button>
+          </Link>
           <Link href="/kurir/assign">
             <Button variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50">
-              <Navigation className="w-4 h-4 mr-1" /> Assign Kurir
+              <Truck className="w-4 h-4 mr-1" /> Assign Kurir
             </Button>
           </Link>
           <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-orange-600 hover:bg-orange-700">

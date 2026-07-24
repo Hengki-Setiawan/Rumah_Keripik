@@ -40,7 +40,7 @@ const coreMenuItems = [
   { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
-  { href: '/kurir', label: 'Kurir', icon: Truck },
+  { href: '/kurir', label: 'Kurir', icon: Truck, activeHrefs: ['/kurir', '/kurir/live', '/kurir/assign'] },
   { href: '/loyalty', label: 'Loyalitas', icon: Gift },
   { href: '/keuangan', label: 'Keuangan', icon: BarChart3 },
   { href: '/ai-workspace', label: 'Pusat AI', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router', '/ai-ops'] },
