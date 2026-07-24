@@ -1609,3 +1609,23 @@ export const sosEvents = sqliteTable('sos_events', {
 export type SosEvent = typeof sosEvents.$inferSelect;
 export type InsertSosEvent = typeof sosEvents.$inferInsert;
 
+// ─── SKILL DRAFTS (HUMAN-IN-THE-LOOP TEACHING) ──────────────────────────────────
+export const skillDrafts = sqliteTable('skill_drafts', {
+  id: text('id').primaryKey(),
+  sourceType: text('source_type').notNull(), // 'admin_correction' | 'auto_pattern_detected'
+  sourceChatSessionId: text('source_chat_session_id'),
+  sourceConversationExcerpt: text('source_conversation_excerpt'),
+  draftMarkdown: text('draft_markdown').notNull(),
+  proposedName: text('proposed_name').notNull(),
+  proposedDescription: text('proposed_description').notNull(),
+  status: text('status', { enum: ['pending_review', 'approved', 'rejected'] }).notNull().default('pending_review'),
+  reviewedBy: text('reviewed_by'),
+  reviewedAt: text('reviewed_at'),
+  rejectionReason: text('rejection_reason'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type SkillDraft = typeof skillDrafts.$inferSelect;
+export type InsertSkillDraft = typeof skillDrafts.$inferInsert;
+
+
