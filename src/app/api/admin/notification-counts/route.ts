@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { transaksi, pelangganChatbot } from '@/lib/schema';
+import { transaksi, pelangganChatbot, sosEvents } from '@/lib/schema';
 import { eq, sql } from 'drizzle-orm';
 
 export async function GET() {
@@ -15,9 +15,15 @@ export async function GET() {
       .from(pelangganChatbot)
       .where(eq(pelangganChatbot.status_handle, 'Manual_Admin'));
 
+    const [activeSos] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(sosEvents)
+      .where(eq(sosEvents.status, 'active'));
+
     return NextResponse.json({
       pending_verifikasi: pendingVerif.count,
       unread_chats: unreadChats.count,
+      active_sos: activeSos.count,
     });
   } catch (err) {
     console.error('[NotificationCounts]', err);

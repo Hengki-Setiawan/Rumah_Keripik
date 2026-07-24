@@ -1591,3 +1591,21 @@ export const aiBudgetConfig = sqliteTable('ai_budget_config', {
 export type AiBudgetConfig = typeof aiBudgetConfig.$inferSelect;
 export type InsertAiBudgetConfig = typeof aiBudgetConfig.$inferInsert;
 
+export const sosEvents = sqliteTable('sos_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id),
+  courierName: text('courier_name'),
+  courierPhone: text('courier_phone'),
+  lat: text('lat').notNull(),
+  lng: text('lng').notNull(),
+  message: text('message'),
+  status: text('status', { enum: ['active', 'resolved'] }).notNull().default('active'),
+  resolvedAt: text('resolved_at'),
+  resolvedBy: text('resolved_by'),
+  note: text('note'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type SosEvent = typeof sosEvents.$inferSelect;
+export type InsertSosEvent = typeof sosEvents.$inferInsert;
+

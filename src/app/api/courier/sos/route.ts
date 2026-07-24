@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { expoPushTokens } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
+import { expoPushTokens, sosEvents } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { sendPushNotification } from '@/lib/expo-push';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { z } from 'zod';
@@ -27,6 +27,16 @@ export async function POST(req: Request) {
     const { lat, lng, message } = body.data;
 
     console.error(`[SOS] COURIER ${courier.id} (${courier.name}) at ${lat},${lng}: ${message || 'No message'}`);
+
+    await db.insert(sosEvents).values({
+      courierId: courier.id,
+      courierName: courier.name,
+      courierPhone: courier.phone,
+      lat: String(lat),
+      lng: String(lng),
+      message: message || null,
+      createdAt: new Date().toISOString(),
+    });
 
     try {
       const adminTokens = await db

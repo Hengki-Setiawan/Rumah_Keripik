@@ -31,6 +31,7 @@ import { ConfirmModal } from '@/components/ui/modal';
 interface NotifCounts {
   pending_verifikasi: number;
   unread_chats: number;
+  active_sos: number;
 }
 
 const coreMenuItems = [
@@ -49,6 +50,7 @@ const supportMenuItems = [
   { href: '/feedback-learning', label: 'Feedback Learning', icon: Bot },
   { href: '/bot-config', label: 'Bot Config', icon: Bot },
   { href: '/web-sessions', label: 'Web Sessions', icon: Users },
+  { href: '/sos', label: 'SOS Darurat', icon: ShieldAlert },
   { href: '/ops-smoke', label: 'Smoke Ops', icon: ShieldAlert },
 ];
 
@@ -64,7 +66,7 @@ function NotificationPoller() {
   const { addToast } = useToast();
 
   useEffect(() => {
-    let prev = { pending_verifikasi: 0, unread_chats: 0 };
+    let prev = { pending_verifikasi: 0, unread_chats: 0, active_sos: 0 };
 
     async function poll() {
       try {
@@ -73,10 +75,13 @@ function NotificationPoller() {
         const data: NotifCounts = await res.json();
 
         if (prev.pending_verifikasi > 0 && data.pending_verifikasi > prev.pending_verifikasi) {
-          addToast('success', `${data.pending_verifikasi - prev.pending_verifikasi} pembayaran baru perlu diverifikasi`);
+          addToast('success', `${data.pending_verifikasi} pembayaran baru perlu diverifikasi`);
         }
         if (prev.unread_chats > 0 && data.unread_chats > prev.unread_chats) {
-          addToast('info', `${data.unread_chats - prev.unread_chats} chat baru masuk`);
+          addToast('info', `${data.unread_chats} chat baru masuk`);
+        }
+        if (data.active_sos && data.active_sos > (prev as any).active_sos) {
+          addToast('error', `SOS Darurat! ${data.active_sos} kurir butuh bantuan`);
         }
         prev = data;
       } catch {
@@ -142,7 +147,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifs, setNotifs] = useState<NotifCounts>({ pending_verifikasi: 0, unread_chats: 0 });
+  const [notifs, setNotifs] = useState<NotifCounts>({ pending_verifikasi: 0, unread_chats: 0, active_sos: 0 });
   const pathname = usePathname();
 
   const dateStr = new Intl.DateTimeFormat('id-ID', {
@@ -170,7 +175,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, []);
 
-  const totalNotif = notifs.pending_verifikasi + notifs.unread_chats;
+  const totalNotif = notifs.pending_verifikasi + notifs.unread_chats + notifs.active_sos;
   const currentLabel = menuItems.find((item) => isMenuActive(pathname, item))?.label || 'Dashboard';
 
   async function handleLogout() {
@@ -362,6 +367,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </Link>
                       ) : (
                         <div className="p-3 text-sm text-[#776454]">Tidak ada notifikasi baru</div>
+                      )}
+
+                      {notifs.active_sos > 0 && (
+                        <Link
+                          href="/sos"
+                          onClick={() => setNotifOpen(false)}
+                          className="flex items-center gap-3 rounded-[1.1rem] p-3 transition hover:bg-[#f9efe0]"
+                        >
+                          <ShieldAlert size={18} className="shrink-0 text-red-600" />
+                          <div>
+                            <p className="text-sm font-medium text-[#2f241c]">
+                              {notifs.active_sos} SOS darurat aktif
+                            </p>
+                            <p className="text-xs text-[#776454]">Klik untuk lihat detail</p>
+                          </div>
+                        </Link>
                       )}
 
                       {notifs.unread_chats > 0 && (
