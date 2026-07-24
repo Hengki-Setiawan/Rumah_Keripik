@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { expoPushTokens, sosEvents } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { sendPushNotification } from '@/lib/expo-push';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { z } from 'zod';
@@ -11,6 +11,35 @@ const SosSchema = z.object({
   lng: z.number().min(-180).max(180),
   message: z.string().max(500).optional(),
 });
+
+export async function GET(req: Request) {
+  try {
+    const courier = await requireCourierAuth(req);
+    if (!courier) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const events = await db
+      .select({
+        id: sosEvents.id,
+        status: sosEvents.status,
+        message: sosEvents.message,
+        lat: sosEvents.lat,
+        lng: sosEvents.lng,
+        createdAt: sosEvents.createdAt,
+        resolvedAt: sosEvents.resolvedAt,
+        note: sosEvents.note,
+      })
+      .from(sosEvents)
+      .where(eq(sosEvents.courierId, courier.id))
+      .orderBy(desc(sosEvents.createdAt))
+      .limit(20);
+
+    return NextResponse.json({ ok: true, events });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal' }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   try {

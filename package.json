@@ -24,6 +24,7 @@
     "e2e:mobile": "playwright test e2e/mobile-pesan.spec.ts --project=mobile-chrome",
     "e2e:full": "playwright test --project=chromium --project=firefox --project=webkit --project=mobile-chrome --project=mobile-safari",
     "smoke:worker": "tsx src/scripts/smoke-worker.ts",
+    "smoke:sos-courier": "tsx src/scripts/smoke-sos-courier-status.ts",
     "smoke:cron-auth": "tsx src/scripts/smoke-cron-auth.ts",
     "readiness:production": "tsx src/scripts/readiness-production.ts",
     "audit:production-ops": "tsx src/scripts/audit-production-ops.ts",

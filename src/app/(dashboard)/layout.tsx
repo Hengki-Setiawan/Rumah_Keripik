@@ -66,6 +66,17 @@ function NotificationPoller() {
   const { addToast } = useToast();
 
   useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  function showBrowserNotif(title: string, body: string) {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    new Notification(title, { body, icon: '/favicon.ico' });
+  }
+
+  useEffect(() => {
     let prev = { pending_verifikasi: 0, unread_chats: 0, active_sos: 0 };
 
     async function poll() {
@@ -76,12 +87,15 @@ function NotificationPoller() {
 
         if (prev.pending_verifikasi > 0 && data.pending_verifikasi > prev.pending_verifikasi) {
           addToast('success', `${data.pending_verifikasi} pembayaran baru perlu diverifikasi`);
+          showBrowserNotif('Pesanan Baru', `${data.pending_verifikasi} pembayaran baru perlu diverifikasi`);
         }
         if (prev.unread_chats > 0 && data.unread_chats > prev.unread_chats) {
           addToast('info', `${data.unread_chats} chat baru masuk`);
+          showBrowserNotif('Chat Baru', `${data.unread_chats} chat baru masuk ke hub komunikasi`);
         }
         if (data.active_sos && data.active_sos > (prev as any).active_sos) {
           addToast('error', `SOS Darurat! ${data.active_sos} kurir butuh bantuan`);
+          showBrowserNotif('SOS Darurat!', `${data.active_sos} kurir mengirim sinyal darurat`);
         }
         prev = data;
       } catch {
