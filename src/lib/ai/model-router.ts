@@ -89,7 +89,7 @@ async function checkBudget(providerId: string): Promise<boolean> {
   }
 }
 
-const ESTIMATED_COST_PER_1K_TOKENS: Record<string, number> = {
+export const ESTIMATED_COST_PER_1K_TOKENS: Record<string, number> = {
   groq: 0.05,
   gemini: 0.30,
   cerebras: 0.08,

@@ -19,6 +19,8 @@
     "smoke:chat-v3": "tsx src/scripts/smoke-chat-v3.ts",
     "smoke:production-apis": "tsx src/scripts/smoke-production-apis.ts",
     "load-test:chat": "tsx src/scripts/load-test-chat.ts",
+    "load-test:tracking": "tsx src/scripts/load-test-tracking.ts",
+    "db:reembed:batch": "tsx src/scripts/reembed-kb-batch.ts",
     "e2e:pesan": "playwright test e2e/pesan-flow.spec.ts",
     "e2e:critical": "playwright test e2e/pesan-flow.spec.ts --project=chromium",
     "e2e:mobile": "playwright test e2e/mobile-pesan.spec.ts --project=mobile-chrome",
