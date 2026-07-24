@@ -5,6 +5,7 @@ import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
 import { getChatCart } from '@/lib/ai/tools/cart';
 import { recommendProducts } from '@/lib/ai/tools/products';
 import { searchKnowledgeBase } from '@/lib/knowledge/retrieval';
+import { loadAllSkillMetadata, loadFullSkill } from '@/lib/ai/skill-loader';
 import type { CustomerContextDto, ChatComponent } from '@/lib/chat-v3/types';
 import { AGENT_LOOP_SYSTEM_PROMPT } from '@/lib/ai/prompts/agent-loop';
 import type { AIChatIntent } from '@/lib/chat-v3/types';
@@ -40,6 +41,12 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
   ]);
 
   const knowledgeChunks = await searchKnowledgeBase({ query: userMessage, topK: 3 }).catch(() => []);
+  const availableSkills = loadAllSkillMetadata();
+  const matchedSkill = availableSkills.find((s) =>
+    userMessage.toLowerCase().includes(s.name.split('-')[0]) ||
+    s.description.toLowerCase().split(' ').some((w) => w.length > 4 && userMessage.toLowerCase().includes(w))
+  );
+  const activeSkillFull = matchedSkill ? loadFullSkill(matchedSkill.filePath) : null;
 
   let scratchpad: ScratchpadEntry[] = [];
   const previousToolCalls: Array<{ tool: string; args: string }> = [];
@@ -81,6 +88,8 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       `Cart aktif: ${cart.itemCount} item, total Rp${cart.total.toLocaleString('id-ID')}.`,
       customerContext.customer ? `Customer dikenal: ${customerContext.customer.name || customerContext.customer.id}.` : 'Customer belum identified.',
       customerContext.defaultAddress ? `Alamat default: ${customerContext.defaultAddress.addressSummary}.` : 'Alamat default belum tersedia.',
+      availableSkills.length > 0 ? `SKILLS TERSEDIA (Layer 1 Metadata):\n${availableSkills.map((s) => `- ${s.name}: ${s.description}`).join('\n')}` : '',
+      activeSkillFull ? `\n[ACTIVE SKILL INSTRUCTIONS - ${activeSkillFull.name}]\n${activeSkillFull.instructions}` : '',
       knowledgeChunks.length > 0 ? `Knowledge base relevan:\n${knowledgeChunks.map((chunk, i) => `[${i + 1}] ${chunk.judul}: ${chunk.teks.slice(0, 200)}`).join('\n')}` : '',
       `\nRIWAYAT LANGKAH DI GILIRAN INI:\n${scratchpadText}`,
       `\nPESAN PELANGGAN:\n${userMessage}`,
