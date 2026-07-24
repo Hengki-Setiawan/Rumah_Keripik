@@ -48,6 +48,7 @@
     "db:migrate:all": "tsx src/scripts/migrate-all.ts",
     "db:backup": "tsx src/scripts/backup-turso.ts",
     "db:studio": "drizzle-kit studio",
+    "db:schema-snapshot": "tsx src/scripts/schema-snapshot.ts",
     "worker": "tsx src/scripts/local-worker.ts",
     "postinstall": "patch-package; node scripts/fix-libsql.js"
   },

@@ -1,51 +1,42 @@
-/**
- * Generate schema snapshot — simpan hasilnya ke _ctx/SCHEMA_SNAPSHOT.md
- * Jalankan: npx tsx src/scripts/schema-snapshot.ts
- */
-
 import fs from 'fs';
 import path from 'path';
-import { createClient } from '@libsql/client';
+import { spawnSync } from 'child_process';
 
-function loadEnvLocal() {
-  const envPath = path.join(process.cwd(), '.env.local');
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const index = trimmed.indexOf('=');
-    if (index > 0) process.env[trimmed.slice(0, index).trim()] = trimmed.slice(index + 1).trim();
+function main() {
+  const result = spawnSync('npx', ['drizzle-kit', 'studio', '--port', '4999'], {
+    shell: true,
+    encoding: 'utf8',
+    timeout: 5000,
+    stdio: 'pipe',
+  });
+
+  const outPath = path.join(process.cwd(), '00_SCHEMA_SNAPSHOT.md');
+  const lines = [
+    '# Schema Snapshot — Rumah Keripik',
+    `> Auto-generated: ${new Date().toISOString()}`,
+    '> Generate with: `npm run db:schema-snapshot`',
+    '',
+    'Tabel yang terdaftar di schema.ts:',
+    '',
+  ];
+
+  const schemaPath = path.join(process.cwd(), 'src', 'lib', 'schema.ts');
+  if (fs.existsSync(schemaPath)) {
+    const content = fs.readFileSync(schemaPath, 'utf8');
+    const tableRegex = /export\s+const\s+(\w+)\s*=\s*sqliteTable\s*\(\s*['"](\w+)['"]/g;
+    let match: RegExpExecArray | null;
+    let count = 0;
+    while ((match = tableRegex.exec(content)) !== null) {
+      count++;
+      lines.push(`- \`${match[1]}\` → tabel \`${match[2]}\``);
+    }
+    lines.push('', `Total: ${count} tabel`);
+  } else {
+    lines.push('schema.ts tidak ditemukan.');
   }
-}
 
-async function main() {
-  loadEnvLocal();
-  const url = process.env.TURSO_DATABASE_URL?.replace(/^libsql:\/\//, 'https://');
-  const authToken = process.env.TURSO_AUTH_TOKEN;
-  if (!url || !authToken) throw new Error('TURSO_DATABASE_URL dan TURSO_AUTH_TOKEN wajib ada.');
-  const client = createClient({ url, authToken });
-
-  const tables = await client.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
-  const lines: string[] = ['# Schema Snapshot — Rumah Keripik', `> Generated: ${new Date().toISOString()}`, '', `**Total Tables: ${tables.rows.length}**`, '', '## Table List', ''];
-  tables.rows.forEach((row: any) => lines.push(`- \`${row.name}\``));
-
-  lines.push('', '## Schema Detail', '');
-  for (const table of tables.rows) {
-    const name = String(table.name);
-    const info = await client.execute(`SELECT sql FROM sqlite_master WHERE type='table' AND name='${name}'`);
-    const sql = info.rows[0]?.sql || '';
-    lines.push(`### ${name}`);
-    lines.push('```sql', String(sql), '```', '');
-
-    const count = await client.execute(`SELECT COUNT(*) as cnt FROM "${name}"`);
-    lines.push(`Rows: ${count.rows[0]?.cnt || 0}`, '');
-  }
-
-  const outDir = path.join(process.cwd(), '_ctx');
-  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-  const outPath = path.join(outDir, 'SCHEMA_SNAPSHOT.md');
   fs.writeFileSync(outPath, lines.join('\n'));
-  console.log(`Schema snapshot written to ${outPath} (${tables.rows.length} tables)`);
+  console.log(`Schema snapshot written: ${outPath}`);
 }
 
-main().catch((error) => { console.error(error); process.exit(1); });
+main();
