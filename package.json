@@ -58,7 +58,7 @@
     "keys:rotate": "tsx src/scripts/rotate-api-keys.ts",
     "keys:history": "tsx src/scripts/rotate-api-keys.ts --history",
     "worker": "tsx src/scripts/local-worker.ts",
-    "postinstall": "patch-package; node scripts/fix-libsql.js"
+    "postinstall": "patch-package && node scripts/fix-libsql.js && node scripts/fix-deps.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
