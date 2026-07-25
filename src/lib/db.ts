@@ -8,11 +8,13 @@ const globalForDb = globalThis as unknown as {
 };
 
 function createDb() {
-  const rawUrl = process.env.TURSO_DATABASE_URL || 'file:local.db';
-  const isLocalFile = rawUrl.startsWith('file:');
-  // Untuk production tetap ubah libsql:// -> https:// agar koneksi Turso
-  // stabil, tapi mode test lokal / build-time fallback memakai file: tanpa crash.
-  const url = isLocalFile ? rawUrl : rawUrl.replace(/^libsql:\/\//, 'https://');
+  const rawUrl = process.env.TURSO_DATABASE_URL || '';
+  const isLocalFile = !rawUrl || rawUrl.startsWith('file:');
+  
+  // @libsql/client/web requires http(s), ws(s), or libsql scheme.
+  // When running build-time static collection without TURSO_DATABASE_URL (or file:),
+  // fallback to http scheme so createClient doesn't throw URL_SCHEME_NOT_SUPPORTED.
+  const url = isLocalFile ? 'http://127.0.0.1:8080' : rawUrl.replace(/^libsql:\/\//, 'https://');
 
   const client = createClient({
     url,
