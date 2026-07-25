@@ -4,6 +4,8 @@ import { aiBudgetConfig, aiRuns } from '@/lib/schema';
 import { eq, gte, sum } from 'drizzle-orm';
 import { requireAdminRole, isUnauthorizedAdminError } from '@/lib/admin-actor';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await requireAdminRole('ledger:view');
