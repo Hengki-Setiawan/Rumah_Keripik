@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     "@libsql/client",
     "@libsql/isomorphic-ws",
     "@libsql/hrana-client",
+    "@react-pdf/renderer",
+    "cloudinary",
+    "@sentry/nextjs",
   ],
 };
 

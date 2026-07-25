@@ -16,6 +16,9 @@ const config = {
     "@libsql/client/http",
     "@libsql/isomorphic-ws",
     "@libsql/hrana-client",
+    "@react-pdf/renderer",
+    "cloudinary",
+    "@sentry/nextjs",
   ],
   middleware: {
     external: true,
