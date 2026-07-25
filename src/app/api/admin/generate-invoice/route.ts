@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateAndSaveInvoice } from '@/lib/invoice-generator';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +11,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { generateAndSaveInvoice } = await import('@/lib/invoice-generator');
     const secureUrl = await generateAndSaveInvoice(id_transaksi);
 
     return NextResponse.json({

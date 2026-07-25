@@ -7,135 +7,156 @@ import { transaksi, detailTransaksi, produk } from './schema';
 import { eq } from 'drizzle-orm';
 import { uploadInvoicePDF } from './cloudinary';
 import React from 'react';
-import ReactPDF, {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-} from '@react-pdf/renderer';
 
-// Stylesheet untuk layout PDF
-const styles = StyleSheet.create({
-  page: {
-    padding: 30,
-    fontFamily: 'Helvetica',
-    fontSize: 10,
-    color: '#333333',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderBottomWidth: 2,
-    borderBottomColor: '#8B5CF6',
-    paddingBottom: 15,
-    marginBottom: 20,
-  },
-  logoContainer: {
-    flexDirection: 'column',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8B5CF6',
-  },
-  subtitle: {
-    fontSize: 10,
-    color: '#666666',
-    marginTop: 2,
-  },
-  invoiceInfo: {
-    textAlign: 'right',
-  },
-  invoiceId: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  metaContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 25,
-  },
-  metaCol: {
-    flexDirection: 'column',
-    width: '45%',
-  },
-  metaLabel: {
-    fontSize: 8,
-    color: '#666666',
-    textTransform: 'uppercase',
-    marginBottom: 3,
-  },
-  metaValue: {
-    fontSize: 10,
-    lineHeight: 1.4,
-  },
-  table: {
-    flexDirection: 'column',
-    marginBottom: 20,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    padding: 6,
-    fontWeight: 'bold',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    padding: 6,
-  },
-  colDesc: { width: '50%' },
-  colQty: { width: '15%', textAlign: 'center' },
-  colPrice: { width: '15%', textAlign: 'right' },
-  colSub: { width: '20%', textAlign: 'right' },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 10,
-  },
-  totalBox: {
-    width: '40%',
-    borderTopWidth: 2,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 8,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 3,
-  },
-  totalLabel: {
-    fontWeight: 'bold',
-  },
-  totalValue: {
-    fontWeight: 'bold',
-    color: '#8B5CF6',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 30,
-    right: 30,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 10,
-    textAlign: 'center',
-    color: '#999999',
-    fontSize: 8,
-  },
-});
+/**
+ * Generate Invoice PDF ke dalam bentuk Buffer, kemudian upload ke Cloudinary,
+ * dan simpan secure URL-nya ke kolom invoice_url di database transaksi.
+ */
+export async function generateAndSaveInvoice(id_transaksi: string): Promise<string> {
+  const ReactPDFModule = await import('@react-pdf/renderer');
+  const ReactPDF = ReactPDFModule.default || ReactPDFModule;
+  const { Document, Page, Text, View, StyleSheet } = ReactPDFModule;
 
-interface InvoicePDFProps {
-  tx: any;
-  items: any[];
-}
+  // Stylesheet untuk layout PDF
+  const styles = StyleSheet.create({
+    page: {
+      padding: 30,
+      fontFamily: 'Helvetica',
+      fontSize: 10,
+      color: '#333333',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      borderBottomWidth: 2,
+      borderBottomColor: '#8B5CF6',
+      paddingBottom: 15,
+      marginBottom: 20,
+    },
+    logoContainer: {
+      flexDirection: 'column',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#8B5CF6',
+    },
+    subtitle: {
+      fontSize: 10,
+      color: '#666666',
+      marginTop: 2,
+    },
+    invoiceInfo: {
+      textAlign: 'right',
+    },
+    invoiceId: {
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    metaContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 25,
+    },
+    metaCol: {
+      flexDirection: 'column',
+      width: '45%',
+    },
+    metaLabel: {
+      fontSize: 8,
+      color: '#666666',
+      textTransform: 'uppercase',
+      marginBottom: 3,
+    },
+    metaValue: {
+      fontSize: 10,
+      lineHeight: 1.4,
+    },
+    table: {
+      flexDirection: 'column',
+      marginBottom: 20,
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      backgroundColor: '#F3F4F6',
+      borderBottomWidth: 1,
+      borderBottomColor: '#E5E7EB',
+      padding: 6,
+      fontWeight: 'bold',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: '#F3F4F6',
+      padding: 6,
+    },
+    colDesc: { width: '50%' },
+    colQty: { width: '15%', textAlign: 'center' },
+    colPrice: { width: '15%', textAlign: 'right' },
+    colSub: { width: '20%', textAlign: 'right' },
+    totalContainer: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: 10,
+    },
+    totalBox: {
+      width: '40%',
+      borderTopWidth: 2,
+      borderTopColor: '#E5E7EB',
+      paddingTop: 8,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 3,
+    },
+    totalLabel: {
+      fontWeight: 'bold',
+    },
+    totalValue: {
+      fontWeight: 'bold',
+      color: '#8B5CF6',
+    },
+    footer: {
+      position: 'absolute',
+      bottom: 30,
+      left: 30,
+      right: 30,
+      borderTopWidth: 1,
+      borderTopColor: '#E5E7EB',
+      paddingTop: 10,
+      textAlign: 'center',
+      color: '#999999',
+      fontSize: 8,
+    },
+  });
 
-// Komponen PDF Document React-PDF
-const InvoiceDocument = ({ tx, items }: InvoicePDFProps) => {
+  // 1. Fetch data transaksi
+  const txRows = await db
+    .select()
+    .from(transaksi)
+    .where(eq(transaksi.id_transaksi, id_transaksi))
+    .limit(1);
+
+  if (txRows.length === 0) {
+    throw new Error(`Transaksi ${id_transaksi} tidak ditemukan`);
+  }
+
+  const tx: any = txRows[0];
+
+  // 2. Fetch detail items transaksi
+  const items = await db
+    .select({
+      id_produk: detailTransaksi.id_produk,
+      qty_terjual: detailTransaksi.qty_terjual,
+      harga_snapshot: detailTransaksi.harga_snapshot,
+      subtotal: detailTransaksi.subtotal,
+      nama_produk: produk.nama_produk,
+    })
+    .from(detailTransaksi)
+    .leftJoin(produk, eq(detailTransaksi.id_produk, produk.id_produk))
+    .where(eq(detailTransaksi.id_transaksi, id_transaksi));
+
   const formattedDate = new Date(tx.waktu_simpan + 'Z').toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -144,7 +165,7 @@ const InvoiceDocument = ({ tx, items }: InvoicePDFProps) => {
 
   const totalBayar = tx.total_bayar || 0;
 
-  return (
+  const InvoiceDoc = (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
@@ -223,43 +244,9 @@ const InvoiceDocument = ({ tx, items }: InvoicePDFProps) => {
       </Page>
     </Document>
   );
-};
-
-/**
- * Generate Invoice PDF ke dalam bentuk Buffer, kemudian upload ke Cloudinary,
- * dan simpan secure URL-nya ke kolom invoice_url di database transaksi.
- */
-export async function generateAndSaveInvoice(id_transaksi: string): Promise<string> {
-  // 1. Fetch data transaksi
-  const txRows = await db
-    .select()
-    .from(transaksi)
-    .where(eq(transaksi.id_transaksi, id_transaksi))
-    .limit(1);
-
-  if (txRows.length === 0) {
-    throw new Error(`Transaksi ${id_transaksi} tidak ditemukan`);
-  }
-
-  const tx = txRows[0];
-
-  // 2. Fetch detail items transaksi
-  const items = await db
-    .select({
-      id_produk: detailTransaksi.id_produk,
-      qty_terjual: detailTransaksi.qty_terjual,
-      harga_snapshot: detailTransaksi.harga_snapshot,
-      subtotal: detailTransaksi.subtotal,
-      nama_produk: produk.nama_produk,
-    })
-    .from(detailTransaksi)
-    .leftJoin(produk, eq(detailTransaksi.id_produk, produk.id_produk))
-    .where(eq(detailTransaksi.id_transaksi, id_transaksi));
 
   // 3. Render React-PDF ke Buffer
-  const pdfStream = await ReactPDF.renderToStream(
-    <InvoiceDocument tx={tx} items={items} />
-  );
+  const pdfStream = await ReactPDF.renderToStream(InvoiceDoc);
   
   const chunks: any[] = [];
   for await (const chunk of pdfStream) {
