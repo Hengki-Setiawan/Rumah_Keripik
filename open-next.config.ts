@@ -12,8 +12,48 @@ const config = {
       queue: "dummy",
     },
   },
-  // Required by @opennextjs/cloudflare to keep the worker bundle under the 3 MiB free tier limit.
-  // Externalizing heavy libraries drastically reduces handler.mjs size.
+  // Multi-Worker function splitting: splits the large Next.js app into separate
+  // server functions to keep each individual Worker script well under 3 MiB limit.
+  functions: {
+    adminApi: {
+      routes: ["app/api/admin/*", "app/api/analytics/*"],
+      patterns: ["api/admin/*", "api/analytics/*"],
+      override: {
+        wrapper: "cloudflare-node",
+        converter: "edge",
+        proxyExternalRequest: "fetch",
+        incrementalCache: "dummy",
+        tagCache: "dummy",
+        queue: "dummy",
+      },
+    },
+    publicApi: {
+      routes: [
+        "app/api/public/*",
+        "app/api/chat/*",
+        "app/api/courier/*",
+        "app/api/loyalty/*",
+        "app/api/order/*",
+        "app/api/webhook/*",
+      ],
+      patterns: [
+        "api/public/*",
+        "api/chat/*",
+        "api/courier/*",
+        "api/loyalty/*",
+        "api/order/*",
+        "api/webhook/*",
+      ],
+      override: {
+        wrapper: "cloudflare-node",
+        converter: "edge",
+        proxyExternalRequest: "fetch",
+        incrementalCache: "dummy",
+        tagCache: "dummy",
+        queue: "dummy",
+      },
+    },
+  },
   edgeExternals: [
     "node:crypto",
     "@react-pdf/renderer",
@@ -25,7 +65,7 @@ const config = {
     "lucide-react",
     "motion",
     "leaflet",
-    "bcryptjs"
+    "bcryptjs",
   ],
   middleware: {
     external: true,
