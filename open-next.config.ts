@@ -22,6 +22,11 @@ const config: OpenNextConfig = {
     "@react-pdf/renderer",
     "cloudinary",
     "@sentry/nextjs",
+    "recharts",
+    "lucide-react",
+    "motion",
+    "bcryptjs",
+    "leaflet",
   ],
   middleware: {
     external: true,
