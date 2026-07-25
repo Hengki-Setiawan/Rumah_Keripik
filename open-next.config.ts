@@ -9,7 +9,14 @@ const config = {
       queue: "dummy",
     },
   },
-  edgeExternals: ["node:crypto", "@libsql/client", "@libsql/client/web", "@libsql/client/http"],
+  edgeExternals: [
+    "node:crypto",
+    "@libsql/client",
+    "@libsql/client/web",
+    "@libsql/client/http",
+    "@libsql/isomorphic-ws",
+    "@libsql/hrana-client",
+  ],
   middleware: {
     external: true,
     override: {
