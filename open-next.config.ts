@@ -12,9 +12,21 @@ const config = {
       queue: "dummy",
     },
   },
-  // Required by @opennextjs/cloudflare@1.20.x — node:crypto is needed
-  // for NextAuth JWT token signing in the Workers runtime.
-  edgeExternals: ["node:crypto"],
+  // Required by @opennextjs/cloudflare to keep the worker bundle under the 3 MiB free tier limit.
+  // Externalizing heavy libraries drastically reduces handler.mjs size.
+  edgeExternals: [
+    "node:crypto",
+    "@react-pdf/renderer",
+    "@react-pdf/pdfkit",
+    "@react-pdf/font",
+    "@react-pdf/layout",
+    "@react-pdf/png-js",
+    "recharts",
+    "lucide-react",
+    "motion",
+    "leaflet",
+    "bcryptjs"
+  ],
   middleware: {
     external: true,
     minify: true,
