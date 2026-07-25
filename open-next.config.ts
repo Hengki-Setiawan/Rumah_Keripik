@@ -9,7 +9,7 @@ const config = {
       queue: "dummy",
     },
   },
-  edgeExternals: ["node:crypto"],
+  edgeExternals: ["node:crypto", "@libsql/client", "@libsql/client/web", "@libsql/client/http"],
   middleware: {
     external: true,
     override: {
