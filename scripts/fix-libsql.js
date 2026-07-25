@@ -2,20 +2,35 @@
 /**
  * fix-libsql.js
  *
- * Directly patches @libsql/client/lib-esm/migrations.js and creates missing web.js entry point.
+ * Directly patches @libsql/client package.json and lib-esm/migrations.js after npm install.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const esmDir = path.join(__dirname, '..', 'node_modules', '@libsql', 'client', 'lib-esm');
+const libsqlDir = path.join(__dirname, '..', 'node_modules', '@libsql', 'client');
+const packageJsonFile = path.join(libsqlDir, 'package.json');
+const esmDir = path.join(libsqlDir, 'lib-esm');
 const esmFile = path.join(esmDir, 'migrations.js');
 const webFile = path.join(esmDir, 'web.js');
 
-// Fix 0: Ensure lib-esm/web.js exists for workerd runtime export
-if (fs.existsSync(esmDir) && !fs.existsSync(webFile)) {
+// Fix 0: Ensure lib-esm/web.js exists AND update package.json workerd target to index.js
+if (fs.existsSync(packageJsonFile)) {
+  try {
+    let pkgContent = fs.readFileSync(packageJsonFile, 'utf8');
+    if (pkgContent.includes('"./lib-esm/web.js"')) {
+      pkgContent = pkgContent.replace(/"\.\/lib-esm\/web\.js"/g, '"./lib-esm/index.js"');
+      fs.writeFileSync(packageJsonFile, pkgContent, 'utf8');
+      console.log('[fix-libsql] ✔ Patched @libsql/client package.json workerd target to ./lib-esm/index.js');
+    }
+  } catch (e) {
+    console.error('[fix-libsql] Error patching package.json:', e.message);
+  }
+}
+
+if (fs.existsSync(esmDir)) {
   const indexFile = path.join(esmDir, 'index.js');
-  if (fs.existsSync(indexFile)) {
+  if (fs.existsSync(indexFile) && !fs.existsSync(webFile)) {
     fs.writeFileSync(webFile, "export * from './index.js';\nexport { createClient } from './index.js';\n", 'utf8');
     console.log('[fix-libsql] ✔ Created missing lib-esm/web.js alias for workerd runtime');
   }
