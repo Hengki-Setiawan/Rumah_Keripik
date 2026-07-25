@@ -1,6 +1,6 @@
-import type { OpenNextConfig } from "@opennextjs/aws/types/open-next.js";
-
-const config: OpenNextConfig = {
+// @ts-check
+/** @type {import("@opennextjs/cloudflare").CloudflareConfig} */
+const config = {
   default: {
     minify: true,
     override: {
@@ -12,6 +12,9 @@ const config: OpenNextConfig = {
       queue: "dummy",
     },
   },
+  // Required by @opennextjs/cloudflare@1.20.x — node:crypto is needed
+  // for NextAuth JWT token signing in the Workers runtime.
+  edgeExternals: ["node:crypto"],
   middleware: {
     external: true,
     minify: true,
