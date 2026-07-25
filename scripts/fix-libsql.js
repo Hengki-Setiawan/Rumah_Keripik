@@ -2,40 +2,38 @@
 /**
  * fix-libsql.js
  *
- * Directly patches @libsql/client package.json and lib-esm/migrations.js after npm install.
+ * Patches @libsql/client so it works in Cloudflare Workers (workerd) runtime:
+ * 1. Creates the missing lib-esm/index.js that package.json workerd target points to
+ * 2. Patches lib-esm/migrations.js to avoid crashes on HTTP 400/non-200 responses
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const libsqlDir = path.join(__dirname, '..', 'node_modules', '@libsql', 'client');
-const packageJsonFile = path.join(libsqlDir, 'package.json');
 const esmDir = path.join(libsqlDir, 'lib-esm');
 const esmFile = path.join(esmDir, 'migrations.js');
 const webFile = path.join(esmDir, 'web.js');
+const indexFile = path.join(esmDir, 'index.js');
 
-// Fix 0: Ensure lib-esm/web.js exists AND update package.json workerd target to index.js
-if (fs.existsSync(packageJsonFile)) {
-  try {
-    let pkgContent = fs.readFileSync(packageJsonFile, 'utf8');
-    if (pkgContent.includes('"./lib-esm/web.js"')) {
-      pkgContent = pkgContent.replace(/"\.\/lib-esm\/web\.js"/g, '"./lib-esm/index.js"');
-      fs.writeFileSync(packageJsonFile, pkgContent, 'utf8');
-      console.log('[fix-libsql] ✔ Patched @libsql/client package.json workerd target to ./lib-esm/index.js');
-    }
-  } catch (e) {
-    console.error('[fix-libsql] Error patching package.json:', e.message);
-  }
-}
-
+// ─── Fix 0: Create missing lib-esm/index.js ────────────────────────────────
+// The @libsql/client package.json points workerd/deno/edge-light/browser to
+// "./lib-esm/index.js" but only ships "./lib-esm/web.js".
+// We just re-export web.js so esbuild can resolve it.
 if (fs.existsSync(esmDir)) {
-  const indexFile = path.join(esmDir, 'index.js');
-  if (fs.existsSync(indexFile) && !fs.existsSync(webFile)) {
-    fs.writeFileSync(webFile, "export * from './index.js';\nexport { createClient } from './index.js';\n", 'utf8');
-    console.log('[fix-libsql] ✔ Created missing lib-esm/web.js alias for workerd runtime');
+  if (fs.existsSync(webFile) && !fs.existsSync(indexFile)) {
+    fs.writeFileSync(indexFile, fs.readFileSync(webFile, 'utf8'), 'utf8');
+    console.log('[fix-libsql] ✔ Created missing lib-esm/index.js (copy of web.js) for workerd runtime');
+  } else if (fs.existsSync(indexFile)) {
+    console.log('[fix-libsql] lib-esm/index.js already exists — skipping');
+  } else {
+    console.log('[fix-libsql] WARNING: lib-esm/web.js not found, cannot create index.js');
   }
+} else {
+  console.log('[fix-libsql] lib-esm directory not found, skipping');
 }
 
+// ─── Fix 1 & 2: Patch migrations.js ────────────────────────────────────────
 if (!fs.existsSync(esmFile)) {
   console.log('[fix-libsql] File not found, skipping:', esmFile);
   process.exit(0);
