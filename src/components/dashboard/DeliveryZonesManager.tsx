@@ -117,11 +117,11 @@ export function DeliveryZonesManager() {
             </div>
             <div>
               <label className="block text-xs font-label-md text-on-surface-variant mb-1">Latitude Pusat *</label>
-              <input value={form.lat_pusat} onChange={(e) => setForm({ ...form, lat_pusat: e.target.value })} placeholder="-0.5022" className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary" required />
-            </div>
-            <div>
-              <label className="block text-xs font-label-md text-on-surface-variant mb-1">Longitude Pusat *</label>
-              <input value={form.lng_pusat} onChange={(e) => setForm({ ...form, lng_pusat: e.target.value })} placeholder="117.1536" className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary" required />
+<input value={form.lat_pusat} onChange={(e) => setForm({ ...form, lat_pusat: e.target.value })} placeholder="-5.1340" className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Longitude Pusat</label>
+                <input value={form.lng_pusat} onChange={(e) => setForm({ ...form, lng_pusat: e.target.value })} placeholder="119.4135" className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary" required />
             </div>
             <div>
               <label className="block text-xs font-label-md text-on-surface-variant mb-1">Radius (km)</label>

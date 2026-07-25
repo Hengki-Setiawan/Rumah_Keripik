@@ -3,6 +3,8 @@ import { asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { produkVarian } from '@/lib/schema';
+import { logAdminAudit } from '@/lib/admin-audit';
+import { getAdminActor } from '@/lib/admin-actor';
 
 const VariantSchema = z.object({
   id_produk: z.string().min(1),
@@ -38,10 +40,26 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const body = await req.json().catch(() => null) as { id?: string; data?: unknown } | null;
+  const body = await req.json().catch(() => null) as { id?: string; data?: Record<string, unknown> } | null;
   if (!body?.id) return NextResponse.json({ ok: false, error: 'ID varian wajib ada' }, { status: 400 });
   const parsed = VariantSchema.partial().safeParse(body.data);
   if (!parsed.success) return NextResponse.json({ ok: false, error: parsed.error.errors[0]?.message || 'Varian tidak valid' }, { status: 400 });
+
+  const previous = await db.select().from(produkVarian).where(eq(produkVarian.id_varian, body.id)).limit(1).then((r) => r[0]);
+  const changes: string[] = [];
+  if (previous && parsed.data.harga_jual != null && parsed.data.harga_jual !== previous.harga_jual) {
+    changes.push(`harga: ${previous.harga_jual}→${parsed.data.harga_jual}`);
+  }
+  if (previous && parsed.data.stok != null && parsed.data.stok !== previous.stok) {
+    changes.push(`stok: ${previous.stok}→${parsed.data.stok}`);
+  }
+
   await db.update(produkVarian).set({ ...parsed.data, image_url: parsed.data.image_url || undefined, updated_at: sql`(datetime('now', 'utc'))` }).where(eq(produkVarian.id_varian, body.id));
+
+  if (changes.length > 0) {
+    const actor = await getAdminActor().catch(() => 'system');
+    logAdminAudit({ actor, action: 'variant.update', resourceType: 'product_variant', resourceId: body.id, metadata: { changes, variantName: previous?.nama_varian, productId: previous?.id_produk } });
+  }
+
   return NextResponse.json({ ok: true });
 }

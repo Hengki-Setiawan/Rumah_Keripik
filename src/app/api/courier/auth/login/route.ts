@@ -74,6 +74,7 @@ export async function POST(req: Request) {
         phone: courier.phone,
         vehicle: courier.vehicle,
         platNo: courier.plat_no,
+        photo_url: courier.photo_url,
       },
     });
   } catch (error) {

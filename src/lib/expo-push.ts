@@ -124,7 +124,13 @@ export async function sendOrderPushNotification(orderId: string, orderStatus: st
     tokens.map((t) => t.token),
     title,
     body,
-    { orderId, kodePesanan: order.kode_pesanan || '', orderStatus: orderStatus || '' }
+    {
+      type: 'order_update',
+      orderId,
+      kodePesanan: order.kode_pesanan || '',
+      orderStatus: orderStatus || '',
+      deepLink: `/pesan/lacak?orderId=${orderId}`,
+    }
   );
 }
 

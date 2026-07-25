@@ -18,6 +18,7 @@ import { normalizePhoneNumber } from '@/lib/utils';
 import type { AIChatResponse, ChatComponent } from '@/lib/chat-v3/types';
 import { getAgentLoopConfig, shouldUseAgentLoop } from '@/lib/ai/feature-flags';
 import { runAgentLoop } from '@/lib/ai/agent-loop';
+import { semanticCacheLookup, semanticCacheStore } from '@/lib/ai/semantic-cache-integration';
 
 export async function buildChatResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
   // ─── LOGIN FLOW INTERCEPTOR ───
@@ -135,6 +136,15 @@ export async function buildChatResponse(chatSessionId: string, message: string):
   const shouldTryModel = !deterministic || deterministic.confidence == null || deterministic.confidence < 0.9;
   if (!shouldTryModel) return deterministic;
 
+  const cacheHit = await semanticCacheLookup(message, 'faq_answer');
+  if (cacheHit.hit && cacheHit.response) {
+    try {
+      const parsed = JSON.parse(cacheHit.response);
+      const validated = AIChatResponseSchema.safeParse(parsed);
+      if (validated.success) return validated.data;
+    } catch {}
+  }
+
   const agentLoopConfig = await getAgentLoopConfig();
   const useAgentLoop = shouldUseAgentLoop(agentLoopConfig, chatSessionId) && isComplexMessage(message);
 
@@ -190,6 +200,7 @@ export async function buildChatResponse(chatSessionId: string, message: string):
       const parsed = AIChatResponseSchema.safeParse(parsedJson);
       if (parsed.success) {
         const response = parsed.data;
+        await semanticCacheStore(message, JSON.stringify(response), response.intent);
         await logAiLearningEvent({ eventType: 'chat_response', chatSessionId, intent: response.intent, outcome: response.confidence && response.confidence < 0.5 ? 'low_confidence' : 'answered', metadata: { provider: result.provider, model: result.model, knowledgeSourceIds: knowledgeChunks.map((chunk) => chunk.id) } });
         if (response.shouldCallTool && response.toolName) return await executeRequestedTool(chatSessionId, response, message);
         return response;
@@ -277,7 +288,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
       intent: 'confirm_order',
       components: [
         { type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, deliveryStatus: customerContext.lastOrder.status, totalAmount: customerContext.lastOrder.totalAmount },
-        ...(customerContext.customer ? [{ type: 'customer_confirm' as const, customerId: customerContext.customer.id, maskedFields: true as true, customer: customerContext.customer, actions: ['use_saved_data', 'edit_data'] }] : []),
+        ...(customerContext.customer ? [{ type: 'customer_confirm' as const, customerId: customerContext.customer.id, maskedFields: true as const, customer: customerContext.customer, actions: ['use_saved_data', 'edit_data'] }] : []),
       ],
       nextAction: 'reorder',
       confidence: 0.92,

@@ -40,7 +40,7 @@ export default function LiveCourierMapPage() {
 
       if (!mapRef.current) return;
       mapInstance.current = L.map(mapRef.current, {
-        center: [-0.5022, 117.1536],
+        center: [-5.1340, 119.4135],
         zoom: 12,
         zoomControl: true,
       });
@@ -62,7 +62,7 @@ export default function LiveCourierMapPage() {
       const gudangIcon = L.divIcon({ html: '<div style="background:#c55a2b;color:#fff;border-radius:8px;padding:2px 6px;font-size:10px;font-weight:600;">Gudang</div>', className: '', iconSize: [60, 20], iconAnchor: [30, 10] });
       const courierIcon = L.divIcon({ html: '<div style="background:#2563eb;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📦</div>', className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
 
-      L.marker([-0.5022, 117.1536], { icon: gudangIcon }).addTo(mapInstance.current).bindPopup('<b>Gudang Rumah Keripik</b>');
+      L.marker([-5.1340, 119.4135], { icon: gudangIcon }).addTo(mapInstance.current).bindPopup('<b>Gudang Rumah Keripik</b>');
 
       for (const c of couriers) {
         if (!c.last_lat || !c.last_lng) continue;

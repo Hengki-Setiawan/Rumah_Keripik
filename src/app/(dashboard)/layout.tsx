@@ -50,6 +50,7 @@ const supportMenuItems = [
   { href: '/feedback-learning', label: 'Feedback Learning', icon: Bot },
   { href: '/bot-config', label: 'Bot Config', icon: Bot },
   { href: '/web-sessions', label: 'Web Sessions', icon: Users },
+  { href: '/slo-dashboard', label: 'SLO Dashboard', icon: BarChart3 },
   { href: '/sos', label: 'SOS Darurat', icon: ShieldAlert },
   { href: '/ops-smoke', label: 'Smoke Ops', icon: ShieldAlert },
 ];

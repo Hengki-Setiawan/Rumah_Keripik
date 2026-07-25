@@ -732,11 +732,15 @@ export const ratingPelanggan = sqliteTable('rating_pelanggan', {
 export const skillLibrary = sqliteTable('skill_library', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   judul: text('judul').notNull(),
-  trigger_pattern: text('trigger_pattern').notNull(),   // Pattern pesan user
-  response_template: text('response_template').notNull(), // Pola balasan terbaik
+  trigger_pattern: text('trigger_pattern').notNull(),
+  response_template: text('response_template').notNull(),
   success_count: integer('success_count').notNull().default(1),
   avg_rating: integer('avg_rating').default(0),
   is_active: integer('is_active').notNull().default(1),
+  source: text('source').default('manual'),
+  last_used_at: text('last_used_at'),
+  needs_review: integer('needs_review').default(0),
+  auto_deterministic: integer('auto_deterministic').default(0),
   created_at: text('created_at')
     .notNull()
     .default(sql`(datetime('now', 'utc'))`),
@@ -915,6 +919,7 @@ export const couriers = sqliteTable('couriers', {
   plat_no: text('plat_no'),
   is_active: integer('is_active').notNull().default(1),
   device_id: text('device_id'),
+  photo_url: text('photo_url'),
   last_lat: text('last_lat'),
   last_lng: text('last_lng'),
   last_location_at: text('last_location_at'),

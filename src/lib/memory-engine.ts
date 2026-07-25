@@ -8,7 +8,7 @@
 
 import { db } from './db';
 import * as schema from './schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, and, gte, sql } from 'drizzle-orm';
 import type { OrderContext } from './order-types';
 
 // ─── LAYER 2: EPISODIC MEMORY ─────────────────────────────────────────
@@ -145,11 +145,13 @@ export async function buildPersonalizedGreeting(no_wa: string): Promise<string |
 
 /**
  * Learn from successful interaction — add to skill library
+ * Enhanced with pattern detection for self-learning (Epic 3)
  */
 export async function learnFromInteraction(
   triggerPattern: string,
   responseTemplate: string,
   rating?: number,
+  chatSessionId?: string,
 ) {
   try {
     const existing = await db
@@ -163,7 +165,8 @@ export async function learnFromInteraction(
         .update(schema.skillLibrary)
         .set({
           success_count: sql`success_count + 1`,
-          avg_rating: rating ? sql`${(rating * 10)}` : undefined,
+          avg_rating: rating ? sql`(${schema.skillLibrary.avg_rating} + ${rating * 10}) / 2` : undefined,
+          last_used_at: sql`(datetime('now', 'utc'))`,
         })
         .where(eq(schema.skillLibrary.id, existing[0].id));
     } else {
@@ -173,7 +176,30 @@ export async function learnFromInteraction(
         response_template: responseTemplate,
         success_count: 1,
         avg_rating: rating ? rating * 10 : 0,
+        source: 'chat_interaction',
+        created_at: new Date().toISOString(),
       });
+    }
+
+    // Pattern detection: find similar patterns within 14 days
+    // If same intent appears 3+ times, flag for deterministic review
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+    const similarPatterns = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(schema.skillLibrary)
+      .where(
+        and(
+          gte(schema.skillLibrary.created_at, fourteenDaysAgo),
+          sql`${schema.skillLibrary.trigger_pattern} LIKE ${'%' + triggerPattern.slice(0, 15) + '%'}`
+        )
+      )
+      .then((r) => Number(r[0]?.count || 0));
+
+    if (similarPatterns >= 3) {
+      await db
+        .update(schema.skillLibrary)
+        .set({ needs_review: 0, auto_deterministic: 1 })
+        .where(eq(schema.skillLibrary.trigger_pattern, triggerPattern));
     }
   } catch (err) {
     console.warn('[MemoryEngine] learnFromInteraction error:', err);

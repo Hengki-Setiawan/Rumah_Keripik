@@ -17,6 +17,7 @@ export async function GET(request: Request) {
         vehicle: courier.vehicle,
         plat_no: courier.plat_no,
         is_active: courier.is_active === 1,
+        photo_url: courier.photo_url,
       },
     });
   } catch (error) {

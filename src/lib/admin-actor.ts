@@ -12,7 +12,7 @@ export async function requireAdminActor() {
   return actor;
 }
 
-export type AdminPermission = 'chat:manage' | 'payment:verify' | 'order:update' | 'audit:read' | 'ledger:view' | 'ledger:write';
+export type AdminPermission = 'chat:manage' | 'payment:verify' | 'order:update' | 'audit:read' | 'ledger:view' | 'ledger:write' | 'courier:manage' | 'product:manage' | 'sos:view' | 'sos:respond' | 'customer:view' | 'customer:edit';
 
 export async function requireAdminRole(permission: AdminPermission) {
   const actor = await requireAdminActor();
@@ -34,8 +34,11 @@ export function isForbiddenAdminPermissionError(error: unknown) {
 const rolePermissions: Record<string, AdminPermission[]> = {
   operator: ['chat:manage', 'order:update'],
   finance: ['payment:verify', 'audit:read', 'ledger:view', 'ledger:write'],
-  owner: ['chat:manage', 'payment:verify', 'order:update', 'audit:read', 'ledger:view', 'ledger:write'],
-  viewer: ['audit:read', 'ledger:view'],
+  courier_admin: ['courier:manage', 'order:update', 'sos:view', 'sos:respond'],
+  product_admin: ['product:manage', 'customer:view'],
+  customer_support: ['customer:view', 'customer:edit', 'sos:view', 'chat:manage'],
+  owner: ['chat:manage', 'payment:verify', 'order:update', 'audit:read', 'ledger:view', 'ledger:write', 'courier:manage', 'product:manage', 'sos:view', 'sos:respond', 'customer:view', 'customer:edit'],
+  viewer: ['audit:read', 'ledger:view', 'sos:view'],
 };
 
 function parseRoleMap(value?: string) {

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, useTransition } from 'react';
-import { ArrowRight, MapPin, PencilLine, Save, ShoppingBag, Trash2, UserRound } from 'lucide-react';
+import { useEffect, useMemo, useState, useTransition, useCallback } from 'react';
+import { AlertTriangle, ArrowRight, MapPin, PencilLine, Save, ShoppingBag, Trash2, UserRound } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
 
 type PortalData = {
@@ -239,6 +239,17 @@ export default function PesananSayaPage() {
                       <p className="text-xs text-[#8a7562]">Profil akan aktif penuh setelah order pertamamu terhubung ke sesi pelanggan ini.</p>
                     )}
                   </div>
+                  <details className="mt-4">
+                    <summary className="flex cursor-pointer items-center gap-2 text-sm text-red-600 hover:text-red-700">
+                      <AlertTriangle size={14} /> Hapus akun
+                    </summary>
+                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4">
+                      <p className="text-sm text-red-800">
+                        Semua data pelanggan akan dihapus permanen dalam 30 hari. Riwayat pesanan akan dianonimkan.
+                        Jika yakin, hubungi admin melalui chat atau kirim email ke support@rumahkeripik.com
+                      </p>
+                    </div>
+                  </details>
                 </div>
 
                 <div className="rounded-[1.6rem] border border-[#ecd8bf] bg-white p-5">

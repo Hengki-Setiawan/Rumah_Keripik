@@ -48,7 +48,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
   );
   const activeSkillFull = matchedSkill ? loadFullSkill(matchedSkill.filePath) : null;
 
-  let scratchpad: ScratchpadEntry[] = [];
+  const scratchpad: ScratchpadEntry[] = [];
   const previousToolCalls: Array<{ tool: string; args: string }> = [];
 
   const AGENTIC_TOOLS = [
@@ -100,14 +100,20 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
     let llmOutput: { reasoning?: string; decision?: string; toolName?: string; toolArgs?: Record<string, unknown>; replyDraft?: string } = {};
 
     try {
-      const result = await generateTextWithRouter({
-        task: 'agentic_reasoning',
-        chatSessionId,
-        systemPrompt: contextPrompt,
-        messages: [{ role: 'user', content: `Iterasi ${iteration + 1}: lanjutkan proses berdasarkan riwayat di atas.` }],
-        maxTokens: 400,
-        temperature: 0.15,
-      });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AGENT_TIMEOUT')), 18000)
+      );
+      const result = await Promise.race([
+        generateTextWithRouter({
+          task: 'agentic_reasoning',
+          chatSessionId,
+          systemPrompt: contextPrompt,
+          messages: [{ role: 'user', content: `Iterasi ${iteration + 1}: lanjutkan proses berdasarkan riwayat di atas.` }],
+          maxTokens: 400,
+          temperature: 0.15,
+        }),
+        timeoutPromise,
+      ]);
 
       try {
         llmOutput = JSON.parse(result.text);
@@ -208,7 +214,13 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       }
 
       try {
-        const result = await runChatTool(chatSessionId, toolName, parseResult.data);
+        const toolTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('TOOL_TIMEOUT')), 15000)
+        );
+        const result = await Promise.race([
+          runChatTool(chatSessionId, toolName, parseResult.data),
+          toolTimeout,
+        ]);
         const summary = typeof result === 'object' && result !== null
           ? JSON.stringify(result).slice(0, 300)
           : String(result).slice(0, 300);

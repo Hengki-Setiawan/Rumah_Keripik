@@ -22,8 +22,8 @@ interface CustomerLocationMapProps {
 export function CustomerLocationMap({
   points = [],
   height = 400,
-  gudangLat = -0.5022,
-  gudangLng = 117.1536,
+  gudangLat = -5.1340,
+  gudangLng = 119.4135,
 }: CustomerLocationMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);

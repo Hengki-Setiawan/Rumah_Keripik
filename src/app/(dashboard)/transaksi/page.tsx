@@ -496,8 +496,8 @@ export default function TransaksiHubPage() {
                           <td colSpan={7} className="px-4 py-3 bg-surface-cream">
                             <div className="h-48 rounded-xl overflow-hidden border border-outline-variant/30">
                               <MiniMap
-                                lat={tx.lat_pengiriman ? Number(tx.lat_pengiriman) : -0.5022}
-                                lng={tx.lng_pengiriman ? Number(tx.lng_pengiriman) : 117.1536}
+                                lat={tx.lat_pengiriman ? Number(tx.lat_pengiriman) : -5.1340}
+                                lng={tx.lng_pengiriman ? Number(tx.lng_pengiriman) : 119.4135}
                                 height={192}
                               />
                             </div>

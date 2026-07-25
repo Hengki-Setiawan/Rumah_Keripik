@@ -41,8 +41,8 @@ export function DeliveryHeatmap({ height = 450, showControls = true }: DeliveryH
   const [zones, setZones] = useState<ZoneStats[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const GUDANG_LAT = -0.5022;
-  const GUDANG_LNG = 117.1536;
+  const GUDANG_LAT = -5.1340;
+  const GUDANG_LNG = 119.4135;
 
   useEffect(() => {
     let map: any;

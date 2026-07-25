@@ -10,8 +10,8 @@ interface MiniDeliveryMapProps {
   showGudang?: boolean;
 }
 
-const GUDANG_LAT = -0.5022;
-const GUDANG_LNG = 117.1536;
+const GUDANG_LAT = -5.1340;
+const GUDANG_LNG = 119.4135;
 
 export function MiniDeliveryMap({
   lat, lng, label, height = 180, showGudang = true,

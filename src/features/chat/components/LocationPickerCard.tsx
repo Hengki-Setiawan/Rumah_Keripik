@@ -6,8 +6,8 @@ import type { LocationPickerComponent } from '@/lib/chat-v3/types';
 
 type LeafletModule = typeof import('leaflet');
 
-const DEFAULT_LAT = -0.5022;
-const DEFAULT_LNG = 117.1536;
+const DEFAULT_LAT = -5.1340;
+const DEFAULT_LNG = 119.4135;
 
 export function LocationPickerCard({ component, onSend }: { component: LocationPickerComponent; onSend: (message: string) => void }) {
   const mapRef = useRef<HTMLDivElement>(null);

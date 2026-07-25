@@ -5,8 +5,8 @@ import { calculateDistance, buildMapsLink } from './location-parser';
 import { estimateShipping, reverseGeocode } from './geocoding';
 import type { OrderContext } from './order-types';
 
-const GUDANG_LAT = -0.5022;
-const GUDANG_LNG = 117.1536;
+const GUDANG_LAT = -5.1340;
+const GUDANG_LNG = 119.4135;
 
 export interface LocationInput {
   lat: number;
