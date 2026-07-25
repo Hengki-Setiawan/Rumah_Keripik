@@ -3,12 +3,17 @@ import { withSentryConfig } from "@sentry/nextjs";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "motion",
+      "framer-motion",
+      "@base-ui/react",
+    ],
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Alias @libsql/client → @libsql/client/web so webpack bundles the
-      // HTTP-fetch-only implementation directly. This eliminates the dynamic
-      // import("@libsql/client") in the compiled output, which prevented
-      // Cloudflare Workers (esbuild) from resolving the workerd export condition.
       config.resolve.alias = {
         ...config.resolve.alias,
         "@libsql/client": path.resolve(
@@ -17,6 +22,8 @@ const nextConfig: NextConfig = {
         "@libsql/client/web": path.resolve(
           "./node_modules/@libsql/client/lib-esm/web.js"
         ),
+        // Exclude heavy Node-only PDF renderer from worker server bundle (~4.5 MB raw JS)
+        "@react-pdf/renderer": false,
       };
     }
     return config;
@@ -24,8 +31,9 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  silent: !process.env.CI,
+  silent: true,
   telemetry: false,
   widenClientFileUpload: true,
   tunnelRoute: "/monitoring",
+  disableLogger: true,
 });
