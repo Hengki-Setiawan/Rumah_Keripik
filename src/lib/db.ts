@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/libsql';
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/web';
 import * as schema from './schema';
 
 // Singleton pattern untuk Next.js (mencegah koneksi baru di setiap hot reload)
