@@ -9,11 +9,6 @@ const nextConfig: NextConfig = {
     "@react-pdf/renderer",
     "cloudinary",
     "@sentry/nextjs",
-    "recharts",
-    "lucide-react",
-    "motion",
-    "bcryptjs",
-    "leaflet",
   ],
 };
 
