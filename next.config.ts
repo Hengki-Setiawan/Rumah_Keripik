@@ -30,10 +30,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  telemetry: false,
-  widenClientFileUpload: true,
-  tunnelRoute: "/monitoring",
-  disableLogger: true,
-});
+export default process.env.DISABLE_SENTRY === "true"
+  ? nextConfig
+  : withSentryConfig(nextConfig, {
+      silent: true,
+      telemetry: false,
+      widenClientFileUpload: true,
+      tunnelRoute: "/monitoring",
+      disableLogger: true,
+    });

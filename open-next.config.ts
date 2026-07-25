@@ -12,8 +12,17 @@ const config = {
       queue: "dummy",
     },
   },
-  // Keep node:crypto as edgeExternal for NextAuth token signing
-  edgeExternals: ["node:crypto"],
+  // Externalize heavy server dependencies so OpenNext does not bundle them into handler.mjs
+  edgeExternals: [
+    "node:crypto",
+    "@sentry/nextjs",
+    "@react-pdf/renderer",
+    "recharts",
+    "lucide-react",
+    "motion",
+    "leaflet",
+    "bcryptjs"
+  ],
   middleware: {
     external: true,
     minify: true,
