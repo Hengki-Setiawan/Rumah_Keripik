@@ -2,51 +2,79 @@
 /**
  * fix-libsql.js
  *
- * Patches @libsql/client so it works in Cloudflare Workers (workerd) runtime:
- * 1. Creates the missing lib-esm/index.js that package.json workerd target points to
- * 2. Patches lib-esm/migrations.js to avoid crashes on HTTP 400/non-200 responses
+ * Super-robust postinstall patcher for @libsql/client in Cloudflare Workers (workerd).
+ * Guarantees that BOTH index.js and web.js exist in lib-esm & lib-cjs,
+ * and fixes migrations.js HTTP 400 / non-200 handlers.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const libsqlDir = path.join(__dirname, '..', 'node_modules', '@libsql', 'client');
-const esmDir = path.join(libsqlDir, 'lib-esm');
-const esmFile = path.join(esmDir, 'migrations.js');
-const webFile = path.join(esmDir, 'web.js');
-const indexFile = path.join(esmDir, 'index.js');
 
-// ─── Fix 0: Create missing lib-esm/index.js ────────────────────────────────
-// The @libsql/client package.json points workerd/deno/edge-light/browser to
-// "./lib-esm/index.js" but only ships "./lib-esm/web.js".
-// We just re-export web.js so esbuild can resolve it.
-if (fs.existsSync(esmDir)) {
-  if (fs.existsSync(webFile) && !fs.existsSync(indexFile)) {
-    fs.writeFileSync(indexFile, fs.readFileSync(webFile, 'utf8'), 'utf8');
-    console.log('[fix-libsql] ✔ Created missing lib-esm/index.js (copy of web.js) for workerd runtime');
-  } else if (fs.existsSync(indexFile)) {
-    console.log('[fix-libsql] lib-esm/index.js already exists — skipping');
-  } else {
-    console.log('[fix-libsql] WARNING: lib-esm/web.js not found, cannot create index.js');
-  }
-} else {
-  console.log('[fix-libsql] lib-esm directory not found, skipping');
-}
-
-// ─── Fix 1 & 2: Patch migrations.js ────────────────────────────────────────
-if (!fs.existsSync(esmFile)) {
-  console.log('[fix-libsql] File not found, skipping:', esmFile);
+if (!fs.existsSync(libsqlDir)) {
+  console.log('[fix-libsql] @libsql/client not found in node_modules — skipping');
   process.exit(0);
 }
 
-let content = fs.readFileSync(esmFile, 'utf8');
-let patched = false;
+// 1. Fix package.json workerd/browser/deno targets to ./lib-esm/web.js
+const packageJsonFile = path.join(libsqlDir, 'package.json');
+if (fs.existsSync(packageJsonFile)) {
+  try {
+    let pkg = JSON.parse(fs.readFileSync(packageJsonFile, 'utf8'));
+    if (pkg.exports && pkg.exports['.']) {
+      pkg.exports['.'].workerd = './lib-esm/web.js';
+      pkg.exports['.'].deno = './lib-esm/web.js';
+      pkg.exports['.'].browser = './lib-esm/web.js';
+      pkg.exports['.'].import = './lib-esm/web.js';
+      fs.writeFileSync(packageJsonFile, JSON.stringify(pkg, null, 2), 'utf8');
+      console.log('[fix-libsql] ✔ Standardized package.json exports to ./lib-esm/web.js');
+    }
+  } catch (e) {
+    console.error('[fix-libsql] Failed to update package.json:', e.message);
+  }
+}
 
-// Fix 1: getIsSchemaDatabase — handle HTTP 400 gracefully (return false)
-const OLD_GET_IS_SCHEMA = `        const json = (await result.json());
+// 2. Ensure BOTH index.js AND web.js exist in lib-esm
+const esmDir = path.join(libsqlDir, 'lib-esm');
+if (fs.existsSync(esmDir)) {
+  const webFile = path.join(esmDir, 'web.js');
+  const indexFile = path.join(esmDir, 'index.js');
+  
+  if (fs.existsSync(webFile)) {
+    fs.copyFileSync(webFile, indexFile);
+    console.log('[fix-libsql] ✔ Created lib-esm/index.js as exact copy of web.js');
+  } else if (fs.existsSync(indexFile)) {
+    fs.copyFileSync(indexFile, webFile);
+    console.log('[fix-libsql] ✔ Created lib-esm/web.js as exact copy of index.js');
+  }
+}
+
+// 3. Ensure BOTH index.js AND web.js exist in lib-cjs
+const cjsDir = path.join(libsqlDir, 'lib-cjs');
+if (fs.existsSync(cjsDir)) {
+  const webFile = path.join(cjsDir, 'web.js');
+  const indexFile = path.join(cjsDir, 'index.js');
+  
+  if (fs.existsSync(webFile)) {
+    fs.copyFileSync(webFile, indexFile);
+    console.log('[fix-libsql] ✔ Created lib-cjs/index.js as exact copy of web.js');
+  } else if (fs.existsSync(indexFile)) {
+    fs.copyFileSync(indexFile, webFile);
+    console.log('[fix-libsql] ✔ Created lib-cjs/web.js as exact copy of index.js');
+  }
+}
+
+// 4. Patch lib-esm/migrations.js for Turso schema checks
+const esmFile = path.join(esmDir, 'migrations.js');
+if (fs.existsSync(esmFile)) {
+  let content = fs.readFileSync(esmFile, 'utf8');
+  let patched = false;
+
+  const OLD_GET_IS_SCHEMA = `        const json = (await result.json());
         const isChildDatabase = result.status === 400 && json.error === "Invalid namespace";`;
 
-const NEW_GET_IS_SCHEMA = `        if (result.status === 400) {
+  const NEW_GET_IS_SCHEMA = `        if (result.status === 400) {
             return false;
         }
         let json;
@@ -58,35 +86,27 @@ const NEW_GET_IS_SCHEMA = `        if (result.status === 400) {
         }
         const isChildDatabase = result.status === 400 && json?.error === "Invalid namespace";`;
 
-if (content.includes(OLD_GET_IS_SCHEMA)) {
-  content = content.replace(OLD_GET_IS_SCHEMA, NEW_GET_IS_SCHEMA);
-  console.log('[fix-libsql] ✔ Patched getIsSchemaDatabase HTTP 400 handler in lib-esm');
-  patched = true;
-} else if (content.includes('if (result.status === 400) {')) {
-  console.log('[fix-libsql] getIsSchemaDatabase already patched — skipping');
-}
+  if (content.includes(OLD_GET_IS_SCHEMA)) {
+    content = content.replace(OLD_GET_IS_SCHEMA, NEW_GET_IS_SCHEMA);
+    patched = true;
+  }
 
-// Fix 2: getLastMigrationJob — return RunSuccess instead of throwing
-const OLD_GET_LAST_JOB = `    if (result.status !== 200) {
+  const OLD_GET_LAST_JOB = `    if (result.status !== 200) {
         throw new Error("Unexpected status code while fetching migration jobs: " +
             result.status);
     }`;
 
-const NEW_GET_LAST_JOB = `    if (result.status !== 200) {
+  const NEW_GET_LAST_JOB = `    if (result.status !== 200) {
         return { job_id: 0, status: "RunSuccess" };
     }`;
 
-if (content.includes(OLD_GET_LAST_JOB)) {
-  content = content.replace(OLD_GET_LAST_JOB, NEW_GET_LAST_JOB);
-  console.log('[fix-libsql] ✔ Patched getLastMigrationJob non-200 handler in lib-esm');
-  patched = true;
-} else if (content.includes('return { job_id: 0, status: "RunSuccess" }')) {
-  console.log('[fix-libsql] getLastMigrationJob already patched — skipping');
-}
+  if (content.includes(OLD_GET_LAST_JOB)) {
+    content = content.replace(OLD_GET_LAST_JOB, NEW_GET_LAST_JOB);
+    patched = true;
+  }
 
-if (patched) {
-  fs.writeFileSync(esmFile, content, 'utf8');
-  console.log('[fix-libsql] ✔ Successfully patched @libsql/client lib-esm/migrations.js');
-} else {
-  console.log('[fix-libsql] Nothing new to patch — file already correct');
+  if (patched) {
+    fs.writeFileSync(esmFile, content, 'utf8');
+    console.log('[fix-libsql] ✔ Successfully patched lib-esm/migrations.js');
+  }
 }
