@@ -13,9 +13,21 @@ const config = {
     },
   },
   // Split Admin Dashboard into a separate Worker function using OpenNext route patterns.
-  // This keeps the default Worker (Storefront & Public APIs) super lightweight.
+  // Both `routes` and `patterns` are provided so OpenNext validateConfig passes.
   functions: {
     admin: {
+      routes: [
+        "app/(dashboard)/dashboard/page",
+        "app/(dashboard)/keuangan/page",
+        "app/(dashboard)/analitik/page",
+        "app/(dashboard)/master-data/produk/page",
+        "app/(dashboard)/master-data/pelanggan/page",
+        "app/(dashboard)/master-data/varian-produk/page",
+        "app/(dashboard)/master-data/kategori-produk/page",
+        "app/(dashboard)/master-data/warung/page",
+        "app/(dashboard)/master-data/zona-pengiriman/page",
+        "app/api/admin/ai-budget/route",
+      ],
       patterns: [
         "dashboard",
         "keuangan",
@@ -40,7 +52,7 @@ const config = {
         "audit-ai",
         "admin-guide",
         "ops-smoke",
-        "api/admin/*"
+        "api/admin/*",
       ],
       override: {
         wrapper: "cloudflare-node",
