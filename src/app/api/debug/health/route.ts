@@ -1,6 +1,5 @@
 import { createClient } from '@libsql/client';
 import { NextResponse } from 'next/server';
-import { checkInstanceStatus } from '@/lib/evolution';
 import { getTelegramWebhookInfo } from '@/lib/telegram-bot';
 import { resolvePublicBaseUrl } from '@/lib/public-url';
 
@@ -11,9 +10,6 @@ export async function GET() {
     groqApiKey: Boolean(process.env.GROQ_API_KEY),
     geminiApiKey: Boolean(process.env.GEMINI_API_KEY),
     telegramToken: Boolean(process.env.TELEGRAM_BOT_TOKEN),
-    evolutionUrl: Boolean(process.env.EVOLUTION_API_URL),
-    evolutionKey: Boolean(process.env.EVOLUTION_API_KEY),
-    evolutionInstance: Boolean(process.env.EVOLUTION_INSTANCE_NAME),
     cloudinaryCloud: Boolean(process.env.CLOUDINARY_CLOUD_NAME),
     cloudinaryKey: Boolean(process.env.CLOUDINARY_API_KEY),
     cloudinarySecret: Boolean(process.env.CLOUDINARY_API_SECRET),
@@ -23,7 +19,6 @@ export async function GET() {
     adminUsername: Boolean(process.env.ADMIN_USERNAME),
     adminPassword: Boolean(process.env.ADMIN_PASSWORD),
     nextauthSecret: Boolean(process.env.NEXTAUTH_SECRET),
-    workerName: process.env.WORKER_NAME ?? null,
   };
 
   const checks: Record<string, unknown> = {};
@@ -47,14 +42,6 @@ export async function GET() {
     checks.telegram = process.env.TELEGRAM_BOT_TOKEN ? await getTelegramWebhookInfo() : 'skipped';
   } catch (error) {
     checks.telegram = error instanceof Error ? error.message : 'Unknown Telegram error';
-  }
-
-  try {
-    checks.evolution = process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY
-      ? await checkInstanceStatus()
-      : 'skipped';
-  } catch (error) {
-    checks.evolution = error instanceof Error ? error.message : 'Unknown Evolution error';
   }
 
   return NextResponse.json({
