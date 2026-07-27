@@ -97,8 +97,8 @@ test.describe('Chat with mocked AI', () => {
     });
 
     await page.goto('/pesan');
-    await page.locator('[data-testid="chat-input"]').first().fill('test fallback');
-    await page.getByRole('button', { name: /kirim pesan/i }).click();
+    await page.getByTestId('chat-input').first().fill('test fallback');
+    await page.getByTestId('chat-send-button').click();
     await expect(page.getByText(/asisten sedang terbatas|gagal|error|maaf/i)).toBeVisible({ timeout: 15000 });
   });
 
@@ -126,8 +126,8 @@ test.describe('Chat with mocked AI', () => {
     });
 
     await page.goto('/pesan');
-    await page.locator('[data-testid="chat-input"]').first().fill('rekomendasi produk');
-    await page.getByRole('button', { name: /kirim pesan/i }).click();
+    await page.getByTestId('chat-input').first().fill('rekomendasi produk');
+    await page.getByTestId('chat-send-button').click();
     await expect(page.getByText(/rekomendasi|keripik|stok/i)).toBeVisible({ timeout: 20000 });
   });
 
@@ -137,8 +137,8 @@ test.describe('Chat with mocked AI', () => {
     });
 
     await page.goto('/pesan');
-    await page.locator('[data-testid="chat-input"]').first().fill('test network fail');
-    await page.getByRole('button', { name: /kirim pesan/i }).click();
+    await page.getByTestId('chat-input').first().fill('test network fail');
+    await page.getByTestId('chat-send-button').click();
     await expect(page.getByText(/gagal|error|offline|koneksi|tidak dapat|maaf/i)).toBeVisible({ timeout: 15000 });
   });
 });
