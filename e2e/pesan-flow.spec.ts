@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { ChatPage } from './pages/chat-page';
+import { AdminPage } from './pages/admin-page';
 
 const adminUsername = process.env.ADMIN_USERNAME;
 const adminPassword = process.env.ADMIN_PASSWORD;
@@ -147,6 +149,29 @@ test.describe('/pesan end-to-end', () => {
 
     await approveCodOrder(page, phone);
     await markOrderCompleted(page, orderCode);
+    await verifyPublicCompleted(page, statusHref);
+  });
+
+  test('flow via page object chat dan admin pages', async ({ page }) => {
+    const phone = randomPhone();
+    const chat = new ChatPage(page);
+    const admin = new AdminPage(page);
+
+    await chat.goto();
+    await chat.sendMessage('2 pedas + COD + untuk acara kantor malam ini');
+    await expect(page.getByText(/buat order dari chat|ringkasan keranjang/i).first()).toBeVisible();
+    await fillChatOrderForm(page, {
+      name: 'Tester POM',
+      phone,
+      address: 'Jl. POM No. 1, Samarinda',
+      note: 'via page object model',
+    });
+
+    const { orderCode, statusHref } = await readSuccessPayload(page);
+
+    await admin.gotoCodApproval();
+    await admin.approveCodOrder(phone);
+    await admin.markOrderCompleted(orderCode);
     await verifyPublicCompleted(page, statusHref);
   });
 
