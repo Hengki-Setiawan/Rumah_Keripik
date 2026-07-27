@@ -11,14 +11,20 @@ const nextConfig: NextConfig = {
       "@base-ui/react",
     ],
   },
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+    ],
+  },
 };
 
-export default process.env.DISABLE_SENTRY === "true"
-  ? nextConfig
-  : withSentryConfig(nextConfig, {
-      silent: true,
-      telemetry: false,
-      widenClientFileUpload: true,
-      tunnelRoute: "/monitoring",
-      disableLogger: true,
-    });
+const sentryOptions: Parameters<typeof withSentryConfig>[1] = {
+  silent: true,
+  telemetry: false,
+  widenClientFileUpload: true,
+  disableLogger: true,
+};
+
+const shouldDisableSentry = process.env.DISABLE_SENTRY === "true" || !process.env.SENTRY_DSN;
+
+export default shouldDisableSentry ? nextConfig : withSentryConfig(nextConfig, sentryOptions);
