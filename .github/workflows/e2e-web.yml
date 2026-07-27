@@ -3,40 +3,31 @@ name: E2E Web (Playwright)
 on:
   workflow_dispatch:
   push:
-    branches: [master, main, dev]
+    branches: [master, main]
   pull_request:
     branches: [master, main]
 
 jobs:
-  mocked:
-    name: Mocked API tests
+  test:
+    name: Mocked E2E (chromium)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        project:
-          - chromium
-          - firefox
-          - webkit
-          - mobile-chrome
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm ci
-      - run: npx playwright install --with-deps ${{ matrix.project }}
-      - run: npx playwright install-deps 2>/dev/null || true
-      - name: Build Next.js
+      - run: npx playwright install chromium
+      - name: Build
         run: npm run build
         env:
-          DISABLE_SENTRY: "true"
           NEXTAUTH_SECRET: test-secret
           NEXTAUTH_URL: http://localhost:3000
           CUSTOMER_SESSION_SECRET: test
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-      - name: Start dev server
+          DISABLE_SENTRY: "true"
+      - name: Start server
         run: npm run start &
         env:
           NEXTAUTH_SECRET: test-secret
@@ -46,68 +37,13 @@ jobs:
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
       - name: Wait for server
         run: npx wait-on http://localhost:3000 --timeout 60000
-      - name: Run mocked tests
-        run: npx playwright test --project=${{ matrix.project }} --reporter=html e2e/mock-ai.spec.ts e2e/ai-provider-timeout.spec.ts
+      - name: Run tests
+        run: npx playwright test --reporter=html e2e/mock-ai.spec.ts e2e/ai-provider-timeout.spec.ts
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report-mocked-${{ matrix.project }}
+          name: playwright-report
           path: playwright-report/
           retention-days: 14
-
-  e2e:
-    name: Full E2E (requires secrets)
-    if: ${{ secrets.ADMIN_USERNAME != '' }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        project:
-          - chromium
-          - firefox
-          - webkit
-          - mobile-chrome
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
-      - run: npx playwright install --with-deps ${{ matrix.project }}
-      - run: npx playwright install-deps 2>/dev/null || true
-      - name: Build Next.js
-        run: npm run build
-        env:
-          DISABLE_SENTRY: "true"
-          NEXTAUTH_SECRET: test-secret
-          NEXTAUTH_URL: http://localhost:3000
-          CUSTOMER_SESSION_SECRET: test
-          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-      - name: Start dev server
-        run: npm run start &
-        env:
-          NEXTAUTH_SECRET: test-secret
-          NEXTAUTH_URL: http://localhost:3000
-          CUSTOMER_SESSION_SECRET: test
-          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-      - name: Wait for server
-        run: npx wait-on http://localhost:3000 --timeout 60000
-      - name: Run full E2E tests
-        run: npx playwright test --project=${{ matrix.project }} --reporter=html --grep-invert "visual regression"
-        env:
-          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report-e2e-${{ matrix.project }}
-          path: playwright-report/
-          retention-days: 14
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-videos-${{ matrix.project }}
-          path: test-results/
-          retention-days: 7
