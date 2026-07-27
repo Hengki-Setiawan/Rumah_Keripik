@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { aiRuns, aiBudgetConfig, botSetting } from '@/lib/schema';
 import { generateIdAiRun } from '@/lib/id-generator';
 import { callGroqLLM } from '@/lib/groq';
+import { getCachedData, setCachedData } from '@/lib/redis-cache';
 import { generateGeminiText } from '@/lib/gemini';
 import { callOpenAICompatibleProvider } from './openai-compatible';
 import { sanitizeMessages } from '@/lib/ai/data-sanitizer';
@@ -29,7 +30,7 @@ const circuitBreakerState = new Map<string, { failures: number; lastFailureAt: n
 const CIRCUIT_BREAKER_THRESHOLD = 3;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 120_000;
 
-const promptCache = new Map<string, { result: GenerateTextResult; cachedAt: number }>();
+const localPromptCache = new Map<string, { result: GenerateTextResult; cachedAt: number }>();
 const PROMPT_CACHE_TTL_MS = 60_000;
 const CACHE_MIN_TOKEN_LENGTH = 100;
 
@@ -114,9 +115,14 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
 
   const cacheKey = getCacheKey(input);
   if (cacheKey) {
-    const cached = promptCache.get(cacheKey);
-    if (cached && Date.now() - cached.cachedAt < PROMPT_CACHE_TTL_MS) {
-      return cached.result;
+    const localCached = localPromptCache.get(cacheKey);
+    if (localCached && Date.now() - localCached.cachedAt < PROMPT_CACHE_TTL_MS) {
+      return localCached.result;
+    }
+    const redisCached = await getCachedData<GenerateTextResult>(`prompt:${cacheKey}`);
+    if (redisCached) {
+      localPromptCache.set(cacheKey, { result: redisCached, cachedAt: Date.now() });
+      return redisCached;
     }
   }
 
@@ -138,14 +144,20 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         const routed = { text: result.text, provider: result.provider, model: result.model || provider.defaultModel, tokensUsed: result.tokensUsed };
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
-        if (cacheKey) promptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
+        if (cacheKey) {
+          localPromptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
+          setCachedData(`prompt:${cacheKey}`, routed, 60).catch(() => {});
+        }
         return routed;
       }
       if (provider.name === 'gemini') {
         const routed = await generateGeminiText(sanitizedMessages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
-        if (cacheKey) promptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
+        if (cacheKey) {
+          localPromptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
+          setCachedData(`prompt:${cacheKey}`, routed, 60).catch(() => {});
+        }
         return routed;
       }
       if (provider.name === 'cerebras' || provider.name === 'qwen') {

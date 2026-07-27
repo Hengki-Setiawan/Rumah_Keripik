@@ -34,8 +34,7 @@ type AgentLoopInput = {
 export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResult> {
   const { chatSessionId, userMessage, maxIterations = 4 } = input;
 
-  const [history, customerContext, cart] = await Promise.all([
-    getCustomerContextForChat(chatSessionId),
+  const [customerContext, cart] = await Promise.all([
     getCustomerContextForChat(chatSessionId),
     getChatCart(chatSessionId),
   ]);

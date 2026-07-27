@@ -383,42 +383,47 @@ export function ChatShell() {
         </AnimatePresence>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex flex-wrap items-center justify-between gap-3 px-3 pb-1 pt-3 md:px-5">
-            <div className="flex min-w-0 items-center gap-3">
+          <header className="flex flex-wrap items-center justify-between gap-2 px-2 pb-0.5 pt-2 md:px-4">
+            <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
-                className="grid h-9 w-9 place-items-center rounded-full border border-[#f0dfca] bg-[#fffaf3]/90 text-[#6f5d4f] shadow-[0_8px_18px_rgba(47,36,28,0.05)] transition hover:text-[#2f241c] lg:hidden"
+                data-testid="header-menu-toggle"
+                className="grid h-8 w-8 place-items-center rounded-xl border border-[#f0dfca] bg-[#fffaf3]/80 text-[#6f5d4f] transition hover:text-[#2f241c] lg:hidden"
                 onClick={() => setSidebarOpen(true)}
               >
-                <Menu size={16} />
+                <Menu size={15} />
               </button>
-              <div className="hidden min-w-0 md:block pt-0.5">
-                <BrandLogo variant="full" className="h-auto w-[102px]" priority />
+              <div className="flex items-center gap-2 min-w-0">
+                <BrandLogo variant="mark" className="h-7 w-7 rounded-lg object-contain shrink-0" priority />
+                <span className="truncate text-sm font-semibold text-[#2f241c]">Rumah Keripik</span>
               </div>
             </div>
 
-            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-              <Link
-                href="/login"
-                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 px-3 py-2 text-sm font-medium text-[#6f5d4f] shadow-[0_8px_18px_rgba(47,36,28,0.04)] transition hover:bg-white hover:text-[#2f241c]"
-              >
-                <LayoutDashboard size={15} />
-                <span className="hidden sm:inline">Admin</span>
-              </Link>
+            <div className="flex items-center gap-1.5">
               <a
                 href="/pesan/saya"
-                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 px-3 py-2 text-sm font-medium text-[#2f241c] shadow-[0_8px_18px_rgba(47,36,28,0.04)] transition hover:bg-white"
+                data-testid="header-my-orders"
+                className="grid h-8 w-8 place-items-center rounded-xl text-[#6f5d4f] transition hover:bg-[#f7eddf] hover:text-[#2f241c]"
+                aria-label="Pesanan saya"
               >
                 <PackageSearch size={15} />
-                <span className="hidden sm:inline">Pesanan saya</span>
               </a>
+              <Link
+                href="/login"
+                data-testid="header-admin-link"
+                className="grid h-8 w-8 place-items-center rounded-xl text-[#6f5d4f] transition hover:bg-[#f7eddf] hover:text-[#2f241c]"
+                aria-label="Admin"
+              >
+                <LayoutDashboard size={15} />
+              </Link>
               <button
                 type="button"
+                data-testid="header-new-order"
                 onClick={startNewOrder}
-                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#c55a2b] px-3 py-2 text-sm font-medium text-white shadow-[0_12px_24px_rgba(197,90,43,0.16)] transition hover:bg-[#ae4d23]"
+                className="flex h-8 items-center gap-1.5 rounded-xl bg-[#c55a2b] px-2.5 text-xs font-semibold text-white shadow-[0_8px_18px_rgba(197,90,43,0.14)] transition hover:bg-[#ae4d23]"
               >
-                <Sparkles size={14} />
-                <span className="hidden sm:inline">Chat baru</span>
+                <Sparkles size={13} />
+                Baru
               </button>
             </div>
           </header>
@@ -488,6 +493,18 @@ export function ChatShell() {
           </div>
         </section>
       </div>
+
+      <footer className="border-t border-outline-variant/30 bg-white/60 px-4 py-2 text-center">
+        <p className="text-[10px] leading-relaxed text-on-surface-variant/60">
+          Dengan menggunakan chat ini, Anda menyadari bahwa pesan diproses oleh AI pihak ketiga (Groq, Google Gemini).
+          Data pribadi (nomor HP, alamat, koordinat) telah diredaksi sebelum dikirim ke penyedia AI.
+          Lihat{' '}
+          <Link href="/kebijakan-privasi" className="underline hover:text-primary">
+            Kebijakan Privasi
+          </Link>{' '}
+          untuk informasi selengkapnya.
+        </p>
+      </footer>
     </main>
   );
 }

@@ -20,11 +20,19 @@ function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+function normalizePhone(phone: string): string {
+  let normalized = phone.replace(/[\s\-\(\)]/g, '');
+  if (normalized.startsWith('0')) normalized = '62' + normalized.slice(1);
+  if (!normalized.startsWith('62')) normalized = '62' + normalized;
+  return normalized;
+}
+
 export async function verifyCourierLogin(phone: string, pin: string) {
+  const normalizedPhone = normalizePhone(phone);
   const [courier] = await db
     .select()
     .from(couriers)
-    .where(and(eq(couriers.phone, phone), eq(couriers.is_active, 1)))
+    .where(and(eq(couriers.phone, normalizedPhone), eq(couriers.is_active, 1)))
     .limit(1);
 
   if (!courier) return null;

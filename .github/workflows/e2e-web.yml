@@ -1,45 +1,33 @@
-name: E2E Web (Playwright)
+name: Web E2E Tests
 
 on:
   workflow_dispatch:
   push:
-    branches: [master, main]
+    branches: [main]
   pull_request:
-    branches: [master, main]
+    branches: [main]
 
 jobs:
-  test:
-    name: Mocked E2E (chromium)
+  playwright:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Build
-        run: npm run build
+      - run: npm run build
         env:
           NEXTAUTH_SECRET: test-secret
           NEXTAUTH_URL: http://localhost:3000
           CUSTOMER_SESSION_SECRET: test
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          DISABLE_SENTRY: "true"
-      - name: Start server
-        run: npm run start &
-        env:
-          NEXTAUTH_SECRET: test-secret
-          NEXTAUTH_URL: http://localhost:3000
-          CUSTOMER_SESSION_SECRET: test
-          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          DISABLE_SENTRY: "true"
-      - name: Wait for server
-        run: npx wait-on http://localhost:3000 --timeout 60000
-      - name: Run tests
-        run: npx playwright test --project=chromium --reporter=html
+          DISABLE_SENTRY: 'true'
+      - run: npx playwright test --project=chromium --reporter=html
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
       - uses: actions/upload-artifact@v4
@@ -48,3 +36,10 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+      - name: Deploy report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: playwright-report
+          destination_dir: reports/${{ github.run_number }}
