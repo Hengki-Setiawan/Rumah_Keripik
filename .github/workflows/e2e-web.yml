@@ -18,7 +18,6 @@ jobs:
           - firefox
           - webkit
           - mobile-chrome
-          - mobile-safari
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,6 +41,8 @@ jobs:
           NEXTAUTH_SECRET: test-secret
           NEXTAUTH_URL: http://localhost:3000
           CUSTOMER_SESSION_SECRET: test
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
       - name: Wait for server
         run: npx wait-on http://localhost:3000 --timeout 60000
       - name: Run Playwright tests
