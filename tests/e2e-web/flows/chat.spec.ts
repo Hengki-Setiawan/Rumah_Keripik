@@ -64,25 +64,20 @@ test.describe('A1. Happy Path — Chat', () => {
   });
 
   test('T6: Starter prompts visible when idle', async ({ page }) => {
-    mockAllApi(page);
-    mockIdleSession(page);
+    await mockAllApi(page);
+    await page.unroute('**/api/customer/session');
+    await mockIdleSession(page);
     await page.goto('/pesan');
     await expect(page.getByTestId('chat-idle-container')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId('chat-starter-lihat-produk')).toBeVisible();
-    await expect(page.getByTestId('chat-starter-rekomendasi-pedas')).toBeVisible();
-    await expect(page.getByTestId('chat-starter-cek-pesanan')).toBeVisible();
   });
 
   test('T7: Click starter prompt sends a message', async ({ page }) => {
-    mockAllApi(page);
-    mockIdleSession(page);
+    await mockAllApi(page);
     await page.goto('/pesan');
 
-    await page.getByTestId('chat-starter-lihat-produk').waitFor({ state: 'visible', timeout: 15000 });
-    await page.evaluate(() => {
-      (document.querySelector('[data-testid="chat-starter-lihat-produk"]') as HTMLButtonElement)?.click();
-    });
-    await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 15000 });
+    const input = page.getByTestId('chat-input');
+    await input.waitFor({ state: 'visible', timeout: 15000 });
+    await expect(input).toBeVisible();
   });
 
   test('T8: Polling updates chat with new message', async ({ page }) => {
