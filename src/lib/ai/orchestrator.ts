@@ -173,6 +173,14 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
     return { reply: 'Bisa kak. Buka halaman Pesanan Saya untuk melihat order yang tersimpan di browser ini.', intent: 'track_order', components: [{ type: 'quick_replies', options: [{ id: 'pesanan-saya', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }] }], confidence: 0.9 };
   }
 
+  if (/\b([3-9]\d|\d{3,})\s*(bungkus|pcs|pack|paket)/.test(lower) || (extractRequestedQuantity(lower) >= 30 && /\b(50|60|70|80|90|100)\b/.test(lower))) {
+    const qtyMatch = lower.match(/\b(\d+)\b/);
+    const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 50;
+    if (qty > 30) {
+      return { reply: `Maksimal pemesanan via chat adalah 30 bungkus per transaksi kak. Untuk jumlah banyak (${qty} bungkus), silakan hubungi admin atau daftar reseller ya.`, intent: 'recommend_products', components: [{ type: 'admin_handoff_card', reason: 'Pemesanan di atas batas 30 bungkus' }], confidence: 0.95 };
+    }
+  }
+
   if (/stok (habis|kosong|0)|produk (habis|kosong)|tidak (ada|tersedia)/.test(lower)) {
     return { reply: 'Kalau produk yang kakak cari sedang habis, kakak bisa daftar tunggu biar dikabarin kalau stok udah ada lagi. Atau mau lihat produk lain yang tersedia?', intent: 'recommend_products', components: defaultQuickReplies(), confidence: 0.88 };
   }
