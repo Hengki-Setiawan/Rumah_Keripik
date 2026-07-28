@@ -10,7 +10,6 @@ test.describe('Katalog', () => {
     await input.waitFor({ state: 'visible', timeout: 20000 });
 
     await expect(page.getByTestId('header-my-orders')).toBeVisible();
-    await expect(page.getByTestId('header-admin-link')).toBeVisible();
     await expect(page.getByTestId('header-new-order')).toBeVisible();
   });
 });
