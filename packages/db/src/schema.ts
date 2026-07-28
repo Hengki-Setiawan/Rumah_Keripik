@@ -1633,4 +1633,60 @@ export const skillDrafts = sqliteTable('skill_drafts', {
 export type SkillDraft = typeof skillDrafts.$inferSelect;
 export type InsertSkillDraft = typeof skillDrafts.$inferInsert;
 
+// ─── PROGRESSIVE IDENTITY V10 ──────────────────────────────────────────────────
+export const deviceTokens = sqliteTable('device_tokens', {
+  id: text('id').primaryKey(), // UUID token in httpOnly cookie
+  displayName: text('display_name'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  lastSeenAt: text('last_seen_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type DeviceToken = typeof deviceTokens.$inferSelect;
+export type InsertDeviceToken = typeof deviceTokens.$inferInsert;
+
+export const deviceIdentityLinks = sqliteTable('device_identity_links', {
+  id: text('id').primaryKey(),
+  deviceTokenId: text('device_token_id').notNull().references(() => deviceTokens.id),
+  customerId: text('customer_id').notNull().references(() => customerProfile.id_customer),
+  linkedAt: text('linked_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  deviceCustomerIdx: uniqueIndex('uq_device_customer_link').on(table.deviceTokenId, table.customerId),
+}));
+
+export type DeviceIdentityLink = typeof deviceIdentityLinks.$inferSelect;
+export type InsertDeviceIdentityLink = typeof deviceIdentityLinks.$inferInsert;
+
+export const oauthLinks = sqliteTable('oauth_links', {
+  id: text('id').primaryKey(),
+  customerId: text('customer_id').notNull().references(() => customerProfile.id_customer),
+  provider: text('provider').notNull(), // e.g. "google"
+  providerAccountId: text('provider_account_id').notNull(),
+  email: text('email'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  providerIdx: uniqueIndex('uq_oauth_provider_account').on(table.provider, table.providerAccountId),
+}));
+
+export type OauthLink = typeof oauthLinks.$inferSelect;
+export type InsertOauthLink = typeof oauthLinks.$inferInsert;
+
+export const otpRequests = sqliteTable('otp_requests', {
+  id: text('id').primaryKey(),
+  phoneNumber: text('phone_number').notNull(),
+  codeHash: text('code_hash').notNull(), // SHA-256 hash of 6-digit OTP
+  purpose: text('purpose').notNull().default('checkout_verification'), // 'checkout_verification' | 'profile_recovery'
+  attempts: integer('attempts').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(3),
+  expiresAt: text('expires_at').notNull(),
+  consumedAt: text('consumed_at'),
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  phoneCreatedIdx: index('idx_otp_phone_created').on(table.phoneNumber, table.createdAt),
+}));
+
+export type OtpRequest = typeof otpRequests.$inferSelect;
+export type InsertOtpRequest = typeof otpRequests.$inferInsert;
+
+
 

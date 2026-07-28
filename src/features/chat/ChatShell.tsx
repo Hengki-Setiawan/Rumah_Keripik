@@ -9,6 +9,7 @@ import type { ChatCartDto, ChatMessageDto, CustomerContextDto } from '@/lib/chat
 import { ChatComposer } from './ChatComposer';
 import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
+import ProgressiveIdentityModal from '@/components/checkout/ProgressiveIdentityModal';
 
 export function ChatShell() {
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
@@ -23,6 +24,8 @@ export function ChatShell() {
   const [started, setStarted] = useState(false);
   const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
   const [stage, setStage] = useState<string>('idle');
+  const [identityModalOpen, setIdentityModalOpen] = useState(false);
+  const [customerData, setCustomerData] = useState<any>(null);
   const autoStarted = useRef(false);
 
   const loadSessions = useCallback(async () => {
@@ -160,9 +163,10 @@ export function ChatShell() {
     }
   }
 
-  // Auto-bootstrap saat halaman pertama kali dibuka
+  // Auto-bootstrap & Progressive Identity device token initialization
   useEffect(() => {
     if (autoStarted.current) return;
+    fetch('/api/identity/session').catch(() => undefined);
     bootstrap(false).catch(() => {
       setLoading(false);
     });
@@ -505,6 +509,15 @@ export function ChatShell() {
           untuk informasi selengkapnya.
         </p>
       </footer>
+
+      <ProgressiveIdentityModal
+        isOpen={identityModalOpen}
+        onClose={() => setIdentityModalOpen(false)}
+        onVerifiedSuccess={(res) => {
+          setCustomerData(res.customer);
+          setIdentityModalOpen(false);
+        }}
+      />
     </main>
   );
 }
