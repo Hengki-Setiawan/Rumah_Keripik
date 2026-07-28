@@ -64,7 +64,7 @@ function LoginForm() {
 
         <div className="rounded-[1.75rem] border border-[#e8dcc9] bg-[#fff9f1]/95 p-8 shadow-[0_24px_70px_rgba(47,36,28,0.10)] backdrop-blur">
           {error && (
-            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+            <div data-testid="login-error" className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
               <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
               <p className="text-sm text-red-800">{error}</p>
             </div>
@@ -77,6 +77,7 @@ function LoginForm() {
               </label>
               <input
                 id="username"
+                data-testid="login-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -93,6 +94,7 @@ function LoginForm() {
               </label>
               <input
                 id="password"
+                data-testid="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -105,6 +107,7 @@ function LoginForm() {
 
             <button
               type="submit"
+              data-testid="login-submit"
               disabled={loading}
               className="w-full rounded-2xl bg-[#6b4423] px-4 py-3 font-medium text-white transition-colors duration-200 hover:bg-[#7d5230] disabled:bg-[#b8ab97]"
             >

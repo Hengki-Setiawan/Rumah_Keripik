@@ -37,6 +37,11 @@ export default defineConfig({
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    env: {
+      NEXTAUTH_URL: 'http://localhost:3000',
+      AUTH_URL: 'http://localhost:3000',
+      DISABLE_SENTRY: 'true',
+    },
   },
   use: {
     baseURL,

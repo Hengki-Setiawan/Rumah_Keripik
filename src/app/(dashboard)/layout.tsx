@@ -132,6 +132,7 @@ function SidebarLink({
     <Link
       href={item.href}
       onClick={onNavigate}
+      data-testid={`sidebar-nav-${item.label.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
       className={`group flex items-center gap-3 rounded-[1rem] px-2 py-2 transition-all ${
         isActive
           ? 'bg-[#fff9f2] text-[#2f241c] shadow-[0_10px_22px_rgba(47,36,28,0.05)]'
@@ -206,6 +207,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <BrandLogo variant="mark" className="h-10 w-10 rounded-xl object-contain shadow-[0_14px_32px_rgba(197,90,43,0.18)]" priority />
             <button
               type="button"
+              data-testid="sidebar-toggle"
               onClick={() => setSidebarCollapsed((value) => !value)}
               className="hidden lg:grid h-8 w-8 place-items-center rounded-xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c]"
               aria-label="Buka sidebar"
@@ -224,6 +226,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <button
               type="button"
+              data-testid="sidebar-toggle"
               onClick={() => setSidebarCollapsed((value) => !value)}
               className="hidden lg:grid h-8 w-8 place-items-center rounded-xl text-[#786455] transition hover:bg-[#f3ebdc] hover:text-[#2f241c]"
               aria-label="Ciutkan sidebar"
@@ -243,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
-      <nav className={`flex-1 space-y-1 overflow-y-auto scrollbar-thin ${compact ? 'w-full px-0' : 'pr-1'}`}>
+      <nav data-testid="sidebar-nav" className={`flex-1 space-y-1 overflow-y-auto scrollbar-thin ${compact ? 'w-full px-0' : 'pr-1'}`}>
         {/* Core Menu */}
         {!compact && (
           <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#a08973]">
@@ -334,6 +337,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
+                data-testid="mobile-menu-toggle"
                 onClick={() => setSidebarOpen(true)}
                 className="grid h-10 w-10 place-items-center rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 text-[#6f5d4f] shadow-[0_8px_22px_rgba(47,36,28,0.06)] lg:hidden"
               >
@@ -349,6 +353,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="relative">
                 <button
                   type="button"
+                  data-testid="nav-notification-bell"
                   onClick={() => setNotifOpen((value) => !value)}
                   className="relative grid h-10 w-10 place-items-center rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 text-[#6f5d4f] shadow-[0_8px_22px_rgba(47,36,28,0.06)] transition hover:text-[#2f241c]"
                 >

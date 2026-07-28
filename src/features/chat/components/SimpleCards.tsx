@@ -363,6 +363,7 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
             <button
               key={method.id}
               type="button"
+              data-testid={`checkout-payment-${method.id}`}
               onClick={() => setPaymentMethodId(method.id)}
               className={`rounded-[1.2rem] border px-4 py-3 text-left transition ${
                 paymentMethodId === method.id
