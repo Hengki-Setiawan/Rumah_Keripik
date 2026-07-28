@@ -240,14 +240,27 @@ export default function PesananSayaPage() {
                     )}
                   </div>
                   <details className="mt-4">
-                    <summary className="flex cursor-pointer items-center gap-2 text-sm text-red-600 hover:text-red-700">
-                      <AlertTriangle size={14} /> Hapus akun
+                    <summary className="flex cursor-pointer items-center gap-2 text-sm text-red-600 hover:text-red-700 font-medium">
+                      <AlertTriangle size={14} /> Hapus Data Pribadi (UU PDP)
                     </summary>
                     <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4">
-                      <p className="text-sm text-red-800">
-                        Semua data pelanggan akan dihapus permanen dalam 30 hari. Riwayat pesanan akan dianonimkan.
-                        Jika yakin, hubungi admin melalui chat atau kirim email ke support@rumahkeripik.com
+                      <p className="text-sm text-red-800 mb-3">
+                        Semua data pribadi pelanggan (alamat, nomor HP, nama) akan dihapus permanen dari server sesuai UU PDP. Riwayat transaksi akan dianonimkan.
                       </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (confirm('Apakah Anda yakin ingin menghapus seluruh data pribadi Anda? Tindakan ini tidak dapat dibatalkan.')) {
+                            const res = await fetch('/api/identity/me', { method: 'DELETE' });
+                            const json = await res.json();
+                            alert(json.message || 'Data pribadi telah dihapus.');
+                            window.location.reload();
+                          }
+                        }}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium text-xs rounded-lg transition-colors"
+                      >
+                        Hapus Data Saya Sekarang
+                      </button>
                     </div>
                   </details>
                 </div>
