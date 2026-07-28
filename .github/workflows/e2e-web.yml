@@ -3,9 +3,9 @@ name: Web E2E Tests
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
 
 jobs:
   playwright:
@@ -29,6 +29,12 @@ jobs:
           DISABLE_SENTRY: 'true'
       - run: npx playwright test --project=chromium --reporter=html
         env:
+          NEXTAUTH_SECRET: test-secret
+          NEXTAUTH_URL: http://localhost:3000
+          CUSTOMER_SESSION_SECRET: test
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          DISABLE_SENTRY: 'true'
           PLAYWRIGHT_BASE_URL: http://localhost:3000
       - uses: actions/upload-artifact@v4
         if: always()
