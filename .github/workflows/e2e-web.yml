@@ -58,7 +58,7 @@ jobs:
           path: playwright-report/
 
   deploy:
-    if: always() && needs.playwright.result == 'success'
+    if: github.ref == 'refs/heads/master' && needs.playwright.result == 'success'
     needs: playwright
     runs-on: ubuntu-latest
     environment:
