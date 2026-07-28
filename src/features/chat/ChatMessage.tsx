@@ -143,10 +143,10 @@ export function ChatMessage({
           </div>
         )}
 
-        {message.components.filter((c) => !hideQuickReplies || c.type !== 'quick_replies').length > 0 && (
+        {(message.components ?? []).filter((c) => !hideQuickReplies || c.type !== 'quick_replies').length > 0 && (
           <div className={`${!isUser ? 'w-full' : 'max-w-full'}`}>
             <ChatComponentRenderer
-              components={message.components.filter((c) => !hideQuickReplies || c.type !== 'quick_replies')}
+              components={(message.components ?? []).filter((c) => !hideQuickReplies || c.type !== 'quick_replies')}
               cart={cart}
               onSend={onSend}
               onAction={onAction}

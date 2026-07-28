@@ -15,8 +15,10 @@ export const mockPaymentMethods = [
 export const mockChatSession = { id: 'CHS-test-0001', stage: 'idle' };
 
 export const mockGreetingMessage = {
+  id: 'msg-greeting-001',
   role: 'assistant' as const,
   content: 'Halo! Mau pesan keripik apa hari ini?',
+  components: [] as { type: string }[],
   createdAt: new Date().toISOString(),
 };
 
