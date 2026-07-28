@@ -135,13 +135,23 @@ export async function processOrderState(
     case 'PILIH_PRODUK': {
       // User is specifying which product they want
       const allProducts = await db.select().from(produk).where(eq(produk.is_active, 1));
+      const inStockProducts = allProducts.filter((p) => p.stok_gudang_utama > 0);
       
-      // Find matching product (case-insensitive fuzzy match)
-      const matched = allProducts.find(
+      // Smart token matching: check if any in-stock product name is contained in lowerMsg
+      let matched = (inStockProducts.length > 0 ? inStockProducts : allProducts).find(
         (p) => 
-          p.nama_produk.toLowerCase().includes(lowerMsg) || 
+          p.nama_produk.toLowerCase() === lowerMsg ||
           lowerMsg.includes(p.nama_produk.toLowerCase())
       );
+
+      if (!matched) {
+        // Match specific distinct flavor tokens (e.g. "pedas", "original", "bawang", "mix", "balado")
+        const flavorTokens = ['pedas', 'original', 'bawang', 'mix', 'balado', 'keju', 'manis'];
+        const matchedFlavor = flavorTokens.find((f) => lowerMsg.includes(f));
+        if (matchedFlavor) {
+          matched = allProducts.find((p) => p.nama_produk.toLowerCase().includes(matchedFlavor));
+        }
+      }
 
       if (!matched) {
         return {
