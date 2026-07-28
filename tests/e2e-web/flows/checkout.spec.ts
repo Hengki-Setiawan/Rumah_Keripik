@@ -9,8 +9,7 @@ test.describe('Checkout', () => {
 
     const input = page.getByTestId('chat-input');
     await input.waitFor({ state: 'visible', timeout: 20000 });
-    await input.evaluate((el) => (el as HTMLTextAreaElement).focus());
-    await page.keyboard.type('2 kripik balado');
+    await input.fill('2 kripik balado');
     await page.getByTestId('chat-send-button').click();
     await expect(page.getByTestId('chat-cart-summary')).toBeVisible({ timeout: 15000 });
   });
