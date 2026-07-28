@@ -8,9 +8,13 @@ on:
     branches: [master, main]
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   playwright:
@@ -42,15 +46,25 @@ jobs:
           DISABLE_SENTRY: 'true'
           PLAYWRIGHT_BASE_URL: http://localhost:3000
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-test-results
+          path: test-results/
           retention-days: 14
-      - name: Deploy report to GitHub Pages
+      - name: Upload Pages artifact
         if: always()
-        uses: peaceiris/actions-gh-pages@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: playwright-report
-          destination_dir: reports/${{ github.run_number }}
+          path: playwright-report/
+
+  deploy:
+    if: always() && needs.playwright.result == 'success'
+    needs: playwright
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
