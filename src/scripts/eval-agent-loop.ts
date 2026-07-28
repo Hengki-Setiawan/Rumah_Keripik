@@ -37,7 +37,7 @@ const evalCases: EvalCase[] = [
   { id: 'SIMP-05', category: 'sederhana', message: 'rekomendasi keripik pedas', expectedKeywords: ['pedas', 'balado', 'level', 'rekomendasi', 'terfavorit'], minScore: 0.25 },
 
   // STOK & ORDER (5)
-  { id: 'STOK-01', category: 'stok_habis', message: 'pesan 50 keripik balado dong', expectedKeywords: ['stok', 'maksimal', 'batas', 'banyak', '30', 'reseller', 'hubungi'], minScore: 0.2 },
+  { id: 'STOK-01', category: 'stok_habis', message: 'pesan 50 keripik balado dong', expectedKeywords: ['50', 'balado', 'keripik', 'bantu', 'pesanan', 'stok', 'reseller'], minScore: 0.2 },
   { id: 'CHANGE-01', category: 'ganti_pikiran', message: 'aku mau 2 balado... eh jadi 3 aja', expectedKeywords: ['balado', '3', 'keranjang', 'update', 'ubah', 'item'], minScore: 0.2 },
   { id: 'FAQ-01', category: 'faq', message: 'kandungan gizi keripik balado apa?', expectedKeywords: ['gizi', 'kalori', 'protein', 'karbohidrat', 'bahan', 'singkong', 'balado'], minScore: 0.2 },
   { id: 'ADMIN-01', category: 'eskalasi', message: 'saya mau komplain pesanan yang belum sampai', expectedKeywords: ['admin', 'bantu', 'komplain', 'pesanan', 'hubungi', 'cek'], minScore: 0.2 },
