@@ -388,7 +388,7 @@ async function searchKnowledgeBase(lowerMessage: string): Promise<string | null>
 
     // Try vector search only when cheap keyword search finds nothing.
     try {
-      if (results.length === 0) {
+      if (results.length === 0 && process.env.GEMINI_API_KEY && !process.env.GEMINI_DISABLED) {
         const { generateQueryEmbedding } = await import('@/lib/gemini');
         const { embedding } = await generateQueryEmbedding(lowerMessage);
         const vectorStr = `[${embedding.join(',')}]`;
@@ -411,8 +411,8 @@ async function searchKnowledgeBase(lowerMessage: string): Promise<string | null>
             kategori: row.kategori as string | null,
           }));
       }
-    } catch (vecError) {
-      console.warn('Vector search failed, falling back to text search:', vecError);
+    } catch (vecError: any) {
+      console.warn('[RAG Vector Fallback]:', vecError.message || vecError);
     }
 
     if (results.length === 0) return null;
