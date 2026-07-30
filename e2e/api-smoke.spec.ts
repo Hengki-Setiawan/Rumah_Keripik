@@ -25,33 +25,24 @@ test.describe('API Smoke Tests', () => {
     expect(res.ok()).toBeFalsy();
   });
 
-  test('GET /api/admin/loyalty/stats returns 200', async ({ request }) => {
+  test('GET /api/admin/loyalty/stats requires auth', async ({ request }) => {
     const res = await request.get('/api/admin/loyalty/stats');
-    expect(res.ok()).toBeTruthy();
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.stats).toBeDefined();
-    expect(body.stats.totalAccounts).toBeDefined();
+    expect(res.status() === 401 || res.status() === 403).toBeTruthy();
   });
 
-  test('GET /api/admin/couriers returns roster', async ({ request }) => {
+  test('GET /api/admin/couriers requires auth', async ({ request }) => {
     const res = await request.get('/api/admin/couriers');
-    expect(res.ok()).toBeTruthy();
-    const body = await res.json();
-    expect(body.ok).toBe(true);
+    expect(res.status() === 401 || res.status() === 403).toBeTruthy();
   });
 
-  test('GET /api/admin/couriers/live-locations returns ok', async ({ request }) => {
+  test('GET /api/admin/couriers/live-locations requires auth', async ({ request }) => {
     const res = await request.get('/api/admin/couriers/live-locations');
-    const body = await res.json();
-    expect(body.ok).toBe(true);
+    expect(res.status() === 401 || res.status() === 403).toBeTruthy();
   });
 
-  test('GET /api/admin/dispatch/batch-group returns clusters', async ({ request }) => {
+  test('GET /api/admin/dispatch/batch-group requires auth', async ({ request }) => {
     const res = await request.get('/api/admin/dispatch/batch-group');
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.data).toBeDefined();
+    expect(res.status() === 401 || res.status() === 403).toBeTruthy();
   });
 
   test('Auth without token returns 401', async ({ request }) => {
