@@ -172,4 +172,5 @@ export const CreateChatOrderSchema = z.object({
   }),
   paymentMethodId: z.string().min(1),
   notes: z.string().max(360).optional(),
+  redeemPoints: z.number().int().min(10000).optional(),
 });

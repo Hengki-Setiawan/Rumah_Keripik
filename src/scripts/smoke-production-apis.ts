@@ -3,7 +3,7 @@
  * Jalankan: npx tsx src/scripts/smoke-production-apis.ts
  */
 
-const BASE = process.env.BASE_URL || 'https://rumah-keripik.vercel.app';
+const BASE = process.env.BASE_URL || 'https://rumah-keripik.netlify.app';
 
 interface TestResult { name: string; passed: boolean; status: number; detail?: string }
 

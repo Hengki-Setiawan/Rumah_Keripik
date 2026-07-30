@@ -22,6 +22,7 @@ import { generateAnonymousToken, generateIdTransaksi, generateIdWebSession, gene
 import { normalizePhoneNumber } from '@/lib/utils';
 import { buildPaymentInstructionPayload, generatePaymentIntentId } from '@/lib/payments/payment-utils';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
+import { redeemPoints } from '@/services/loyalty-service';
 import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
 
 export type CreateChatOrderInput = {
@@ -41,6 +42,7 @@ export type CreateChatOrderInput = {
   };
   paymentMethodId: string;
   notes?: string;
+  redeemPoints?: number;
 };
 
 function parseCoordinate(value?: string) {
@@ -130,7 +132,7 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
     const statusToken = generateOrderStatusToken();
     const anonymousToken = generateAnonymousToken();
     const instruction = buildPaymentInstructionPayload(configuredMethod);
-    const catatan = [
+    let catatan = [
       'Order web chat V3',
       `Chat session: ${input.chatSessionId}`,
       `Metode: ${configuredMethod.label}`,
@@ -191,6 +193,14 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
       context_json: JSON.stringify({ source: 'web-chat-v3', chatSessionId: input.chatSessionId, kodePesanan }),
       status: 'completed',
     });
+
+    const redeemedPoints = input.redeemPoints ?? 0;
+    if (input.redeemPoints) {
+      if (input.redeemPoints > totalBayar) throw new Error('Poin melebihi total bayar');
+      const redeemed = await redeemPoints(customer.idCustomer, input.redeemPoints, idTransaksi);
+      totalBayar -= redeemed.discountAmount;
+      catatan += `\nRedeem: ${redeemed.pointsRedeemed} poin (diskon Rp${redeemed.discountAmount.toLocaleString('id-ID')})`;
+    }
 
     await tx.insert(transaksi).values({
       id_transaksi: idTransaksi,
@@ -278,6 +288,7 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
       statusPembayaran,
       statusToken,
       anonymousToken,
+      redeemedPoints,
       paymentMethod: methodType,
       paymentLabel: configuredMethod.label,
       customerId: customer.idCustomer,

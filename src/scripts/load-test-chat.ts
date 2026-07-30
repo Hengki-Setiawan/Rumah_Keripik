@@ -1,4 +1,4 @@
-const BASE = process.env.BASE_URL || 'https://rumah-keripik.vercel.app';
+const BASE = process.env.BASE_URL || 'https://rumah-keripik.netlify.app';
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || '5', 10);
 const REQUESTS = parseInt(process.env.REQUESTS || '20', 10);
 const TIMEOUT_MS = parseInt(process.env.TIMEOUT_MS || '15000', 10);

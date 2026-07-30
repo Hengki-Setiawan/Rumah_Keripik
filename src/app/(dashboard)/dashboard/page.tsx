@@ -17,9 +17,54 @@ import {
   Package,
   ShieldCheck,
   TrendingUp,
+  Truck,
   Users,
 } from 'lucide-react';
 import { AnalyticsHub } from '@/components/dashboard/AnalyticsHub';
+
+function CourierSummaryWidget() {
+  const [data, setData] = useState<{ activeCouriers: number; completedToday: number; openIncidents: number } | null>(null);
+  useEffect(() => {
+    fetch('/api/admin/couriers').then(r => r.json()).then(j => {
+      if (j.ok) {
+        const active = (j.data || []).filter((c: any) => c.is_active === 1 || c.is_active === true).length;
+        setData(prev => ({ activeCouriers: active, completedToday: prev?.completedToday ?? 0, openIncidents: prev?.openIncidents ?? 0 }));
+      }
+    }).catch(() => {});
+    fetch('/api/admin/incidents').then(r => r.json()).then(j => {
+      if (j.ok) {
+        const open = (j.data || []).filter((c: any) => c.status === 'open').length;
+        setData(prev => ({ activeCouriers: prev?.activeCouriers ?? 0, completedToday: prev?.completedToday ?? 0, openIncidents: open }));
+      }
+    }).catch(() => {});
+  }, []);
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a08973]">
+          <Truck size={14} className="inline mr-1" /> Kurir
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#2f241c]">
+          Ringkasan Kurir Hari Ini
+        </h2>
+      </div>
+      <div className="flex gap-4">
+        <div className="text-center px-4 py-2 rounded-xl bg-[#fffaf3] border border-[#f0dfca]">
+          <p className="text-2xl font-bold text-[#c55a2b]">{data?.activeCouriers ?? '-'}</p>
+          <p className="text-xs text-[#776454]">Kurir Aktif</p>
+        </div>
+        <div className="text-center px-4 py-2 rounded-xl bg-[#fffaf3] border border-[#f0dfca]">
+          <p className="text-2xl font-bold text-[#7f9f3e]">{data?.completedToday ?? '-'}</p>
+          <p className="text-xs text-[#776454]">Selesai Hari Ini</p>
+        </div>
+        <div className="text-center px-4 py-2 rounded-xl bg-[#fffaf3] border border-[#f0dfca]">
+          <p className="text-2xl font-bold text-[#dc2626]">{data?.openIncidents ?? '-'}</p>
+          <p className="text-xs text-[#776454]">Insiden Terbuka</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface KPIData {
   pendapatan_hari_ini: number;
@@ -242,7 +287,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div data-testid="dashboard-container" className="space-y-8">
       <section className="relative overflow-hidden rounded-[2.1rem] border border-[#f0dfca] bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.20),transparent_32%),linear-gradient(135deg,rgba(255,250,244,0.96)_0%,rgba(248,240,229,0.92)_100%)] p-6 shadow-[0_24px_70px_rgba(47,36,28,0.08)] md:p-8">
         <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[#ffe9bf]/65 blur-3xl" />
         <div className="relative grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
@@ -460,6 +505,10 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
+          </section>
+
+          <section className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">
+            <CourierSummaryWidget />
           </section>
 
           <section className="rounded-[1.9rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-6 shadow-[0_18px_44px_rgba(47,36,28,0.05)] backdrop-blur">

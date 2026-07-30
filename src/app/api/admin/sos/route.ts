@@ -3,38 +3,56 @@ import { db } from '@/lib/db';
 import { sosEvents } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
+import { requireAdminRole } from '@/lib/admin-actor';
 import { sendCourierPushNotification } from '@/lib/expo-push';
 
 const ResolveSchema = z.object({ id: z.number(), note: z.string().max(500).optional() });
 
 export async function GET() {
-  const events = await db
-    .select()
-    .from(sosEvents)
-    .orderBy(desc(sosEvents.createdAt))
-    .limit(50);
-  return NextResponse.json({ ok: true, events });
+  try {
+    await requireAdminRole('sos:view');
+    const events = await db
+      .select()
+      .from(sosEvents)
+      .orderBy(desc(sosEvents.createdAt))
+      .limit(50);
+    return NextResponse.json({ ok: true, events });
+  } catch (error) {
+    if (error instanceof Error && (error.message === 'UNAUTHORIZED_ADMIN' || error.message === 'FORBIDDEN_ADMIN_PERMISSION')) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 403 });
+    }
+    return NextResponse.json({ ok: false, error: 'Gagal memuat SOS' }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: Request) {
-  const body = ResolveSchema.safeParse(await req.json());
-  if (!body.success) return NextResponse.json({ ok: false, error: 'Data tidak valid' }, { status: 400 });
+  try {
+    await requireAdminRole('sos:respond');
 
-  const [event] = await db.select().from(sosEvents).where(eq(sosEvents.id, body.data.id)).limit(1);
-  if (!event) return NextResponse.json({ ok: false, error: 'SOS tidak ditemukan' }, { status: 404 });
+    const body = ResolveSchema.safeParse(await req.json());
+    if (!body.success) return NextResponse.json({ ok: false, error: 'Data tidak valid' }, { status: 400 });
 
-  await db.update(sosEvents).set({
-    status: 'resolved',
-    resolvedAt: new Date().toISOString(),
-    note: body.data.note || null,
-  }).where(eq(sosEvents.id, body.data.id));
+    const [event] = await db.select().from(sosEvents).where(eq(sosEvents.id, body.data.id)).limit(1);
+    if (!event) return NextResponse.json({ ok: false, error: 'SOS tidak ditemukan' }, { status: 404 });
 
-  await sendCourierPushNotification(
-    event.courierId,
-    '✅ SOS Terselesaikan',
-    body.data.note || 'Admin telah menandai sinyal darurat Anda sebagai selesai. Terima kasih.',
-    { type: 'sos_resolved' }
-  ).catch(() => {});
+    await db.update(sosEvents).set({
+      status: 'resolved',
+      resolvedAt: new Date().toISOString(),
+      note: body.data.note || null,
+    }).where(eq(sosEvents.id, body.data.id));
 
-  return NextResponse.json({ ok: true });
+    await sendCourierPushNotification(
+      event.courierId,
+      '✅ SOS Terselesaikan',
+      body.data.note || 'Admin telah menandai sinyal darurat Anda sebagai selesai. Terima kasih.',
+      { type: 'sos_resolved' }
+    ).catch(() => {});
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof Error && (error.message === 'UNAUTHORIZED_ADMIN' || error.message === 'FORBIDDEN_ADMIN_PERMISSION')) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 403 });
+    }
+    return NextResponse.json({ ok: false, error: 'Gagal update SOS' }, { status: 500 });
+  }
 }

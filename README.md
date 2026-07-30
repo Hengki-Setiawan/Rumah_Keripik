@@ -4,6 +4,12 @@
 
 ---
 
+> 📚 **Blueprint & Dokumentasi:** Lihat folder `Blueprint/` untuk peta besar, kontrak API, dan roadmap:
+> - `00_MASTER_INTEGRATION_BLUEPRINT.md` — Integrasi 3 aplikasi
+> - `01_BLUEPRINT_WEB_PUSAT.md` — Web backend & admin
+> - `02_BLUEPRINT_MOBILE_PELANGGAN.md` — Mobile customer app
+> - `03_BLUEPRINT_COURIER_KURIR.md` — Courier app
+
 ## 🌟 Fitur Utama v1.0.0
 
 - 🤖 **AI Interactive Order Assistant**: Chatbot pemesanan berbasis Groq + Gemini RAG Engine & Rule State Machine.

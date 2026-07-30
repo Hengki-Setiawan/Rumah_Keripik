@@ -105,6 +105,12 @@ export const identifyProductFromImageSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid'),
 });
 
+export const updateCustomerProfileSchema = z.object({
+  name: z.string().min(1, 'Nama tidak boleh kosong').max(100).optional(),
+  phone: z.string().min(8, 'Nomor telepon tidak valid').max(20).optional(),
+  email: z.string().email('Email tidak valid').max(120).optional(),
+});
+
 export const toolSchemaRegistry: Record<string, z.ZodTypeAny> = {
   search_products: searchProductsSchema,
   searchProducts: searchProductsSchema,
@@ -145,4 +151,6 @@ export const toolSchemaRegistry: Record<string, z.ZodTypeAny> = {
   suggestAlternativeProduct: suggestAlternativeProductSchema,
   identify_product_from_image: identifyProductFromImageSchema,
   identifyProductFromImage: identifyProductFromImageSchema,
+  update_customer_profile: updateCustomerProfileSchema,
+  updateCustomerProfile: updateCustomerProfileSchema,
 };

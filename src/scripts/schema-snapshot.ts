@@ -3,12 +3,7 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 
 function main() {
-  const result = spawnSync('npx', ['drizzle-kit', 'studio', '--port', '4999'], {
-    shell: true,
-    encoding: 'utf8',
-    timeout: 5000,
-    stdio: 'pipe',
-  });
+  spawnSync('npx', ['drizzle-kit', 'studio', '--port', '4999'], {});
 
   const outPath = path.join(process.cwd(), '00_SCHEMA_SNAPSHOT.md');
   const lines = [
@@ -20,7 +15,7 @@ function main() {
     '',
   ];
 
-  const schemaPath = path.join(process.cwd(), 'src', 'lib', 'schema.ts');
+  const schemaPath = path.join(process.cwd(), 'packages', 'db', 'src', 'schema.ts');
   if (fs.existsSync(schemaPath)) {
     const content = fs.readFileSync(schemaPath, 'utf8');
     const tableRegex = /export\s+const\s+(\w+)\s*=\s*sqliteTable\s*\(\s*['"](\w+)['"]/g;
