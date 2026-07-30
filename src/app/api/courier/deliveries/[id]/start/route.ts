@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { deliveryAssignment, orderEvents, transaksi } from '@/lib/schema';
+import { deliveryAssignment, orderEvents, transaksi, deliveryEvents } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -66,6 +66,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         event_payload: JSON.stringify({ courier_name: assignment.kurir_name, delivery_id: deliveryId }),
       });
     }
+
+    await db.insert(deliveryEvents).values({
+      deliveryId,
+      courierId: courier.id,
+      eventType: 'started',
+      metadata: JSON.stringify({ id_transaksi: assignment.id_transaksi }),
+    });
 
     await sendOrderPushNotification(assignment.id_transaksi, 'shipping');
 

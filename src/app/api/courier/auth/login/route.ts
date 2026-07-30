@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { couriers, courierSessions } from '@/lib/schema';
 import { eq, and } from 'drizzle-orm';
 import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
+import { checkCourierRateLimit } from '@/lib/rate-limit-courier';
 
 const LoginSchema = z.object({
   phone: z.string().min(10).max(20),
@@ -14,6 +15,10 @@ const LoginSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const rl = await checkCourierRateLimit('auth', req);
+    if (!rl.ok) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan login. Coba lagi nanti.' }, { status: 429, headers: { 'X-RateLimit-Reset': String(rl.resetAt) } });
+    }
     const body = LoginSchema.safeParse(await req.json());
     if (!body.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: body.error.flatten() }, { status: 400 });

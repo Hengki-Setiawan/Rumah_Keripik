@@ -209,6 +209,7 @@ export async function POST(req: Request) {
         address: saved.address,
         paymentMethodId: String(payload.paymentMethodId || ''),
         notes: String(payload.notes || 'Order memakai data tersimpan'),
+        redeemPoints: payload.redeemPoints,
       });
       const result = await createOrderFromChatCart(orderInput);
       await rememberOrderFacts(chatSessionId, result.idTransaksi);

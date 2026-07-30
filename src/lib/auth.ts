@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
 import { z } from 'zod';
 
 const LoginSchema = z.object({
@@ -19,8 +20,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { username, password } = validatedFields.data;
 
-        // Hardcoded credentials dari env
-        // Di production, bisa pakai database check
         if (
           username === process.env.ADMIN_USERNAME &&
           password === process.env.ADMIN_PASSWORD
@@ -35,22 +34,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return null;
       },
     }),
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    }),
   ],
   pages: {
     signIn: '/login',
     error: '/login',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
+      }
+      if (account?.provider === 'google') {
+        token.googleId = account.providerAccountId;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        (session.user as any).googleId = token.googleId as string | undefined;
       }
       return session;
     },

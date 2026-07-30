@@ -3,8 +3,23 @@ import { db } from '@/lib/db';
 import { produk, produkKategori, produkVarian } from '@/lib/schema';
 import { getProductImageUrl } from '@/lib/cloudinary-url';
 import { formatRupiah } from '@/lib/utils';
+import { withCache, invalidateCache as invalidateProductCache } from '@/lib/cache';
 
-export async function searchProducts(query?: string, productIds?: string[]) {
+export { invalidateProductCache };
+
+type ProductRow = {
+  id: string; name: string; description: string | null; price: number; stock: number;
+  imageUrl: string | null; cloudinaryPublicId: string | null; categoryId: string | null;
+  categoryName: string | null; tagsJson: string | null; isFeatured: number | null;
+  isBestSeller: number | null; sortOrder: number;
+};
+
+type VariantRow = {
+  id: string; productId: string; name: string; price: number; stock: number;
+  imageUrl: string | null; cloudinaryPublicId: string | null;
+};
+
+async function fetchProducts(productIds?: string[], searchQuery?: string) {
   const base = db
     .select({
       id: produk.id_produk,
@@ -24,7 +39,7 @@ export async function searchProducts(query?: string, productIds?: string[]) {
     .from(produk)
     .leftJoin(produkKategori, eq(produk.kategori_id, produkKategori.id_kategori));
 
-  const lower = query?.trim().toLowerCase();
+  const lower = searchQuery?.trim().toLowerCase();
   const where = productIds?.length
     ? and(eq(produk.is_active, 1), inArray(produk.id_produk, productIds))
     : lower
@@ -49,7 +64,11 @@ export async function searchProducts(query?: string, productIds?: string[]) {
         .orderBy(asc(produkVarian.sort_order), asc(produkVarian.nama_varian))
     : [];
 
-  const variantsByProduct = new Map<string, typeof variants>();
+  return { rows, variants };
+}
+
+function formatProductRows(rows: ProductRow[], variants: VariantRow[]) {
+  const variantsByProduct = new Map<string, VariantRow[]>();
   for (const variant of variants) {
     const list = variantsByProduct.get(variant.productId) || [];
     list.push(variant);
@@ -69,6 +88,21 @@ export async function searchProducts(query?: string, productIds?: string[]) {
       imageUrl: variant.cloudinaryPublicId ? getProductImageUrl(variant.cloudinaryPublicId) : variant.imageUrl,
     })),
   }));
+}
+
+export async function searchProducts(query?: string, productIds?: string[]) {
+  const cacheKey = productIds?.length
+    ? `products:ids:${productIds.sort().join(',')}`
+    : query
+      ? `products:search:${query.toLowerCase().trim()}`
+      : 'products:all';
+
+  const result = await withCache(cacheKey, async () => {
+    const { rows, variants } = await fetchProducts(productIds, query);
+    return formatProductRows(rows, variants);
+  }, 5 * 60 * 1000);
+
+  return result;
 }
 
 export async function recommendProducts(message: string, memory: Array<{ key: string; value: string }> = []) {

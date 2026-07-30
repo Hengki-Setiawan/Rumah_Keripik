@@ -174,6 +174,9 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
   const [notes, setNotes] = useState('');
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [redeemPoints, setRedeemPoints] = useState(0);
+  const [loyaltyBalance, setLoyaltyBalance] = useState(0);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -216,6 +219,25 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
       cancelled = true;
     };
   }, [component.savedAddressId]);
+
+  useEffect(() => {
+    if (!component.savedCustomerId) { setLoyaltyBalance(0); setRedeemPoints(0); return; }
+    let cancelled = false;
+    setLoyaltyLoading(true);
+    fetch(`/api/loyalty/balance?customerId=${encodeURIComponent(component.savedCustomerId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.ok && data.account) {
+          setLoyaltyBalance(data.account.pointsBalance || 0);
+        } else {
+          setLoyaltyBalance(0);
+        }
+      })
+      .catch(() => { if (!cancelled) setLoyaltyBalance(0); })
+      .finally(() => { if (!cancelled) setLoyaltyLoading(false); });
+    return () => { cancelled = true; };
+  }, [component.savedCustomerId]);
 
   function canSubmit() {
     return customer.name.trim().length >= 2 && customer.phone.trim().length >= 8 && customer.pin.length === 4 && address.text.trim().length >= 8 && paymentMethodId.trim().length > 0;
@@ -264,10 +286,34 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
                 <option key={method.id} value={method.id}>{method.label}</option>
               ))}
             </select>
+            {loyaltyBalance >= 10000 && (
+              <div className="rounded-[1rem] border border-[#c5dea0] bg-[#eef6dd] p-2.5 text-[11px]">
+                <p className="font-semibold text-[#3d5a13]">🎁 {Number(loyaltyBalance).toLocaleString('id-ID')} poin tersedia</p>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={10000}
+                    max={Math.min(loyaltyBalance, 9999999)}
+                    step={100}
+                    value={redeemPoints || ''}
+                    onChange={(e) => setRedeemPoints(Math.min(Math.max(Number(e.target.value) || 0, 0), loyaltyBalance))}
+                    className="w-28 rounded-2xl border border-[#c5dea0] bg-white px-2.5 py-1 text-xs text-[#2f241c] outline-none"
+                    placeholder="Poin"
+                  />
+                  {redeemPoints > 0 && (
+                    <button type="button" onClick={() => setRedeemPoints(0)} className="text-[10px] font-semibold text-red-600 underline">Hapus</button>
+                  )}
+                </div>
+              </div>
+            )}
             <button
               type="button"
               disabled={!paymentMethodId.trim()}
-              onClick={() => onAction('create_order_saved', { addressId: component.savedAddressId, paymentMethodId, notes })}
+              onClick={() => {
+                const payload: Record<string, unknown> = { addressId: component.savedAddressId, paymentMethodId, notes };
+                if (redeemPoints > 0) payload.redeemPoints = redeemPoints;
+                onAction('create_order_saved', payload);
+              }}
               className={`${primaryButtonClass} w-full rounded-2xl py-3 bg-[#7f9f3e] hover:bg-[#6a8932] text-base font-semibold`}
             >
               🚀 Pakai Data Tersimpan &amp; Buat Order
@@ -400,7 +446,35 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
           {notes && <p>Catatan: {notes}</p>}
         </div>}
         {step === 'review' && (
-        <button data-testid="order-submit" type="button" disabled={!canSubmit()} onClick={() => onAction('create_order', { customer, address, paymentMethodId, notes })} className={`${primaryButtonClass} rounded-2xl py-3`}>Konfirmasi & Buat Order</button>
+        <>
+        {loyaltyBalance >= 10000 && (
+          <div className="rounded-[1.2rem] border border-[#c5dea0] bg-[#eef6dd] p-3 text-xs">
+            <p className="font-semibold text-[#3d5a13]">🎁 Punya {Number(loyaltyBalance).toLocaleString('id-ID')} poin!</p>
+            <p className="mt-1 text-[#56721f]">1 poin = Rp 1. Minimal tukar 10.000 poin.</p>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min={10000}
+                max={Math.min(loyaltyBalance, 9999999)}
+                step={100}
+                value={redeemPoints || ''}
+                onChange={(e) => setRedeemPoints(Math.min(Math.max(Number(e.target.value) || 0, 0), loyaltyBalance))}
+                className="w-32 rounded-2xl border border-[#c5dea0] bg-white px-3 py-1.5 text-xs text-[#2f241c] outline-none focus:border-[#7f9f3e]/50"
+                placeholder="Jumlah"
+              />
+              {redeemPoints > 0 && (
+                <button type="button" onClick={() => setRedeemPoints(0)} className="text-xs font-semibold text-red-600 underline">Hapus</button>
+              )}
+            </div>
+            {redeemPoints > 0 && <p className="mt-1 text-[#3d5a13] font-semibold">Diskon: Rp{Number(redeemPoints).toLocaleString('id-ID')}</p>}
+          </div>
+        )}
+        <button data-testid="order-submit" type="button" disabled={!canSubmit()} onClick={() => {
+          const payload: Record<string, unknown> = { customer, address, paymentMethodId, notes };
+          if (redeemPoints > 0) payload.redeemPoints = redeemPoints;
+          onAction('create_order', payload);
+        }} className={`${primaryButtonClass} rounded-2xl py-3`}>Konfirmasi & Buat Order</button>
+        </>
         )}
       </div>
     </div>

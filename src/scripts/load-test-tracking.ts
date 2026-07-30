@@ -53,3 +53,5 @@ async function main() {
   process.exit(rate >= 80 ? 0 : 1);
 }
 main();
+
+export {};

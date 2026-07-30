@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { deliveryAssignment, orderEvents, transaksi } from '@/lib/schema';
+import { deliveryAssignment, orderEvents, transaksi, deliveryEvents, notifications } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierCompleteDeliverySchema } from '@/lib/courier-types';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
 import { awardPointsForCompletedOrder } from '@/services/loyalty-service';
 import { recordRevenue, ensureDefaultCategories } from '@/services/ledger-service';
@@ -80,6 +80,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       });
     }
 
+    await db.insert(deliveryEvents).values({
+      deliveryId,
+      courierId: courier.id,
+      eventType: 'completed',
+      metadata: JSON.stringify({ id_transaksi: assignment.id_transaksi }),
+    });
+
     await sendOrderPushNotification(assignment.id_transaksi, 'completed');
 
     try {
@@ -91,6 +98,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }
     } catch (svcErr) {
       console.error('[COURIER_COMPLETE_INTEGRATION]', svcErr);
+      await db.insert(notifications).values({
+        title: 'Gagal Rekam Poin/Revenue',
+        body: `Pengiriman #${assignment.id_transaksi} selesai tapi poin/revenue gagal dicatat. Periksa manual.`,
+        type: 'system',
+        createdAt: sql`(datetime('now', 'utc'))`,
+      });
     }
 
     return NextResponse.json({ ok: true });

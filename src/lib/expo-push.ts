@@ -1,4 +1,4 @@
-import { desc, eq, inArray, or } from 'drizzle-orm';
+import { desc, eq, inArray, or, isNotNull } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { expoPushTokens, transaksi, couriers } from '@/lib/schema';
 import type { ExpoPushToken } from '@/lib/schema';
@@ -149,4 +149,27 @@ export async function sendCourierPushNotification(courierId: number, title: stri
     body,
     data
   );
+}
+
+export async function broadcastToAllCouriers(title: string, body: string, data?: Record<string, string>): Promise<{ sent: number; failed: number }> {
+  const tokens = await db
+    .select({ token: expoPushTokens.token })
+    .from(expoPushTokens)
+    .where(isNotNull(expoPushTokens.courierId))
+    .orderBy(desc(expoPushTokens.lastActiveAt));
+
+  if (tokens.length === 0) return { sent: 0, failed: 0 };
+
+  const result = await sendPushNotification(
+    tokens.map((t) => t.token),
+    title,
+    body,
+    data
+  );
+
+  if (!result?.data) return { sent: 0, failed: tokens.length };
+
+  const sent = result.data.filter((t) => t.status === 'ok').length;
+  const failed = result.data.length - sent;
+  return { sent, failed };
 }

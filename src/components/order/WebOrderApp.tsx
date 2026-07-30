@@ -105,6 +105,9 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
   const [paymentMethodId, setPaymentMethodId] = useState(firstPayment?.id || '');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  const [redeemPoints, setRedeemPoints] = useState(0);
+  const [loyaltyBalance, setLoyaltyBalance] = useState(0);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
   const [helperText, setHelperText] = useState('Ceritakan seleramu, nanti aku bantu pilihkan varian yang cocok.');
   const [assistantText, setAssistantText] = useState('');
   const [assistantLoading, setAssistantLoading] = useState(false);
@@ -184,6 +187,25 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
     loadSavedAddresses();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!customer.phone || customer.phone.length < 8) { setLoyaltyBalance(0); setRedeemPoints(0); return; }
+    let cancelled = false;
+    setLoyaltyLoading(true);
+    fetch(`/api/loyalty/balance/phone?phone=${encodeURIComponent(customer.phone)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.ok && data.account) {
+          setLoyaltyBalance(data.account.pointsBalance || 0);
+        } else {
+          setLoyaltyBalance(0);
+        }
+      })
+      .catch(() => { if (!cancelled) setLoyaltyBalance(0); })
+      .finally(() => { if (!cancelled) setLoyaltyLoading(false); });
+    return () => { cancelled = true; };
+  }, [customer.phone]);
 
   const activeProducts = products.filter((product) => product.stok_gudang_utama > 0 || (product.variants || []).some((variant) => variant.stok > 0));
   const visibleProducts = selectedCategory === 'all' ? products : products.filter((product) => product.kategori_id === selectedCategory);
@@ -339,18 +361,20 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
         }),
       }).catch(() => undefined);
 
+      const body: Record<string, unknown> = {
+        source: source === 'telegram' ? 'telegram' : 'web',
+        chatId,
+        customer,
+        address,
+        paymentMethodId,
+        notes,
+        items: cartDetails.map((item) => ({ id_produk: item.id_produk, id_varian: item.id_varian, qty: item.qty })),
+      };
+      if (redeemPoints > 0) body.redeemPoints = redeemPoints;
       const response = await fetch('/api/order/web', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: source === 'telegram' ? 'telegram' : 'web',
-          chatId,
-          customer,
-          address,
-          paymentMethodId,
-          notes,
-          items: cartDetails.map((item) => ({ id_produk: item.id_produk, id_varian: item.id_varian, qty: item.qty })),
-        }),
+        body: JSON.stringify(body),
       });
       const result = await response.json();
 
@@ -723,6 +747,31 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                   className="min-h-20 w-full rounded-2xl border border-[#d9ccb9] bg-white px-4 py-3 outline-none focus:border-[#6b4423]/30"
                   placeholder="Catatan pesanan, contoh: jangan terlalu pedas atau kirim sore"
                 />
+                {loyaltyBalance >= 10000 && (
+                  <div className="rounded-3xl border border-[#c5dea0] bg-[#eef6dd] p-4 text-sm">
+                    <p className="font-semibold text-[#3d5a13]">🎁 Punya {formatRupiah(loyaltyBalance)} poin loyalitas!</p>
+                    <p className="mt-1 text-xs text-[#56721f]">1 poin = Rp 1. Minimal tukar {formatRupiah(10000)} poin.</p>
+                    <div className="mt-3 flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={10000}
+                        max={Math.min(loyaltyBalance, total)}
+                        step={100}
+                        value={redeemPoints || ''}
+                        onChange={(e) => setRedeemPoints(Math.min(Math.max(Number(e.target.value) || 0, 0), Math.min(loyaltyBalance, total)))}
+                        className="w-36 rounded-2xl border border-[#c5dea0] bg-white px-4 py-2 text-sm text-[#2f241c] outline-none focus:border-[#7f9f3e]/50"
+                        placeholder="Jumlah poin"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRedeemPoints(0)}
+                        className="text-xs font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="rounded-3xl bg-[#6b4423] p-5 text-white">
                   <div className="mb-3 flex justify-between text-sm text-white/75">
                     <span>Total item</span>
@@ -732,6 +781,18 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                     <span className="font-medium text-white/80">Total produk</span>
                     <span className="text-3xl font-semibold tracking-[-0.03em]">{formatRupiah(total)}</span>
                   </div>
+                  {redeemPoints > 0 && (
+                    <div className="mt-2 border-t border-white/20 pt-2 text-sm">
+                      <div className="flex justify-between text-white/80">
+                        <span>Diskon poin</span>
+                        <span className="text-emerald-300">-{formatRupiah(redeemPoints)}</span>
+                      </div>
+                      <div className="mt-1 flex justify-between font-semibold">
+                        <span>Total setelah diskon</span>
+                        <span>{formatRupiah(Math.max(0, total - redeemPoints))}</span>
+                      </div>
+                    </div>
+                  )}
                   <p className="mt-3 text-xs leading-5 text-white/70">
                     Ongkir dan verifikasi final akan dikonfirmasi admin sesuai alamat pengiriman.
                   </p>

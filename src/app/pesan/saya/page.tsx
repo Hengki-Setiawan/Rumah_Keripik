@@ -2,8 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState, useTransition, useCallback } from 'react';
-import { AlertTriangle, ArrowRight, MapPin, PencilLine, Save, ShoppingBag, Trash2, UserRound } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Bike, MapPin, Navigation, PencilLine, Save, ShoppingBag, Trash2, UserRound } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+const CourierTrackingMap = dynamic(() => import('@/components/tracking/CourierTrackingMap').then((mod) => mod.CourierTrackingMap), { ssr: false });
+const OrderTimeline = dynamic(() => import('@/components/order/OrderTimeline').then((mod) => mod.OrderTimeline), { ssr: false });
 
 type PortalData = {
   anonymousLabel?: string | null;
@@ -32,6 +36,8 @@ type PortalData = {
     namaPenerima: string | null;
     phonePenerima: string | null;
     alamatPenerima: string | null;
+    latPengiriman: string | null;
+    lngPengiriman: string | null;
     waktuSimpan: string;
     updatedAt: string;
     statusToken: string | null;
@@ -59,6 +65,32 @@ export default function PesananSayaPage() {
   const [savingAddress, startSavingAddress] = useTransition();
   const [profileForm, setProfileForm] = useState({ nama: '', phone: '', email: '' });
   const [addressForm, setAddressForm] = useState(emptyAddress);
+
+  const [googleStatus, setGoogleStatus] = useState<'idle' | 'linking' | 'success' | 'error'>('idle');
+  const [googleMsg, setGoogleMsg] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('link') === 'google') {
+      setGoogleStatus('linking');
+      fetch('/api/auth/google/link', { method: 'POST' })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) {
+            setGoogleStatus('success');
+            setGoogleMsg(data.message);
+            window.history.replaceState({}, '', '/pesan/saya');
+          } else {
+            setGoogleStatus('error');
+            setGoogleMsg(data.error || 'Gagal menghubungkan Google');
+          }
+        })
+        .catch(() => {
+          setGoogleStatus('error');
+          setGoogleMsg('Terjadi kesalahan. Coba lagi.');
+        });
+    }
+  }, []);
 
   const hasOrders = (data?.orders.length || 0) > 0;
 
@@ -177,6 +209,26 @@ export default function PesananSayaPage() {
               </div>
             )}
 
+            {latestOrder && ['shipping', 'Dalam_Pengiriman'].includes(latestOrder.orderStatus) && latestOrder.latPengiriman && latestOrder.lngPengiriman && (
+              <section className="mt-6 rounded-[1.6rem] border border-[#ecd8bf] bg-white p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Bike className="h-5 w-5 text-[#3b82f6]" />
+                  <h2 className="text-xl font-semibold">Lacak Kurir</h2>
+                  <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                    <Navigation className="h-3.5 w-3.5" /> Live
+                  </span>
+                </div>
+                <p className="mb-4 text-sm text-[#6f5d4f]">Kurir sedang dalam perjalanan ke lokasi kamu. Peta diperbarui otomatis setiap 5 detik.</p>
+                <CourierTrackingMap
+                  orderId={latestOrder.idTransaksi}
+                  destinationLat={latestOrder.latPengiriman}
+                  destinationLng={latestOrder.lngPengiriman}
+                  destinationLabel={latestOrder.alamatPenerima || 'Tujuan Pengiriman'}
+                  height={300}
+                />
+              </section>
+            )}
+
             <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
               <section className="space-y-4">
                 <div className="rounded-[1.6rem] border border-[#ecd8bf] bg-white p-5">
@@ -214,6 +266,9 @@ export default function PesananSayaPage() {
                               Lanjut bayar
                             </Link>
                           )}
+                        </div>
+                        <div className="mt-4 border-t border-[#ecd8bf] pt-4">
+                          <OrderTimeline orderId={order.idTransaksi} />
                         </div>
                       </article>
                     ))}
@@ -263,6 +318,37 @@ export default function PesananSayaPage() {
                       </button>
                     </div>
                   </details>
+
+                  {googleStatus === 'linking' && (
+                    <div className="mt-3 rounded-xl bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800 font-medium">
+                      Menghubungkan akun Google...
+                    </div>
+                  )}
+                  {googleStatus === 'success' && (
+                    <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800 font-medium">
+                      {googleMsg}
+                    </div>
+                  )}
+                  {googleStatus === 'error' && (
+                    <div className="mt-3 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-800 font-medium">
+                      {googleMsg}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const signIn = (window as any).signInGoogle;
+                      if (signIn) signIn();
+                      else window.location.href = '/api/auth/signin/google?callbackUrl=/pesan/saya?link=google';
+                    }}
+                    disabled={googleStatus === 'linking'}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#d4c5b6] bg-white px-4 py-3 text-sm font-medium text-[#2f241c] transition hover:bg-[#f7eddf] disabled:opacity-60"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">G</span>
+                    {googleStatus === 'linking' ? 'Menghubungkan...' : 'Hubungkan Akun Google'}
+                  </button>
+                  <p className="mt-1 text-xs text-[#8a7562]">Hubungkan akun Google untuk login cepat di lain waktu.</p>
                 </div>
 
                 <div className="rounded-[1.6rem] border border-[#ecd8bf] bg-white p-5">

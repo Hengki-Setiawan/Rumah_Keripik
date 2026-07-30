@@ -15,7 +15,9 @@ import {
   Gift,
   Home,
   LogOut,
+  Map,
   Menu,
+  Settings,
   MessageSquare,
   Package,
   Plus,
@@ -53,6 +55,16 @@ const supportMenuItems = [
   { href: '/slo-dashboard', label: 'SLO Dashboard', icon: BarChart3 },
   { href: '/sos', label: 'SOS Darurat', icon: ShieldAlert },
   { href: '/ops-smoke', label: 'Smoke Ops', icon: ShieldAlert },
+];
+
+const courierOpsMenuItems = [
+  { href: '/admin/couriers', label: 'Roster Kurir', icon: Users, activeHrefs: ['/admin/couriers'] },
+  { href: '/admin/dispatch', label: 'Dispatch', icon: Truck, activeHrefs: ['/admin/dispatch'] },
+  { href: '/admin/payroll', label: 'Payroll', icon: BarChart3, activeHrefs: ['/admin/payroll'] },
+  { href: '/admin/incidents', label: 'Insiden', icon: ShieldAlert, activeHrefs: ['/admin/incidents'] },
+  { href: '/admin/live-map', label: 'Live Map', icon: Map, activeHrefs: ['/admin/live-map'] },
+  { href: '/admin/settings/courier', label: 'Pengaturan', icon: Settings, activeHrefs: ['/admin/settings/courier'] },
+  { href: '/admin/sync-health', label: 'Sync', icon: Cpu, activeHrefs: ['/admin/sync-health'] },
 ];
 
 const menuItems = [...coreMenuItems, ...supportMenuItems];
@@ -274,6 +286,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </p>
         )}
         {supportMenuItems.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            pathname={pathname}
+            compact={compact}
+            onNavigate={() => setSidebarOpen(false)}
+          />
+        ))}
+
+        {/* Separator */}
+        <div className={`my-4 border-t border-[#f0dfca] ${compact ? 'mx-2' : 'mx-3'}`} />
+
+        {/* Courier Operations */}
+        {!compact && (
+          <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#a08973]">
+            Courier Ops
+          </p>
+        )}
+        {courierOpsMenuItems.map((item) => (
           <SidebarLink
             key={item.href}
             item={item}

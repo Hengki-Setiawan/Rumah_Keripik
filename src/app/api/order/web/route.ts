@@ -22,6 +22,7 @@ import { normalizePhoneNumber } from '@/lib/utils';
 import { buildPaymentInstructionPayload, generatePaymentIntentId } from '@/lib/payments/payment-utils';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
+import { redeemPoints } from '@/services/loyalty-service';
 import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
 
 export const runtime = 'nodejs';
@@ -50,6 +51,7 @@ const WebOrderSchema = z.object({
   paymentMethodId: z.string().min(1),
   notes: z.string().max(360).optional(),
   items: z.array(OrderItemSchema).min(1).max(20),
+  redeemPoints: z.number().int().min(10000).optional(),
 });
 
 function parseCoordinate(value?: string) {
@@ -150,7 +152,7 @@ export async function POST(req: Request) {
         throw new Error(`${configuredMethod.label} maksimal ${configuredMethod.max_order_total.toLocaleString('id-ID')}`);
       }
       const instruction = buildPaymentInstructionPayload(configuredMethod);
-      const catatan = [
+      let catatan = [
         `Order web (${payload.source})`,
         `Metode: ${configuredMethod.label}`,
         payload.customer.type !== 'konsumen' ? `Tipe pelanggan: ${payload.customer.type}` : null,
@@ -215,6 +217,15 @@ export async function POST(req: Request) {
         context_json: JSON.stringify({ source: payload.source, chatId: payload.chatId, kodePesanan }),
         status: 'completed',
       });
+
+      let redeemedPoints = 0;
+      if (payload.redeemPoints) {
+        if (payload.redeemPoints > totalBayar) throw new Error('Poin melebihi total bayar');
+        const redeemed = await redeemPoints(customer.idCustomer, payload.redeemPoints, idTransaksi);
+        totalBayar -= redeemed.discountAmount;
+        redeemedPoints = redeemed.pointsRedeemed;
+        catatan += `\nRedeem: ${redeemedPoints} poin (diskon Rp${redeemed.discountAmount.toLocaleString('id-ID')})`;
+      }
 
       await tx.insert(transaksi).values({
         id_transaksi: idTransaksi,
@@ -308,6 +319,7 @@ export async function POST(req: Request) {
         statusPembayaran,
         statusToken,
         anonymousToken,
+        redeemedPoints,
         customer: {
           name: payload.customer.name,
           phone: normalizedPhone,

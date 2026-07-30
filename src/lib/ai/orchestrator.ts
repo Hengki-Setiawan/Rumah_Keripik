@@ -143,6 +143,17 @@ async function responseFromToolOutput(chatSessionId: string, response: AIChatRes
     if (chunks.length === 0) return { reply: 'Aku belum punya sumber pasti untuk itu. Sebentar ya, aku teruskan ke admin.', intent: 'handoff_to_admin', components: [{ type: 'admin_handoff_card', reason: 'Knowledge base belum punya jawaban relevan' }], confidence: 0.45 };
     return { reply: response.reply || summarizeKnowledgeChunks(chunks), intent: 'small_talk', components: defaultQuickReplies(), confidence: response.confidence ?? 0.82 };
   }
+  if (toolName === 'update_customer_profile' || toolName === 'updateCustomerProfile') {
+    const result = output as any;
+    if (result?.ok) {
+      const changes: string[] = [];
+      if (result.updated?.name) changes.push(`nama jadi ${result.updated.name}`);
+      if (result.updated?.phone) changes.push(`nomor diperbarui`);
+      if (result.updated?.email) changes.push(`email jadi ${result.updated.email}`);
+      return { reply: `Siap kak, data profil sudah diperbarui: ${changes.join(', ')}.`, intent: 'small_talk', components: defaultQuickReplies(), confidence: 0.9 };
+    }
+    return { reply: 'Maaf kak, profil belum berhasil diperbarui. Coba lagi atau minta bantuan admin ya.', intent: 'handoff_to_admin', components: [{ type: 'admin_handoff_card', reason: 'Gagal update profil' }], confidence: 0.5 };
+  }
   return { ...response, shouldCallTool: false, toolName: undefined, toolArgs: undefined };
 }
 
@@ -164,6 +175,13 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
   if (/admin|manusia|komplain|bantuan|marah|kecewa|refund|diskon/.test(lower)) {
     await db.update(chatSessions).set({ status: 'needs_admin', aiMode: 'paused', updatedAt: sql`(datetime('now', 'utc'))` }).where(eq(chatSessions.id, chatSessionId));
     return { reply: 'Sebentar ya kak, aku teruskan ke admin supaya dicek lebih pasti.', intent: 'handoff_to_admin', components: [{ type: 'admin_handoff_card', reason: 'Customer meminta bantuan admin' }], confidence: 0.94 };
+  }
+
+  if (/ganti (nama|nomor|wa|email)|ubah (nama|nomor|wa|email)|(nama|nomor|wa|email) (baru|saya|aku)/.test(lower) && !/alamat/.test(lower)) {
+    if (customerContext.customer) {
+      return { reply: 'Siap kak, mau update data profil? Silakan isi data yang mau diperbarui di bawah ya.', intent: 'small_talk', components: [{ type: 'quick_replies', options: [{ id: 'update-nama', label: 'Ganti Nama', value: 'nama baru saya [nama]', action: 'send_message' }, { id: 'update-wa', label: 'Ganti Nomor WA', value: 'nomor baru saya [nomor]', action: 'send_message' }, { id: 'update-email', label: 'Ganti Email', value: 'email baru saya [email]', action: 'send_message' }] }], confidence: 0.92 };
+    }
+    return { reply: 'Bisa kak, tapi data profil akan tersimpan setelah kakak melakukan order pertama atau verifikasi nomor WA dulu ya.', intent: 'ask_customer_data', components: [{ type: 'quick_replies', options: [{ id: 'go-pesanan-saya', label: 'Isi Profil', value: '/pesan/saya', action: 'tool_action' }] }], confidence: 0.9 };
   }
 
   if (/status|lacak|cek pesanan|pesanan saya/.test(lower)) {

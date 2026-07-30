@@ -114,6 +114,8 @@ export async function GET(req: Request) {
         namaPenerima: transaksi.nama_penerima,
         phonePenerima: transaksi.no_hp_penerima,
         alamatPenerima: transaksi.alamat_penerima,
+        latPengiriman: transaksi.lat_pengiriman,
+        lngPengiriman: transaksi.lng_pengiriman,
         waktuSimpan: transaksi.waktu_simpan,
         updatedAt: transaksi.updated_at,
         statusToken: transaksi.status_token,

@@ -2,6 +2,7 @@ import {
   sqliteTable,
   text,
   integer,
+  real,
   blob,
   index,
   unique,
@@ -188,7 +189,7 @@ export const customerIdentity = sqliteTable(
     id_customer: text('id_customer')
       .notNull()
       .references(() => customerProfile.id_customer, { onDelete: 'cascade' }),
-    provider: text('provider', { enum: ['wa', 'telegram', 'web'] }).notNull(),
+    provider: text('provider', { enum: ['wa', 'telegram', 'web', 'google'] }).notNull(),
     external_id: text('external_id').notNull(),
     verified_at: text('verified_at'),
     created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
@@ -1687,6 +1688,112 @@ export const otpRequests = sqliteTable('otp_requests', {
 
 export type OtpRequest = typeof otpRequests.$inferSelect;
 export type InsertOtpRequest = typeof otpRequests.$inferInsert;
+
+// ─── COURIER SHIFTS (CLOCK-IN/OUT) ──────────────────────────────────────────────
+export const shifts = sqliteTable('shifts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
+  clockInAt: text('clock_in_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  clockOutAt: text('clock_out_at'),
+  clockInLat: text('clock_in_lat'),
+  clockInLng: text('clock_in_lng'),
+  clockOutLat: text('clock_out_lat'),
+  clockOutLng: text('clock_out_lng'),
+  totalDeliveries: integer('total_deliveries').default(0),
+  totalDistanceKm: real('total_distance_km').default(0),
+  status: text('status', { enum: ['active', 'ended', 'forced_end'] }).notNull().default('active'),
+  notes: text('notes'),
+}, (table) => ({
+  courierShiftIdx: index('idx_shifts_courier').on(table.courierId, table.clockInAt),
+  activeShiftIdx: index('idx_shifts_active').on(table.courierId, table.status),
+}));
+
+export type Shift = typeof shifts.$inferSelect;
+export type InsertShift = typeof shifts.$inferInsert;
+
+// ─── DELIVERY EVENTS (AUDIT TRAIL PER DELIVERY) ────────────────────────────────
+export const deliveryEvents = sqliteTable('delivery_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  deliveryId: integer('delivery_id').notNull().references(() => deliveryAssignment.id, { onDelete: 'cascade' }),
+  courierId: integer('courier_id').references(() => couriers.id),
+  eventType: text('event_type', {
+    enum: ['assigned', 'started', 'arrived', 'completed', 'failed', 'reassigned', 'cancelled', 'note_added'],
+  }).notNull(),
+  lat: text('lat'),
+  lng: text('lng'),
+  metadata: text('metadata'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  deliveryEventIdx: index('idx_delivery_events_delivery').on(table.deliveryId, table.createdAt),
+  courierEventIdx: index('idx_delivery_events_courier').on(table.courierId, table.createdAt),
+}));
+
+export type DeliveryEvent = typeof deliveryEvents.$inferSelect;
+export type InsertDeliveryEvent = typeof deliveryEvents.$inferInsert;
+
+// ─── NOTIFICATIONS (IN-APP INBOX) ──────────────────────────────────────────────
+export const notifications = sqliteTable('notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').references(() => couriers.id),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  type: text('type', {
+    enum: ['new_delivery', 'reassignment', 'broadcast', 'shift_reminder', 'performance', 'system'],
+  }).notNull(),
+  isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
+  relatedDeliveryId: integer('related_delivery_id'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  notifCourierIdx: index('idx_notifications_courier').on(table.courierId, table.createdAt),
+  notifUnreadIdx: index('idx_notifications_unread').on(table.courierId, table.isRead),
+}));
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+// ─── COURIER PERFORMANCE DAILY (AGREGAT HARIAN) ────────────────────────────────
+export const courierPerformanceDaily = sqliteTable('courier_performance_daily', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  totalAssigned: integer('total_assigned').default(0),
+  totalCompleted: integer('total_completed').default(0),
+  totalFailed: integer('total_failed').default(0),
+  onTimeRate: real('on_time_rate'),
+  avgDeliveryMinutes: real('avg_delivery_minutes'),
+  totalDistanceKm: real('total_distance_km').default(0),
+  totalCodCollectedAmount: integer('total_cod_collected_amount').default(0),
+  incidentCount: integer('incident_count').default(0),
+  score: real('score'),
+}, (table) => ({
+  perfCourierDateIdx: uniqueIndex('idx_perf_courier_date').on(table.courierId, table.date),
+  perfDateIdx: index('idx_perf_date').on(table.date),
+}));
+
+export type CourierPerformanceDaily = typeof courierPerformanceDaily.$inferSelect;
+export type InsertCourierPerformanceDaily = typeof courierPerformanceDaily.$inferInsert;
+
+// ─── COURIER LOCATIONS (GPS BREADCRUMB TRAIL) ────────────────────────────────
+export const courierLocations = sqliteTable('courier_locations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
+  lat: text('lat').notNull(),
+  lng: text('lng').notNull(),
+  accuracy: real('accuracy'),
+  speed: real('speed'),
+  heading: real('heading'),
+  batteryLevel: real('battery_level'),
+  recordedAt: text('recorded_at').notNull(),
+  receivedAt: text('received_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  deliveryId: integer('delivery_id').references(() => deliveryAssignment.id),
+}, (table) => ({
+  locCourierTimeIdx: index('idx_courier_locations_time').on(table.courierId, table.recordedAt),
+  locDeliveryIdx: index('idx_courier_locations_delivery').on(table.deliveryId, table.recordedAt),
+  locReceivedIdx: index('idx_courier_locations_received').on(table.receivedAt),
+}));
+
+export type CourierLocation = typeof courierLocations.$inferSelect;
+export type InsertCourierLocation = typeof courierLocations.$inferInsert;
 
 
 

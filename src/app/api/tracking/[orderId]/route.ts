@@ -23,7 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ orderId:
           .limit(20);
 
         const assignmentRows = await db
-          .select({ courierName: couriers.name, courierPhoto: couriers.photo_url, courierPhone: couriers.phone, platNo: couriers.plat_no, vehicle: couriers.vehicle })
+          .select({ courierName: couriers.name, courierPhoto: couriers.photo_url, courierPhone: couriers.phone, platNo: couriers.plat_no, vehicle: couriers.vehicle, lastLat: couriers.last_lat, lastLng: couriers.last_lng })
           .from(deliveryAssignment)
           .innerJoin(couriers, eq(deliveryAssignment.kurir_id, couriers.id))
           .innerJoin(transaksi, eq(deliveryAssignment.id_transaksi, transaksi.id_transaksi))
@@ -32,7 +32,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ orderId:
           .catch(() => []);
         const assignment = assignmentRows?.[0] || null;
 
-        controller.enqueue(encoder.encode(`event: tracking\ndata: ${JSON.stringify({ ok: true, orderId, events, courier: assignment ? { name: assignment.courierName, photoUrl: assignment.courierPhoto, phone: assignment.courierPhone, platNo: assignment.platNo, vehicle: assignment.vehicle } : null })}\n\n`));
+        controller.enqueue(encoder.encode(`event: tracking\ndata: ${JSON.stringify({ ok: true, orderId, events, courier: assignment ? { name: assignment.courierName, photoUrl: assignment.courierPhoto, phone: assignment.courierPhone, platNo: assignment.platNo, vehicle: assignment.vehicle, lastLat: assignment.lastLat, lastLng: assignment.lastLng } : null })}\n\n`));
       }
 
       await push().catch(() => {});

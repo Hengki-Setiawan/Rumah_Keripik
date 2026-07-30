@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: osrm-routing
+    ports:
+      - "5000:5000"
+    volumes:
+      - osrm-data:/data
+    command: >
+      osrm-routed --algorithm mld /data/indonesia-latest.osrm
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  osrm-data:

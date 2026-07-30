@@ -5,7 +5,7 @@ import { getCustomerContextForChat, linkChatSessionToCustomer } from '@/lib/chat
 import { getActivePaymentMethods } from './tools/payment';
 import { addToChatCart, getChatCart, updateChatCartItem, removeChatCartItem } from './tools/cart';
 import { recommendProducts, searchProducts } from './tools/products';
-import { customerAddress, lokasiPelanggan, paymentIntent, paymentMethod, pelangganChatbot, transaksi, detailTransaksi, produk } from '@/lib/schema';
+import { customerAddress, customerProfile, lokasiPelanggan, paymentIntent, paymentMethod, pelangganChatbot, transaksi, detailTransaksi, produk } from '@/lib/schema';
 import { searchKnowledgeBase } from '@/lib/knowledge/retrieval';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
 import { normalizePhoneNumber } from '@/lib/utils';
@@ -99,6 +99,9 @@ export async function runChatTool(chatSessionId: string, toolName: string, args:
     case 'identify_product_from_image':
     case 'identifyProductFromImage':
       return identifyProductFromImageTool(args);
+    case 'update_customer_profile':
+    case 'updateCustomerProfile':
+      return updateCustomerProfileTool(chatSessionId, args);
     default:
       throw new Error(`Tool ${toolName} belum tersedia`);
   }
@@ -231,6 +234,32 @@ function identifyProductFromImageTool(args: Record<string, unknown>) {
     note: 'Identifikasi gambar akan diproses. Hasil sementara: produk mungkin dikenali setelah analisis.',
     imageUrl,
     confidence: 'pending',
+  };
+}
+
+async function updateCustomerProfileTool(chatSessionId: string, args: Record<string, unknown>) {
+  const context = await getCustomerContextForChat(chatSessionId);
+  if (!context.customer) throw new Error('Customer belum terhubung. Silakan isi data diri dulu ya.');
+
+  const name = String(args.name || args.nama || '').trim();
+  const phone = String(args.phone || args.whatsapp || '').trim();
+  const email = String(args.email || '').trim();
+
+  if (!name && !phone && !email) throw new Error('Minimal satu data (nama/nomor/email) wajib diisi.');
+
+  const updates: Record<string, any> = { last_active_at: sql`(datetime('now', 'utc'))` };
+  if (name) updates.nama = name;
+  if (phone) updates.phone = normalizePhoneNumber(phone);
+  if (email) updates.email = email;
+
+  await db.update(customerProfile).set(updates).where(eq(customerProfile.id_customer, context.customer.id));
+
+  const [updated] = await db.select().from(customerProfile).where(eq(customerProfile.id_customer, context.customer.id)).limit(1);
+
+  return {
+    ok: true,
+    previous: { name: context.customer.name, phoneMasked: context.customer.phoneMasked },
+    updated: { name: updated?.nama, phone: updated?.phone, email: updated?.email },
   };
 }
 
