@@ -8,7 +8,7 @@ import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib
 
 const LoginSchema = z.object({
   phone: z.string().min(10).max(20),
-  pin: z.string().length(4).regex(/^\d+$/),
+  pin: z.string().min(4).max(6).regex(/^\d+$/),
   deviceId: z.string().optional(),
 });
 
