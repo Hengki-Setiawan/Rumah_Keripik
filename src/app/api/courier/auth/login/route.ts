@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     });
 
     if (deviceId && courier.device_id && courier.device_id !== deviceId) {
-      console.warn(\[SECURITY] Courier \ login dari device baru: \\);
+      console.warn(`[SECURITY] Courier ${courier.id} login dari device baru: ${deviceId}`);
     }
 
     await db.update(couriers).set({ device_id: deviceId || courier.device_id }).where(eq(couriers.id, courier.id));
