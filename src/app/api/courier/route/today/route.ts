@@ -17,13 +17,13 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function nearestNeighborSort(points: Array<{ id_transaksi: string; lat: number; lng: number; address: string }>): Array<{ id_transaksi: string; lat: number; lng: number; address: string; sequence_no: number }> {
+function nearestNeighborSort(points: Array<{ delivery_id: number; id_transaksi: string; lat: number; lng: number; address: string }>): Array<{ delivery_id: number; id_transaksi: string; lat: number; lng: number; address: string; sequence_no: number }> {
   if (points.length === 0) return [];
   
   let currentLat = GUDANG_LAT;
   let currentLng = GUDANG_LNG;
   const remaining = [...points];
-  const sorted: Array<{ id_transaksi: string; lat: number; lng: number; address: string; sequence_no: number }> = [];
+  const sorted: Array<{ delivery_id: number; id_transaksi: string; lat: number; lng: number; address: string; sequence_no: number }> = [];
 
   while (remaining.length > 0) {
     let nearestIdx = 0;
@@ -58,6 +58,7 @@ export async function GET(request: Request) {
 
     const deliveries = await db
       .select({
+        delivery_id: deliveryAssignment.id,
         id_transaksi: deliveryAssignment.id_transaksi,
         lat: transaksi.lat_pengiriman,
         lng: transaksi.lng_pengiriman,
@@ -87,6 +88,7 @@ export async function GET(request: Request) {
 
     if (!hasSequence && validDeliveries.length > 1) {
       const unsorted = validDeliveries.map((d) => ({
+        delivery_id: d.delivery_id,
         id_transaksi: d.id_transaksi,
         lat: parseFloat(d.lat!),
         lng: parseFloat(d.lng!),
@@ -113,7 +115,7 @@ export async function GET(request: Request) {
         { lat: GUDANG_LAT, lng: GUDANG_LNG, name: 'Gudang', type: 'start' as const },
         ...sorted.map((d) => ({
           lat: d.lat, lng: d.lng, name: d.address, type: 'destination' as const,
-          id_transaksi: d.id_transaksi, sequence_no: d.sequence_no,
+          delivery_id: d.delivery_id, id_transaksi: d.id_transaksi, sequence_no: d.sequence_no,
         })),
       ];
 
@@ -133,6 +135,7 @@ export async function GET(request: Request) {
           lng: parseFloat(d.lng!),
           name: d.address || `Order ${d.id_transaksi}`,
           type: 'destination' as const,
+          delivery_id: d.delivery_id,
           id_transaksi: d.id_transaksi,
           sequence_no: d.sequence_no ?? 0,
         })),
