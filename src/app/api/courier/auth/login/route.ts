@@ -8,7 +8,7 @@ import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib
 
 const LoginSchema = z.object({
   phone: z.string().min(10).max(20),
-  pin: z.string().length(4).regex(/^\d+$/),
+  pin: z.string().min(4).max(6).regex(/^\d+$/),
   deviceId: z.string().optional(),
 });
 
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     });
 
     if (deviceId && courier.device_id && courier.device_id !== deviceId) {
-      console.warn(`[SECURITY] Courier ${courier.id} login dari device baru: ${deviceId}`);
+      console.warn(\[SECURITY] Courier \ login dari device baru: \\);
     }
 
     await db.update(couriers).set({ device_id: deviceId || courier.device_id }).where(eq(couriers.id, courier.id));
