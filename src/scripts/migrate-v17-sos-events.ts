@@ -26,6 +26,8 @@ async function main() {
       courier_id INTEGER NOT NULL REFERENCES couriers(id) ON DELETE CASCADE,
       courier_name TEXT,
       courier_phone TEXT,
+      type TEXT,
+      severity TEXT,
       lat TEXT NOT NULL,
       lng TEXT NOT NULL,
       message TEXT,
