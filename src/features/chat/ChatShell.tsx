@@ -57,7 +57,9 @@ export function ChatShell() {
     loadSessions().catch(() => undefined);
 
     // Auto-greeting saat sesi baru dan belum ada pesan
-    if (sessionMessages.length === 0 && !forceNew) {
+    // (skip saat ?e2e=1 agar idle products tetap stabil untuk E2E deterministik)
+    const isE2E = new URLSearchParams(window.location.search).has('e2e');
+    if (sessionMessages.length === 0 && !forceNew && !isE2E) {
       triggerAutoGreeting(data.chatSession.id, customerCtx, sessionCart);
     }
     // Deteksi cart lama saat sesi baru dibuat dengan forceNew

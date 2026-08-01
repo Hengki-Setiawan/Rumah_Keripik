@@ -15,6 +15,7 @@ export function PwaInstallPrompt() {
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      if (new URLSearchParams(window.location.search).has('e2e')) return;
       setDeferredPrompt(e);
       setShowPrompt(true);
     };
