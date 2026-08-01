@@ -1602,6 +1602,8 @@ export const sosEvents = sqliteTable('sos_events', {
   courierId: integer('courier_id').notNull().references(() => couriers.id),
   courierName: text('courier_name'),
   courierPhone: text('courier_phone'),
+  type: text('type'),
+  severity: text('severity'),
   lat: text('lat').notNull(),
   lng: text('lng').notNull(),
   message: text('message'),

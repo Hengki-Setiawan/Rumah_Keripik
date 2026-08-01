@@ -20,32 +20,23 @@ function loadEnvFile(fileName: string) {
 loadEnvFile('.env.local');
 loadEnvFile('.env');
 
-const baseURL =
-  process.env.PLAYWRIGHT_BASE_URL ||
-  process.env.NEXTAUTH_URL ||
-  'http://127.0.0.1:3000';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'https://rumah-keripik.vercel.app';
 
+// Prod, non-mock cross-platform E2E. No local webServer — hits the live
+// deployment directly. Only runs e2e-crossplatform.spec.ts.
 export default defineConfig({
   testDir: './tests/e2e-web',
-  testIgnore: '**/e2e-crossplatform.spec.ts',
-  timeout: 60_000,
-  expect: { timeout: 20_000 },
+  testMatch: '**/e2e-crossplatform.spec.ts',
+  timeout: 300_000,
+  expect: { timeout: 40_000 },
   fullyParallel: false,
   retries: 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
-  webServer: {
-    command: 'npm run start',
-    port: 3000,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  reporter: [['list']],
   use: {
     baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     headless: true,
   },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });
