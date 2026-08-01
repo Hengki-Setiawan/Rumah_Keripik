@@ -30,6 +30,7 @@ type RunState = {
   id_transaksi: string;
   total_bayar: number;
   courier_id: number;
+  assignment_id: number;
   customer_phone: string;
   product_id: string;
   product_name: string;
@@ -43,6 +44,7 @@ const runState: RunState = {
   id_transaksi: '',
   total_bayar: 0,
   courier_id: 0,
+  assignment_id: 0,
   customer_phone: CUSTOMER_PHONE,
   product_id: PRODUCT_ID,
   product_name: PRODUCT_NAME,
@@ -67,8 +69,8 @@ async function tursoRows(sql: string): Promise<Array<Record<string, unknown>>> {
   const dbUrl = (process.env.TURSO_DATABASE_URL || '')
     .replace(/^libsql:\/\//, 'https://')
     .replace(/\/$/, '');
-  const token = process.env.TURSO_DATABASE_AUTH_TOKEN || '';
-  if (!dbUrl || !token) throw new Error('TURSO_DATABASE_URL / TURSO_DATABASE_AUTH_TOKEN belum diset');
+  const token = process.env.TURSO_AUTH_TOKEN || process.env.TURSO_DATABASE_AUTH_TOKEN || '';
+  if (!dbUrl || !token) throw new Error('TURSO_DATABASE_URL / TURSO_AUTH_TOKEN belum diset');
   const res = await fetch(`${dbUrl}/v2/pipeline`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -109,11 +111,11 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     runState.stock_before = Number(stockRows[0]?.stock ?? 0);
     expect(runState.stock_before).toBeGreaterThan(QTY);
 
-    // --- open chat /pesan (idle state, deterministic products) ---
-    await page.goto('/pesan');
+    // --- open chat /pesan (idle state; ?e2e=1 keeps idle products stable) ---
+    await page.goto('/pesan?e2e=1');
     await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 90_000 });
 
-    // --- add product (qty 1) via idle product card ---
+    // --- add product (qty 1) via the idle product card ---
     await page.getByTestId(`idle-product-${PRODUCT_ID}`).click();
     const cart = page.getByTestId('chat-cart-summary').first();
     await expect(cart).toBeVisible({ timeout: 40_000 });
@@ -273,9 +275,16 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
       }, { timeout: 40_000 })
       .toBe(`${runState.courier_id}|Siap_Dikirim`);
 
+    const assignment = await tursoRows(
+      `SELECT id FROM delivery_assignment WHERE id_transaksi = '${runState.id_transaksi}' LIMIT 1`,
+    );
+    runState.assignment_id = Number(assignment[0]?.id ?? 0);
+    expect(runState.assignment_id).toBeGreaterThan(0);
+    saveRunState();
+
     test.info().annotations.push({
       type: 'assign',
-      description: `courier ${runState.courier_id} / ${runState.kode_pesanan}`,
+      description: `courier ${runState.courier_id} / assignment ${runState.assignment_id} / ${runState.kode_pesanan}`,
     });
   });
 });
