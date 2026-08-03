@@ -3,11 +3,11 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { couriers, courierSessions } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
 
 const LoginSchema = z.object({
-  phone: z.string().min(10).max(20),
+  phone: z.string().min(10).max(20).optional(),
   pin: z.string().min(4).max(6).regex(/^\d+$/),
   deviceId: z.string().optional(),
 });
@@ -21,19 +21,36 @@ export async function POST(req: Request) {
 
     const { phone, pin, deviceId } = body.data;
 
-    const [courier] = await db
-      .select()
-      .from(couriers)
-      .where(and(eq(couriers.phone, phone), eq(couriers.is_active, 1)))
-      .limit(1);
+    let courier: typeof couriers.$inferSelect | undefined;
 
-    if (!courier) {
-      return NextResponse.json({ ok: false, error: 'Kurir tidak ditemukan' }, { status: 401 });
+    if (phone) {
+      [courier] = await db
+        .select()
+        .from(couriers)
+        .where(eq(couriers.phone, phone))
+        .limit(1);
+    } else {
+      // Login PIN-only: PIN disimpan hashed (bcrypt) jadi tidak bisa query langsung,
+      // cari kurir aktif yang PIN-nya cocok.
+      const active = await db.select().from(couriers).where(eq(couriers.is_active, 1));
+      for (const c of active) {
+        if (c.pin_hash && await bcrypt.compare(pin, c.pin_hash)) {
+          courier = c;
+          break;
+        }
+      }
     }
 
-    const pinMatch = await bcrypt.compare(pin, courier.pin_hash);
-    if (!pinMatch) {
-      return NextResponse.json({ ok: false, error: 'PIN salah' }, { status: 401 });
+    if (!courier) {
+      return NextResponse.json({ ok: false, error: 'PIN atau Kurir tidak ditemukan' }, { status: 401 });
+    }
+
+    // Cek PIN juga ketika login lewat phone (perilaku original)
+    if (phone) {
+      const pinMatch = await bcrypt.compare(pin, courier.pin_hash);
+      if (!pinMatch) {
+        return NextResponse.json({ ok: false, error: 'PIN salah' }, { status: 401 });
+      }
     }
 
     const sessionId = generateRefreshTokenId();
