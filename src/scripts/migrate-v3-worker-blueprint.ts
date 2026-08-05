@@ -132,8 +132,8 @@ async function main() {
     )`,
 
     `CREATE TABLE IF NOT EXISTS delivery_assignment (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      id_transaksi TEXT NOT NULL REFERENCES transaksi(id_transaksi) ON DELETE CASCADE,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_transaksi TEXT NOT NULL UNIQUE REFERENCES transaksi(id_transaksi) ON DELETE CASCADE,
       kurir_name TEXT,
       status TEXT NOT NULL DEFAULT 'Siap_Dikirim' CHECK (status IN ('Siap_Dikirim','Dalam_Pengiriman','Terkirim','Gagal')),
       pickup_at TEXT,

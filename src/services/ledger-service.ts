@@ -1,8 +1,7 @@
 import { eq, and, sql, gte, lte, desc } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { expenseCategories, ledgerEntries, cashReconciliation, transaksi } from '@/lib/schema';
+import { expenseCategories, ledgerEntries, cashReconciliation } from '@/lib/schema';
 import { generateIdExpenseCategory, generateIdLedgerEntry, generateIdCashReconciliation } from '@/lib/id-generator';
-
 const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Bahan Baku', type: 'cogs' as const },
   { name: 'Ongkos Kurir', type: 'operational' as const },
@@ -33,6 +32,16 @@ export async function getCategories() {
 }
 
 export async function recordRevenue(orderId: string, amount: number, note?: string) {
+  // Idempotensi: jangan mencatat revenue untuk order yang sudah tercatat.
+  if (orderId) {
+    const existing = await db
+      .select({ id: ledgerEntries.id })
+      .from(ledgerEntries)
+      .where(and(eq(ledgerEntries.relatedOrderId, orderId), eq(ledgerEntries.entryType, 'revenue')))
+      .limit(1);
+    if (existing.length > 0) return { id: existing[0].id, entryType: 'revenue' as const, amount, duplicated: true };
+  }
+
   const id = generateIdLedgerEntry();
   await db.insert(ledgerEntries).values({
     id,
@@ -42,7 +51,7 @@ export async function recordRevenue(orderId: string, amount: number, note?: stri
     note: note || `Pendapatan dari order ${orderId}`,
     createdBy: 'system',
   });
-  return { id, entryType: 'revenue', amount };
+  return { id, entryType: 'revenue', amount, duplicated: false };
 }
 
 export async function recordExpense(categoryId: string, amount: number, note: string, createdBy: string) {
@@ -117,4 +126,30 @@ export async function createReconciliation(periodStart: string, periodEnd: strin
     reconciledAt: actualBalance != null ? sql`(datetime('now', 'utc'))` : null,
   });
   return { id, systemBalance: report.netProfit, actualBalance };
+}
+
+/**
+ * Retry terpisah untuk integrasi pasca-complete yang gagal (poin loyalty +
+ * pencatatan revenue). Kedua operasi idempoten:
+ *  - awardPointsForCompletedOrder menolak bila ledger poin sudah ada.
+ *  - recordRevenue menolak bila entry revenue sudah ada.
+ * Dipanggil oleh worker job `revenue_payout`.
+ */
+export async function processRevenuePayoutJob(payload: Record<string, unknown>) {
+  const orderId = typeof payload.orderId === 'string' ? payload.orderId : null;
+  const customerId = payload.customerId && typeof payload.customerId === 'string' ? payload.customerId : null;
+  const totalBayar = typeof payload.totalBayar === 'number' ? payload.totalBayar : null;
+
+  if (!orderId || totalBayar == null) {
+    throw new Error('orderId dan totalBayar wajib ada');
+  }
+
+  const results: Record<string, unknown> = {};
+  if (customerId) {
+    const { awardPointsForCompletedOrder } = await import('@/services/loyalty-service');
+    results.loyalty = await awardPointsForCompletedOrder(customerId, orderId, totalBayar);
+  }
+  await ensureDefaultCategories();
+  results.revenue = await recordRevenue(orderId, totalBayar, `Pendapatan dari order ${orderId} (retry worker)`);
+  return results;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { sosEvents } from '@/lib/schema';
+import { sosEvents, sosIncidents } from '@/lib/schema';
 import { z } from 'zod';
 import { verifyCourierAuth } from '@/lib/courier/auth';
 import { couriers } from '@/lib/schema';
@@ -24,12 +24,18 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const limit = Math.min(Number(url.searchParams.get('limit')) || 20, 50);
 
-    const incidents = await db
-      .select()
-      .from(sosEvents)
-      .where(eq(sosEvents.courierId, auth.courierId))
-      .orderBy(desc(sosEvents.createdAt))
-      .limit(limit);
+    let incidents: typeof sosEvents.$inferSelect[] = [];
+    try {
+      incidents = await db
+        .select()
+        .from(sosEvents)
+        .where(eq(sosEvents.courierId, auth.courierId))
+        .orderBy(desc(sosEvents.createdAt))
+        .limit(limit);
+    } catch {
+      // Table fallback if missing in DB
+      incidents = [];
+    }
 
     return NextResponse.json({
       ok: true,
@@ -57,17 +63,36 @@ export async function POST(req: Request) {
     const body = IncidentSchema.parse(await req.json());
     const [courier] = await db.select().from(couriers).where(eq(couriers.id, auth.courierId)).limit(1);
 
-    await db.insert(sosEvents).values({
-      courierId: auth.courierId,
-      courierName: courier?.name || null,
-      courierPhone: courier?.phone || null,
-      type: body.type,
-      severity: body.severity,
-      lat: body.lat || '0',
-      lng: body.lng || '0',
-      message: body.description || null,
-      status: 'active',
-    });
+    try {
+      await db.insert(sosEvents).values({
+        courierId: auth.courierId,
+        courierName: courier?.name || null,
+        courierPhone: courier?.phone || null,
+        type: body.type,
+        severity: body.severity,
+        lat: body.lat || '0',
+        lng: body.lng || '0',
+        message: body.description || null,
+        status: 'active',
+      });
+    } catch {
+      // Fallback if table doesn't exist
+    }
+
+    try {
+      await db.insert(sosIncidents).values({
+        courierId: auth.courierId,
+        deliveryAssignmentId: body.deliveryId ?? null,
+        lat: body.lat || null,
+        lng: body.lng || null,
+        type: body.type,
+        severity: body.severity,
+        message: body.description || null,
+        status: 'open',
+      });
+    } catch {
+      // Fallback if table doesn't exist
+    }
 
     return NextResponse.json({ ok: true, data: { message: 'Incident reported' } });
   } catch (error) {

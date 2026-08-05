@@ -5,6 +5,7 @@ import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierFailDeliverySchema } from '@/lib/courier-types';
 import { eq, and } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
+import { insertDeliveryEvent } from '@/lib/courier-event';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -78,6 +79,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     await sendOrderPushNotification(assignment.id_transaksi, 'cancelled');
+
+    await insertDeliveryEvent({
+      deliveryId,
+      courierId: courier.id,
+      eventType: 'failed',
+      metadata: { id_transaksi: assignment.id_transaksi, reason: parsed.data.reason, notes: parsed.data.notes },
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

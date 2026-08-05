@@ -26,7 +26,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'https://rumah-keripik.vercel
 // deployment directly. Only runs e2e-crossplatform.spec.ts.
 export default defineConfig({
   testDir: './tests/e2e-web',
-  testMatch: '**/e2e-crossplatform.spec.ts',
+  testMatch: '**/{e2e-crossplatform,api-contract,chat-real}.spec.ts',
   timeout: 300_000,
   expect: { timeout: 40_000 },
   fullyParallel: false,
