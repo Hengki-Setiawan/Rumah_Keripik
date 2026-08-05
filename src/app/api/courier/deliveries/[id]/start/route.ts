@@ -4,6 +4,7 @@ import { deliveryAssignment, orderEvents, transaksi } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { eq, and } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
+import { insertDeliveryEvent } from '@/lib/courier-event';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -66,6 +67,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         event_payload: JSON.stringify({ courier_name: assignment.kurir_name, delivery_id: deliveryId }),
       });
     }
+
+    await insertDeliveryEvent({
+      deliveryId,
+      courierId: courier.id,
+      eventType: 'started',
+      metadata: { id_transaksi: assignment.id_transaksi },
+    });
 
     await sendOrderPushNotification(assignment.id_transaksi, 'shipping');
 

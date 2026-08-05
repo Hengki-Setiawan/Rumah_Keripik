@@ -25,6 +25,6 @@ const sentryOptions: Parameters<typeof withSentryConfig>[1] = {
   disableLogger: true,
 };
 
-const shouldDisableSentry = process.env.DISABLE_SENTRY === "true" || !process.env.SENTRY_DSN;
+const shouldDisableSentry = process.env.DISABLE_SENTRY === "true";
 
 export default shouldDisableSentry ? nextConfig : withSentryConfig(nextConfig, sentryOptions);

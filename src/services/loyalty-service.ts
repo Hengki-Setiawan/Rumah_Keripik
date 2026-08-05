@@ -107,6 +107,10 @@ export async function processReferral(code: string, refereeCustomerId: string) {
 }
 
 export async function awardPointsForCompletedOrder(customerId: string, orderId: string, totalBayar: number) {
+  const account = await ensureLoyaltyAccount(customerId);
+  const existingLedger = await db.select().from(loyaltyLedger).where(and(eq(loyaltyLedger.accountId, account.id), eq(loyaltyLedger.relatedOrderId, orderId), eq(loyaltyLedger.reason, 'order_completed'))).limit(1);
+  if (existingLedger.length > 0) return null; // Idempotency check: already awarded!
+
   const points = Math.floor(totalBayar * POINTS_PERCENT_OF_ORDER / 100);
   if (points <= 0) return null;
   return awardPoints(customerId, points, 'order_completed', orderId, `Poin dari order ${orderId}`);

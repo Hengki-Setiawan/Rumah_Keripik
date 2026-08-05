@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { shifts, deliveryAssignment } from '@/lib/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { shifts, deliveryAssignment, courierAttendance } from '@/lib/schema';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { z } from 'zod';
+import { checkAttendanceGeofence } from '@/lib/courier/geofence';
 
 const ClockOutSchema = z.object({
   lat: z.number().min(-90).max(90).optional(),
@@ -38,13 +39,47 @@ export async function POST(req: Request) {
       ));
 
     const now = new Date().toISOString();
-    await db.update(shifts).set({
-      clockOutAt: now,
-      clockOutLat: body.data.lat != null ? String(body.data.lat) : null,
-      clockOutLng: body.data.lng != null ? String(body.data.lng) : null,
-      totalDeliveries: Number(deliveries[0]?.count || 0),
-      status: 'ended',
-    }).where(eq(shifts.id, activeShift.id));
+
+    // Geofence clock-out opsional: kalau koordinat diberikan, tandai dalam batas.
+    let geofence = null;
+    const { lat, lng } = body.data;
+    if (lat != null && lng != null) {
+      geofence = await checkAttendanceGeofence(lat, lng);
+    }
+
+    const clockInTime = activeShift.clockInAt ? new Date(activeShift.clockInAt).getTime() : null;
+    const totalWorkMinutes = clockInTime ? Math.round((new Date(now).getTime() - clockInTime) / 60000) : null;
+
+    await db.transaction(async (tx) => {
+      await tx.update(shifts).set({
+        clockOutAt: now,
+        clockOutLat: lat != null ? String(lat) : null,
+        clockOutLng: lng != null ? String(lng) : null,
+        totalDeliveries: Number(deliveries[0]?.count || 0),
+        status: 'ended',
+      }).where(eq(shifts.id, activeShift.id));
+
+      // Tutup attendance record paling baru untuk kurir ini hari ini.
+      const attendanceRows = await tx.select({ id: courierAttendance.id })
+        .from(courierAttendance)
+        .where(and(
+          eq(courierAttendance.courierId, courier.id),
+          sql`date(${courierAttendance.clockInAt}) = date('now')`,
+        ))
+        .orderBy(desc(courierAttendance.id))
+        .limit(1);
+
+      if (attendanceRows.length > 0) {
+        await tx.update(courierAttendance).set({
+          clockOutAt: now,
+          clockOutLat: lat != null ? String(lat) : null,
+          clockOutLng: lng != null ? String(lng) : null,
+          clockOutWithinGeofence: geofence ? (geofence.inside ? 1 : 0) : null,
+          totalWorkMinutes,
+          status: geofence && !geofence.inside ? 'flagged_early_leave' : 'closed',
+        }).where(eq(courierAttendance.id, attendanceRows[0].id));
+      }
+    });
 
     return NextResponse.json({
       ok: true,
@@ -53,6 +88,10 @@ export async function POST(req: Request) {
         clockInAt: activeShift.clockInAt,
         clockOutAt: now,
         totalDeliveries: Number(deliveries[0]?.count || 0),
+        totalWorkMinutes,
+        geofence: geofence
+          ? { inside: geofence.inside, distanceMeters: geofence.distanceMeters, warehouseName: geofence.warehouseName, zoneName: geofence.zoneName }
+          : null,
       },
     });
   } catch (error) {

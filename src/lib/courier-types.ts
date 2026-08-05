@@ -60,6 +60,7 @@ export const CourierStartDeliverySchema = z.object({
 export const CourierCompleteDeliverySchema = z.object({
   delivery_id: z.number(),
   proof_photo_url: z.string().optional(),
+  proof_url: z.string().optional(),
   signature_url: z.string().optional(),
   signature_base64: z.string().optional(),
   notes: z.string().max(500).optional(),
@@ -69,6 +70,7 @@ export const CourierFailDeliverySchema = z.object({
   delivery_id: z.number(),
   reason: z.string().min(1).max(500),
   proof_photo_url: z.string().optional(),
+  proof_url: z.string().optional(),
   notes: z.string().max(500).optional(),
 });
 

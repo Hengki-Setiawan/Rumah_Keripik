@@ -126,7 +126,7 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     await expect(cart).toContainText(rupiah(UNIT_PRICE * QTY), { timeout: 40_000 });
 
     // --- choose COD payment ---
-    await page.getByTestId('cart-choose-payment').click();
+    await cart.getByTestId('cart-choose-payment').click();
     await expect(page.getByTestId('payment-method-PM-COD-PERMANENT')).toBeVisible({ timeout: 40_000 });
     await page.getByTestId('payment-method-PM-COD-PERMANENT').click();
 
@@ -202,7 +202,6 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     test.setTimeout(300_000);
     loadRunState();
     test.skip(!runState.id_transaksi, 'Tidak ada order — jalankan test customer dulu');
-    test.skip(!runState.courier_id, 'courier_id kosong');
 
     page.on('dialog', (d) => d.accept());
 
@@ -214,7 +213,7 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 90_000 });
 
     // --- approve COD ---
-    await page.goto('/dashboard/pembayaran/cod');
+    await page.goto('/pembayaran/cod');
     const approveBtn = page.getByTestId(`cod-approve-${runState.id_transaksi}`);
     await expect(approveBtn).toBeVisible({ timeout: 90_000 });
     await approveBtn.click();
@@ -233,7 +232,7 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     expect(Number(stockAfter[0].s)).toBe(runState.stock_before - runState.qty);
 
     // --- ship (sets order_status=shipping → appears in deliveries/pending) ---
-    await page.goto('/dashboard/transaksi');
+    await page.goto('/transaksi');
     await expect(page.getByTestId(`tx-shipping-${runState.id_transaksi}`)).toBeVisible({ timeout: 90_000 });
     await page.getByTestId(`tx-shipping-${runState.id_transaksi}`).click();
     await expect
@@ -254,7 +253,7 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     saveRunState();
 
     // --- assign courier via UI ---
-    await page.goto('/dashboard/kurir/assign');
+    await page.goto('/kurir/assign');
     const search = page.getByPlaceholder('Cari pesanan...');
     await expect(search).toBeVisible({ timeout: 90_000 });
     await search.fill(runState.kode_pesanan);

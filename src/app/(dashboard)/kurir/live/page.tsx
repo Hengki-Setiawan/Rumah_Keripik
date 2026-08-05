@@ -30,7 +30,21 @@ export default function LiveCourierMapPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    load();
+    const es = new EventSource('/api/admin/couriers/live-stream');
+    es.addEventListener('live', (e) => {
+      try {
+        const data = JSON.parse((e as MessageEvent).data);
+        if (data?.couriers) {
+          setCouriers(data.couriers);
+          setLoading(false);
+        }
+      } catch { /* ignore malformed frame */ }
+    });
+    es.onerror = () => es.close();
+    return () => es.close();
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;

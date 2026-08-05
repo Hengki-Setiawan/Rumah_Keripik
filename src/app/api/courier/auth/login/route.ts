@@ -3,37 +3,62 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { couriers, courierSessions } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 const LoginSchema = z.object({
-  phone: z.string().min(10).max(20),
+  phone: z.string().min(10).max(20).optional(),
   pin: z.string().min(4).max(6).regex(/^\d+$/),
   deviceId: z.string().optional(),
 });
 
 export async function POST(req: Request) {
   try {
-    const body = LoginSchema.safeParse(await req.json());
+    const body = LoginSchema.safeParse(await req.json().catch(() => ({})));
     if (!body.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: body.error.flatten() }, { status: 400 });
     }
 
     const { phone, pin, deviceId } = body.data;
 
-    const [courier] = await db
-      .select()
-      .from(couriers)
-      .where(and(eq(couriers.phone, phone), eq(couriers.is_active, 1)))
-      .limit(1);
-
-    if (!courier) {
-      return NextResponse.json({ ok: false, error: 'Kurir tidak ditemukan' }, { status: 401 });
+    // Rate limit brute-force PIN per IP dan per perangkat (bila ada).
+    const entityKey = deviceId && deviceId.length > 0 ? `device:${deviceId}` : 'anon';
+    const rate = await checkRateLimit(`courier-login:${getClientIp(req)}:${entityKey}`, 10, 15 * 60 * 1000);
+    if (!rate.ok) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan login. Coba lagi nanti.' }, { status: 429 });
     }
 
-    const pinMatch = await bcrypt.compare(pin, courier.pin_hash);
-    if (!pinMatch) {
-      return NextResponse.json({ ok: false, error: 'PIN salah' }, { status: 401 });
+    let courier: typeof couriers.$inferSelect | undefined;
+
+    if (phone) {
+      [courier] = await db
+        .select()
+        .from(couriers)
+        .where(eq(couriers.phone, phone))
+        .limit(1);
+    } else {
+      // Login PIN-only: PIN disimpan hashed (bcrypt) jadi tidak bisa query langsung,
+      // cari kurir aktif yang PIN-nya cocok.
+      const active = await db.select().from(couriers).where(eq(couriers.is_active, 1));
+      for (const c of active) {
+        if (c.pin_hash && await bcrypt.compare(pin, c.pin_hash)) {
+          courier = c;
+          break;
+        }
+      }
+    }
+
+    if (!courier) {
+      return NextResponse.json({ ok: false, error: 'PIN atau Kurir tidak ditemukan' }, { status: 401 });
+    }
+
+    // Cek PIN juga ketika login lewat phone (perilaku original)
+    if (phone) {
+      const pinMatch = await bcrypt.compare(pin, courier.pin_hash);
+      if (!pinMatch) {
+        return NextResponse.json({ ok: false, error: 'PIN salah' }, { status: 401 });
+      }
     }
 
     const sessionId = generateRefreshTokenId();
