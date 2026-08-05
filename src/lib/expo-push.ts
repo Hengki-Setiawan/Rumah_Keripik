@@ -1,7 +1,7 @@
 import { desc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { expoPushTokens, transaksi, couriers } from '@/lib/schema';
-import type { ExpoPushToken } from '@/lib/schema';
+import { expoPushTokens, transaksi } from '@/lib/schema';
+import { logPushNotification } from '@/lib/courier/notification-log';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
@@ -143,10 +143,20 @@ export async function sendCourierPushNotification(courierId: number, title: stri
 
   if (tokens.length === 0) return;
 
-  await sendPushNotification(
+  const result = await sendPushNotification(
     tokens.map((t) => t.token),
     title,
     body,
     data
   );
+
+  const ticketId = result?.data?.[0]?.id;
+  await logPushNotification({
+    recipientType: 'courier',
+    recipientId: String(courierId),
+    notificationType: data?.type || 'courier_notification',
+    priority: data?.type === 'sos' || data?.type === 'sos_resolved' ? 'high' : 'normal',
+    payloadJson: JSON.stringify({ title, body, data }),
+    expoTicketId: ticketId,
+  }).catch(() => {});
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { sosEvents } from '@/lib/schema';
+import { sosEvents, sosIncidents } from '@/lib/schema';
 import { z } from 'zod';
 import { verifyCourierAuth } from '@/lib/courier/auth';
 import { couriers } from '@/lib/schema';
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const limit = Math.min(Number(url.searchParams.get('limit')) || 20, 50);
 
-    let incidents: any[] = [];
+    let incidents: typeof sosEvents.$inferSelect[] = [];
     try {
       incidents = await db
         .select()
@@ -74,6 +74,21 @@ export async function POST(req: Request) {
         lng: body.lng || '0',
         message: body.description || null,
         status: 'active',
+      });
+    } catch {
+      // Fallback if table doesn't exist
+    }
+
+    try {
+      await db.insert(sosIncidents).values({
+        courierId: auth.courierId,
+        deliveryAssignmentId: body.deliveryId ?? null,
+        lat: body.lat || null,
+        lng: body.lng || null,
+        type: body.type,
+        severity: body.severity,
+        message: body.description || null,
+        status: 'open',
       });
     } catch {
       // Fallback if table doesn't exist
