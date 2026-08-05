@@ -8,7 +8,8 @@ export type WorkerJobType =
   | 'payment_proof_ocr_assist'
   | 'reembed_knowledge'
   | 'send_outbound_message'
-  | 'refresh_location_zones';
+  | 'refresh_location_zones'
+  | 'revenue_payout';
 
 export async function enqueueJob(
   type: WorkerJobType,

@@ -4,11 +4,24 @@ import { shifts } from '@/lib/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { z } from 'zod';
+import { calculateDistance } from '@/lib/location-parser';
 
 const ClockInSchema = z.object({
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
 });
+
+// Radius maksimum clock-in dari gudang (km). Bisa di-override via env.
+// Di bawah default: 20 km (jangan terlalu ketat agar kurir yang clock-in
+// dari rumah masih bisa; 0/vacuous = nonaktifkan geofence).
+const GUDANG_LAT = -5.134;
+const GUDANG_LNG = 119.4135;
+
+function geofenceRadiusKm(): number {
+  const raw = process.env.COURIER_GEOFENCE_RADIUS_KM;
+  if (!raw) return 20;
+  return Math.max(0, Number(raw) || 0);
+}
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +31,21 @@ export async function POST(req: Request) {
     const body = ClockInSchema.safeParse(await req.json().catch(() => ({})));
     if (!body.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: body.error.flatten() }, { status: 400 });
+    }
+
+    // Geofence: hanya diperiksa saat koordinat diberikan & radius > 0.
+    const { lat, lng } = body.data;
+    if (lat != null && lng != null) {
+      const radiusKm = geofenceRadiusKm();
+      if (radiusKm > 0) {
+        const distKm = calculateDistance(GUDANG_LAT, GUDANG_LNG, lat, lng);
+        if (distKm > radiusKm) {
+          return NextResponse.json(
+            { ok: false, error: `LOKASI_DILUAR_BATAS`, message: `Lokasi berjarak ${distKm.toFixed(1)} km dari gudang (maks ${radiusKm} km).` },
+            { status: 403 },
+          );
+        }
+      }
     }
 
     const existingActive = await db.select()

@@ -49,6 +49,27 @@ export async function processWorkerBatch(workerId: string, limit = 5) {
         results.push({ id: job.id, type: job.type, status: 'completed' });
         continue;
       }
+      if (job.type === 'reembed_knowledge') {
+        const { indexKnowledgeWithoutEmbedding } = await import('@/lib/ai/knowledge-index');
+        const result = await indexKnowledgeWithoutEmbedding(Number(payload.limit) || 20);
+        await completeJob(job.id, result);
+        results.push({ id: job.id, type: job.type, status: 'completed' });
+        continue;
+      }
+      if (job.type === 'refresh_location_zones') {
+        const { refreshLocationZones } = await import('@/lib/ai/knowledge-index');
+        const result = await refreshLocationZones();
+        await completeJob(job.id, result);
+        results.push({ id: job.id, type: job.type, status: 'completed' });
+        continue;
+      }
+      if (job.type === 'revenue_payout') {
+        const { processRevenuePayoutJob } = await import('@/services/ledger-service');
+        const result = await processRevenuePayoutJob(payload);
+        await completeJob(job.id, result);
+        results.push({ id: job.id, type: job.type, status: 'completed' });
+        continue;
+      }
 
       await completeJob(job.id, { skipped: true, reason: `Unknown job type: ${job.type}` });
       results.push({ id: job.id, type: job.type, status: 'skipped' });

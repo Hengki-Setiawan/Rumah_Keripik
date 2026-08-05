@@ -947,6 +947,7 @@ export const deliveryAssignment = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     id_transaksi: text('id_transaksi')
       .notNull()
+      .unique()
       .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
     kurir_id: integer('kurir_id').references(() => couriers.id),
     kurir_name: text('kurir_name'),

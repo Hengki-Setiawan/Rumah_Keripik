@@ -7,6 +7,7 @@ import { eq, and } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
 import { awardPointsForCompletedOrder } from '@/services/loyalty-service';
 import { recordRevenue, ensureDefaultCategories } from '@/services/ledger-service';
+import { insertDeliveryEvent } from '@/lib/courier-event';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -48,12 +49,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const now = new Date().toISOString();
     const signatureData = parsed.data.signature_base64 || parsed.data.signature_url;
+    const proofPhoto = parsed.data.proof_url || parsed.data.proof_photo_url;
     await db
       .update(deliveryAssignment)
       .set({
         status: 'Terkirim',
         delivered_at: now,
-        proof_url: parsed.data.proof_photo_url || assignment.proof_url,
+        proof_url: proofPhoto || assignment.proof_url,
         notes: parsed.data.notes || assignment.notes,
         signature_url: signatureData || assignment.signature_url,
         updated_at: now,
@@ -82,6 +84,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     await sendOrderPushNotification(assignment.id_transaksi, 'completed');
 
+    await insertDeliveryEvent({
+      deliveryId,
+      courierId: courier.id,
+      eventType: 'completed',
+      metadata: { id_transaksi: assignment.id_transaksi, signature: signatureData ? 'yes' : 'no' },
+    });
+
     try {
       await ensureDefaultCategories();
       const [tx] = await db.select({ total: transaksi.total_bayar, customer: transaksi.id_customer }).from(transaksi).where(eq(transaksi.id_transaksi, assignment.id_transaksi)).limit(1);
@@ -90,7 +99,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         await recordRevenue(assignment.id_transaksi, tx.total);
       }
     } catch (svcErr) {
+      // Jangan biarkan poin/revenue hilang diam-diam: jadwalkan retry sebagai job
+      // agar worker dapat menyelesaikannya secara terpisah (idempoten oleh desain).
       console.error('[COURIER_COMPLETE_INTEGRATION]', svcErr);
+      try {
+        const { enqueueJob } = await import('@/lib/worker-queue');
+        const [tx] = await db.select({ total: transaksi.total_bayar, customer: transaksi.id_customer }).from(transaksi).where(eq(transaksi.id_transaksi, assignment.id_transaksi)).limit(1);
+        if (tx) {
+          await enqueueJob('revenue_payout', {
+            orderId: assignment.id_transaksi,
+            customerId: tx.customer ?? null,
+            totalBayar: tx.total,
+            trigger: 'delivery_complete_retry',
+          }, { priority: 3, maxAttempts: 5 });
+        }
+      } catch (enqueueErr) {
+        console.error('[COURIER_COMPLETE_INTEGRATION_ENQUEUE]', enqueueErr);
+      }
     }
 
     return NextResponse.json({ ok: true });

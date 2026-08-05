@@ -44,6 +44,64 @@ function nearestNeighbor<T extends { lat: number; lng: number }>(
   return ordered;
 }
 
+/**
+ * 2-opt local search: memperbaiki urutan rute dengan membalik segment (i..k)
+ * bila itu memperpendek total jarak. Diulang sampai tidak ada perbaikan lagi
+ * (bounded iteration). Nearest-neighbor adalah konstruksi awal (greedy);
+ * 2-opt adalah local search improvement — kombinasi yang direkomendasikan
+ * blueprint Bagian VIII Tahap 1 (biasa mengurangi jarak 10-25%).
+ */
+function twoOpt<T extends { lat: number; lng: number }>(route: T[], maxIterations = 50): T[] {
+  const n = route.length;
+  if (n < 3) return route;
+
+  let improved = true;
+  let iterations = 0;
+
+  while (improved && iterations < maxIterations) {
+    improved = false;
+    iterations++;
+    for (let i = 1; i < n - 1; i++) {
+      for (let k = i + 1; k < n; k++) {
+        const delta = twoOptGain(route, i, k);
+        if (delta < -1e-9) {
+          reverseSegment(route, i, k);
+          improved = true;
+        }
+      }
+    }
+  }
+
+  return route;
+}
+
+/**
+ * Perubahan jarak bila segment (i..k) dibalik. Positif = lebih panjang (tolak),
+ * negatif = lebih pendek. Leveling akurat & efisien tanpa re-hitung seluruh rute.
+ */
+function twoOptGain<T extends { lat: number; lng: number }>(route: T[], i: number, k: number): number {
+  const before = route[i - 1];
+  const a = route[i];
+  const b = route[k];
+  const after = route[k + 1];
+
+  const removed = haversineKm(before.lat, before.lng, a.lat, a.lng) +
+    haversineKm(b.lat, b.lng, after.lat, after.lng);
+  const added = haversineKm(before.lat, before.lng, b.lat, b.lng) +
+    haversineKm(a.lat, a.lng, after.lat, after.lng);
+  return added - removed;
+}
+
+function reverseSegment<T>(route: T[], i: number, k: number): void {
+  while (i < k) {
+    const tmp = route[i];
+    route[i] = route[k];
+    route[k] = tmp;
+    i++;
+    k--;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const auth = await verifyCourierAuth(req);
@@ -84,7 +142,7 @@ export async function POST(req: Request) {
     const withCoords = waypoints.filter((w) => w.lat !== 0 && w.lng !== 0);
     const withoutCoords = waypoints.filter((w) => w.lat === 0 && w.lng === 0);
 
-    const optimized = nearestNeighbor(withCoords, startLat, startLng);
+    const optimized = twoOpt(nearestNeighbor(withCoords, startLat, startLng));
     const ordered = [...optimized, ...withoutCoords].map((w, i) => ({ ...w, sequence: i + 1 }));
 
     await db.delete(deliveryRoutePoint)

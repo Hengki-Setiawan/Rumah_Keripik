@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { couriers, courierSessions } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 const LoginSchema = z.object({
   phone: z.string().min(10).max(20).optional(),
@@ -14,12 +15,19 @@ const LoginSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const body = LoginSchema.safeParse(await req.json());
+    const body = LoginSchema.safeParse(await req.json().catch(() => ({})));
     if (!body.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: body.error.flatten() }, { status: 400 });
     }
 
     const { phone, pin, deviceId } = body.data;
+
+    // Rate limit brute-force PIN per IP dan per perangkat (bila ada).
+    const entityKey = deviceId && deviceId.length > 0 ? `device:${deviceId}` : 'anon';
+    const rate = await checkRateLimit(`courier-login:${getClientIp(req)}:${entityKey}`, 10, 15 * 60 * 1000);
+    if (!rate.ok) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan login. Coba lagi nanti.' }, { status: 429 });
+    }
 
     let courier: typeof couriers.$inferSelect | undefined;
 
