@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { History, RefreshCw, ShieldAlert } from 'lucide-react';
+import { History, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,25 +25,12 @@ interface RouteRow {
   delivered_at: string | null;
 }
 
-interface SosEvent {
-  id: number;
-  courierName: string | null;
-  type: string | null;
-  severity: string | null;
-  status: string;
-  message: string | null;
-  createdAt: string;
-  resolvedAt: string | null;
-}
-
 export default function RiwayatPage() {
   const { addToast } = useToast();
-  const [tab, setTab] = useState<'routes' | 'sos'>('routes');
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [courierId, setCourierId] = useState<string>('');
   const [routeDate, setRouteDate] = useState('');
   const [routes, setRoutes] = useState<RouteRow[]>([]);
-  const [sos, setSos] = useState<SosEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadCouriers = useCallback(async () => {
@@ -75,24 +62,7 @@ export default function RiwayatPage() {
     setLoading(false);
   }, [courierId, routeDate, addToast]);
 
-  const loadSos = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/sos');
-      if (res.ok) {
-        const data = await res.json();
-        setSos(data.events || []);
-      }
-    } catch {
-      addToast('error', 'Gagal memuat riwayat SOS');
-    }
-    setLoading(false);
-  }, [addToast]);
-
-  useEffect(() => {
-    if (tab === 'routes') loadRoutes();
-    else loadSos();
-  }, [tab, loadRoutes, loadSos]);
+  useEffect(() => { loadRoutes(); }, [loadRoutes]);
 
   const statusColor: Record<string, string> = {
     Siap_Dikirim: 'bg-gray-100 text-gray-600',
@@ -106,32 +76,28 @@ export default function RiwayatPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <History className="w-6 h-6 text-orange-600" />
-          <h1 className="text-xl font-bold text-gray-800">Riwayat Rute & SOS</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant={tab === 'routes' ? 'default' : 'outline'} size="sm" onClick={() => setTab('routes')}>Rute Pengiriman</Button>
-          <Button variant={tab === 'sos' ? 'default' : 'outline'} size="sm" onClick={() => setTab('sos')}>
-            <ShieldAlert className="w-4 h-4 mr-1" /> SOS Darurat
-          </Button>
+          <h1 className="text-xl font-bold text-gray-800">Riwayat Rute Pengiriman</h1>
         </div>
       </div>
 
-      {tab === 'routes' && (
-        <div className="flex items-center gap-2 mb-4">
-          <select value={courierId} onChange={(e) => setCourierId(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-            <option value="">Semua kurir</option>
-            {couriers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <Input type="date" value={routeDate} onChange={(e) => setRouteDate(e.target.value)} className="w-44" />
-          <Button variant="outline" onClick={loadRoutes}><RefreshCw className="w-4 h-4 mr-1" /> Muat</Button>
-        </div>
-      )}
+      <div className="flex items-center gap-2 mb-4">
+        <select
+          value={courierId}
+          onChange={(e) => setCourierId(e.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="">Semua kurir</option>
+          {couriers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <Input type="date" value={routeDate} onChange={(e) => setRouteDate(e.target.value)} className="w-44" />
+        <Button variant="outline" onClick={loadRoutes}><RefreshCw className="w-4 h-4 mr-1" /> Muat</Button>
+      </div>
 
       {loading ? (
         <div className="space-y-3"><CardSkeleton /><CardSkeleton /></div>
-      ) : tab === 'routes' && routes.length === 0 ? (
+      ) : routes.length === 0 ? (
         <div className="text-center py-12 text-gray-400">Belum ada riwayat rute.</div>
-      ) : tab === 'routes' ? (
+      ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -157,37 +123,6 @@ export default function RiwayatPage() {
                   <td className="p-3 text-center">
                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[r.status] ?? 'bg-gray-100 text-gray-600'}`}>{r.status}</span>
                   </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : sos.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">Belum ada kejadian SOS.</div>
-      ) : (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b">
-                <th className="text-left p-3 font-medium text-gray-600">Kurir</th>
-                <th className="text-left p-3 font-medium text-gray-600">Tipe</th>
-                <th className="text-left p-3 font-medium text-gray-600">Severity</th>
-                <th className="text-left p-3 font-medium text-gray-600">Pesan</th>
-                <th className="text-center p-3 font-medium text-gray-600">Status</th>
-                <th className="text-left p-3 font-medium text-gray-600">Waktu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sos.map((s) => (
-                <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="p-3 font-medium">{s.courierName ?? '-'}</td>
-                  <td className="p-3 text-gray-600">{s.type ?? '-'}</td>
-                  <td className="p-3 text-gray-600">{s.severity ?? '-'}</td>
-                  <td className="p-3 text-gray-600">{s.message ?? '-'}</td>
-                  <td className="p-3 text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${s.status === 'active' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>{s.status}</span>
-                  </td>
-                  <td className="p-3 text-gray-500 text-xs">{new Date(s.createdAt).toLocaleString('id-ID')}</td>
                 </tr>
               ))}
             </tbody>
