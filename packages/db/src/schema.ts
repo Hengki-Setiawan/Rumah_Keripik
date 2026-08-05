@@ -924,6 +924,9 @@ export const couriers = sqliteTable('couriers', {
   last_lat: text('last_lat'),
   last_lng: text('last_lng'),
   last_location_at: text('last_location_at'),
+  warehouse_id: integer('warehouse_id').references(() => warehouses.id).default(1),
+  employment_type: text('employment_type', { enum: ['tetap', 'paruh_waktu', 'harian'] }).default('tetap'),
+  hired_at: text('hired_at'),
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
   updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
 });
@@ -954,6 +957,22 @@ export const deliveryAssignment = sqliteTable(
     status: text('status', {
       enum: ['Siap_Dikirim', 'Dalam_Pengiriman', 'Terkirim', 'Gagal'],
     }).notNull().default('Siap_Dikirim'),
+    sub_status: text('sub_status'),
+    offer_sent_at: text('offer_sent_at'),
+    offer_expires_at: text('offer_expires_at'),
+    offer_responded_at: text('offer_responded_at'),
+    reject_reason: text('reject_reason'),
+    requires_full_pod: integer('requires_full_pod').notNull().default(0),
+    pod_verification_otp: text('pod_verification_otp'),
+    pod_verified_by_otp: integer('pod_verified_by_otp').notNull().default(0),
+    proof_photo_lat: text('proof_photo_lat'),
+    proof_photo_lng: text('proof_photo_lng'),
+    proof_photo_taken_at: text('proof_photo_taken_at'),
+    distance_planned_km: text('distance_planned_km'),
+    distance_actual_km: text('distance_actual_km'),
+    eta_at_assignment: text('eta_at_assignment'),
+    delayed_notification_sent: integer('delayed_notification_sent').notNull().default(0),
+    warehouse_id: integer('warehouse_id').references(() => warehouses.id).default(1),
     pickup_at: text('pickup_at'),
     delivered_at: text('delivered_at'),
     proof_url: text('proof_url'),
@@ -980,6 +999,10 @@ export const deliveryRoutePoint = sqliteTable(
     lng: text('lng').notNull(),
     address: text('address'),
     status: text('status', { enum: ['pending', 'visited', 'skipped'] }).notNull().default('pending'),
+    route_optimization_run_id: integer('route_optimization_run_id').references(() => routeOptimizationRuns.id),
+    eta_minutes_from_prev: integer('eta_minutes_from_prev'),
+    distance_km_from_prev: text('distance_km_from_prev'),
+    visited_at: text('visited_at'),
   },
   (table) => ({
     routeIdx: index('idx_delivery_route_date').on(table.route_date, table.sequence_no),
@@ -1553,6 +1576,9 @@ export const courierEarnings = sqliteTable('courier_earnings', {
   baseFee: integer('base_fee').notNull(),
   bonusAmount: integer('bonus_amount').notNull().default(0),
   status: text('status', { enum: ['pending', 'confirmed', 'paid_out'] }).notNull().default('pending'),
+  earningType: text('earning_type', { enum: ['per_delivery', 'bonus_ontime', 'bonus_target_harian', 'penalti', 'lainnya'] }).notNull().default('per_delivery'),
+  payrollPeriodId: text('payroll_period_id'),
+  calculationRuleId: integer('calculation_rule_id'),
   note: text('note'),
   createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
   paidOutAt: text('paid_out_at'),
@@ -1742,5 +1768,318 @@ export const courierLocations = sqliteTable('courier_locations', {
 
 export type CourierLocation = typeof courierLocations.$inferSelect;
 export type InsertCourierLocation = typeof courierLocations.$inferInsert;
+
+// ─── COURIER BLUEPRINT v21+ — WAREHOUSE & GEOFENCE ─────────────────────────
+export const warehouses = sqliteTable('warehouses', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  address: text('address'),
+  lat: text('lat').notNull(),
+  lng: text('lng').notNull(),
+  isActive: integer('is_active').notNull().default(1),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type Warehouse = typeof warehouses.$inferSelect;
+export type InsertWarehouse = typeof warehouses.$inferInsert;
+
+export const geofenceZones = sqliteTable('geofence_zones', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  warehouseId: integer('warehouse_id').references(() => warehouses.id),
+  name: text('name').notNull(),
+  zoneType: text('zone_type', {
+    enum: ['attendance_radius', 'service_area', 'danger_zone', 'depot'],
+  }).notNull(),
+  centerLat: text('center_lat').notNull(),
+  centerLng: text('center_lng').notNull(),
+  radiusMeters: integer('radius_meters').notNull().default(150),
+  isActive: integer('is_active').notNull().default(1),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  geofenceWarehouseIdx: index('idx_geofence_warehouse').on(table.warehouseId),
+  geofenceTypeIdx: index('idx_geofence_type').on(table.zoneType),
+}));
+
+export type GeofenceZone = typeof geofenceZones.$inferSelect;
+export type InsertGeofenceZone = typeof geofenceZones.$inferInsert;
+
+// ─── COURIER BLUEPRINT v22 — SHIFT & ATTENDANCE ────────────────────────────
+export const shiftTemplates = sqliteTable('shift_templates', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  startTime: text('start_time').notNull(),
+  endTime: text('end_time').notNull(),
+  isActive: integer('is_active').notNull().default(1),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type ShiftTemplate = typeof shiftTemplates.$inferSelect;
+export type InsertShiftTemplate = typeof shiftTemplates.$inferInsert;
+
+export const courierShifts = sqliteTable('courier_shifts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
+  shiftTemplateId: integer('shift_template_id').references(() => shiftTemplates.id),
+  shiftDate: text('shift_date').notNull(),
+  plannedStart: text('planned_start').notNull(),
+  plannedEnd: text('planned_end').notNull(),
+  status: text('status', {
+    enum: ['scheduled', 'confirmed', 'swapped', 'cancelled', 'completed', 'no_show'],
+  }).notNull().default('scheduled'),
+  swapRequestedToCourierId: integer('swap_requested_to_courier_id').references(() => couriers.id),
+  swapApprovedBy: text('swap_approved_by'),
+  isOnCall: integer('is_on_call').notNull().default(0),
+  createdBy: text('created_by'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  courierShiftIdx: index('idx_courier_shifts_courier_date').on(table.courierId, table.shiftDate),
+  courierShiftDateIdx: index('idx_courier_shifts_date').on(table.shiftDate),
+}));
+
+export type CourierShift = typeof courierShifts.$inferSelect;
+export type InsertCourierShift = typeof courierShifts.$inferInsert;
+
+export const courierAttendance = sqliteTable('courier_attendance', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id, { onDelete: 'cascade' }),
+  courierShiftId: integer('courier_shift_id').references(() => courierShifts.id),
+  clockInAt: text('clock_in_at'),
+  clockInLat: text('clock_in_lat'),
+  clockInLng: text('clock_in_lng'),
+  clockInWithinGeofence: integer('clock_in_within_geofence'),
+  clockInSelfieUrl: text('clock_in_selfie_url'),
+  clockOutAt: text('clock_out_at'),
+  clockOutLat: text('clock_out_lat'),
+  clockOutLng: text('clock_out_lng'),
+  clockOutWithinGeofence: integer('clock_out_within_geofence'),
+  totalWorkMinutes: integer('total_work_minutes'),
+  status: text('status', {
+    enum: ['open', 'closed', 'flagged_late', 'flagged_early_leave', 'flagged_no_geofence'],
+  }).notNull().default('open'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  attendanceCourierIdx: index('idx_attendance_courier').on(table.courierId, table.clockInAt),
+}));
+
+export type CourierAttendance = typeof courierAttendance.$inferSelect;
+export type InsertCourierAttendance = typeof courierAttendance.$inferInsert;
+
+// ─── COURIER BLUEPRINT v23 — DELIVERY SUB-STATUS, POD & AUDIT ───────────────
+export const deliveryStatusAudit = sqliteTable('delivery_status_audit', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  deliveryAssignmentId: integer('delivery_assignment_id').notNull().references(() => deliveryAssignment.id, { onDelete: 'cascade' }),
+  fromStatus: text('from_status'),
+  toStatus: text('to_status').notNull(),
+  changedByType: text('changed_by_type', {
+    enum: ['courier', 'admin', 'system'],
+  }).notNull(),
+  changedById: text('changed_by_id'),
+  lat: text('lat'),
+  lng: text('lng'),
+  deviceId: text('device_id'),
+  note: text('note'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  auditAssignmentIdx: index('idx_delivery_audit_assignment').on(table.deliveryAssignmentId, table.createdAt),
+}));
+
+export type DeliveryStatusAudit = typeof deliveryStatusAudit.$inferSelect;
+export type InsertDeliveryStatusAudit = typeof deliveryStatusAudit.$inferInsert;
+
+// ─── COURIER BLUEPRINT v24 — ROUTE OPTIMIZATION RUNS ────────────────────────
+export const routeOptimizationRuns = sqliteTable('route_optimization_runs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  routeDate: text('route_date').notNull(),
+  courierId: integer('courier_id').notNull().references(() => couriers.id),
+  algorithmVersion: text('algorithm_version').notNull(),
+  stopCount: integer('stop_count').notNull(),
+  estimatedDistanceKm: text('estimated_distance_km'),
+  estimatedDurationMinutes: integer('estimated_duration_minutes'),
+  routingEngineUsed: text('routing_engine_used'),
+  computedAt: text('computed_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  computationMs: integer('computation_ms'),
+  triggeredBy: text('triggered_by', {
+    enum: ['cron_morning', 'admin_manual', 'courier_refresh', 'new_order_reoptimize'],
+  }).notNull(),
+}, (table) => ({
+  routeRunsIdx: index('idx_route_runs_courier_date').on(table.courierId, table.routeDate),
+}));
+
+export type RouteOptimizationRun = typeof routeOptimizationRuns.$inferSelect;
+export type InsertRouteOptimizationRun = typeof routeOptimizationRuns.$inferInsert;
+
+// ─── COURIER BLUEPRINT v25 — VEHICLES & ASSETS ───────────────────────────────
+export const vehicles = sqliteTable('vehicles', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  warehouseId: integer('warehouse_id').references(() => warehouses.id).default(1),
+  platNo: text('plat_no').notNull().unique(),
+  vehicleType: text('vehicle_type', { enum: ['motor', 'mobil'] }).notNull(),
+  brandModel: text('brand_model'),
+  year: integer('year'),
+  capacityKg: real('capacity_kg'),
+  capacityVolumeLiter: real('capacity_volume_liter'),
+  status: text('status', { enum: ['active', 'maintenance', 'retired'] }).notNull().default('active'),
+  assignedCourierId: integer('assigned_courier_id').references(() => couriers.id),
+  odometerKm: integer('odometer_km'),
+  lastServiceAt: text('last_service_at'),
+  nextServiceDueKm: integer('next_service_due_km'),
+  insuranceExpiresAt: text('insurance_expires_at'),
+  stnkExpiresAt: text('stnk_expires_at'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  vehicleCourierIdx: index('idx_vehicles_courier').on(table.assignedCourierId),
+}));
+
+export type Vehicle = typeof vehicles.$inferSelect;
+export type InsertVehicle = typeof vehicles.$inferInsert;
+
+export const vehicleLogs = sqliteTable('vehicle_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  vehicleId: integer('vehicle_id').notNull().references(() => vehicles.id, { onDelete: 'cascade' }),
+  logType: text('log_type', {
+    enum: ['bbm', 'servis', 'ganti_oli', 'ban', 'pajak', 'insiden', 'lainnya'],
+  }).notNull(),
+  costAmount: integer('cost_amount'),
+  odometerKm: integer('odometer_km'),
+  note: text('note'),
+  receiptPhotoUrl: text('receipt_photo_url'),
+  loggedByCourierId: integer('logged_by_courier_id').references(() => couriers.id),
+  loggedAt: text('logged_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  vehicleLogIdx: index('idx_vehicle_logs_vehicle').on(table.vehicleId, table.loggedAt),
+}));
+
+export type VehicleLog = typeof vehicleLogs.$inferSelect;
+export type InsertVehicleLog = typeof vehicleLogs.$inferInsert;
+
+// ─── COURIER BLUEPRINT v26 — EARNING RULES & PAYROLL ─────────────────────────
+export const earningRules = sqliteTable('earning_rules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  ruleType: text('rule_type', {
+    enum: ['percentage_of_order', 'flat_per_delivery', 'flat_per_km', 'bonus_threshold'],
+  }).notNull(),
+  percentageValue: real('percentage_value'),
+  flatValue: integer('flat_value'),
+  minimumAmount: integer('minimum_amount'),
+  thresholdCount: integer('threshold_count'),
+  thresholdBonusAmount: integer('threshold_bonus_amount'),
+  vehicleTypeFilter: text('vehicle_type_filter', { enum: ['motor', 'mobil', 'semua'] }).notNull().default('semua'),
+  isActive: integer('is_active').notNull().default(1),
+  effectiveFrom: text('effective_from').notNull().default(sql`(datetime('now', 'utc'))`),
+  effectiveUntil: text('effective_until'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type EarningRule = typeof earningRules.$inferSelect;
+export type InsertEarningRule = typeof earningRules.$inferInsert;
+
+export const payrollPeriods = sqliteTable('payroll_periods', {
+  id: text('id').primaryKey(),
+  periodStart: text('period_start').notNull(),
+  periodEnd: text('period_end').notNull(),
+  status: text('status', { enum: ['open', 'locked', 'paid'] }).notNull().default('open'),
+  lockedAt: text('locked_at'),
+  paidAt: text('paid_at'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type PayrollPeriod = typeof payrollPeriods.$inferSelect;
+export type InsertPayrollPeriod = typeof payrollPeriods.$inferInsert;
+
+export const payrollSlips = sqliteTable('payroll_slips', {
+  id: text('id').primaryKey(),
+  payrollPeriodId: text('payroll_period_id').notNull().references(() => payrollPeriods.id),
+  courierId: integer('courier_id').notNull().references(() => couriers.id),
+  totalDeliveries: integer('total_deliveries').notNull().default(0),
+  totalBaseEarnings: integer('total_base_earnings').notNull().default(0),
+  totalBonus: integer('total_bonus').notNull().default(0),
+  totalPenalty: integer('total_penalty').notNull().default(0),
+  totalNet: integer('total_net').notNull().default(0),
+  generatedAt: text('generated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  pdfUrl: text('pdf_url'),
+}, (table) => ({
+  slipCourierIdx: index('idx_payroll_slips_courier').on(table.courierId, table.payrollPeriodId),
+}));
+
+export type PayrollSlip = typeof payrollSlips.$inferSelect;
+export type InsertPayrollSlip = typeof payrollSlips.$inferInsert;
+
+// ─── COURIER BLUEPRINT v27 — SOS INCIDENTS TERSTRUKTUR ───────────────────────
+export const sosIncidents = sqliteTable('sos_incidents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id),
+  deliveryAssignmentId: integer('delivery_assignment_id').references(() => deliveryAssignment.id),
+  lat: text('lat'),
+  lng: text('lng'),
+  type: text('type'),
+  severity: text('severity'),
+  message: text('message'),
+  status: text('status', {
+    enum: ['open', 'acknowledged', 'resolved', 'false_alarm'],
+  }).notNull().default('open'),
+  acknowledgedBy: text('acknowledged_by'),
+  acknowledgedAt: text('acknowledged_at'),
+  resolvedBy: text('resolved_by'),
+  resolvedAt: text('resolved_at'),
+  resolutionNote: text('resolution_note'),
+  triggeredAt: text('triggered_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  sosIncidentCourierIdx: index('idx_sos_courier').on(table.courierId, table.triggeredAt),
+  sosIncidentStatusIdx: index('idx_sos_status').on(table.status),
+}));
+
+export type SosIncident = typeof sosIncidents.$inferSelect;
+export type InsertSosIncident = typeof sosIncidents.$inferInsert;
+
+// ─── COURIER BLUEPRINT v28 — NOTIFICATION LOG & DELIVERY RECEIPT ─────────────
+export const notificationLog = sqliteTable('notification_log', {
+  id: text('id').primaryKey(),
+  recipientType: text('recipient_type', { enum: ['courier', 'customer', 'admin'] }).notNull(),
+  recipientId: text('recipient_id').notNull(),
+  notificationType: text('notification_type').notNull(),
+  priority: text('priority', { enum: ['critical', 'high', 'normal', 'low'] }).notNull().default('normal'),
+  payloadJson: text('payload_json').notNull(),
+  expoTicketId: text('expo_ticket_id'),
+  serverSentAt: text('server_sent_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  deviceReceivedAt: text('device_received_at'),
+  deviceOpenedAt: text('device_opened_at'),
+  deliveryStatus: text('delivery_status', {
+    enum: ['sent', 'device_confirmed', 'opened', 'failed', 'expired'],
+  }).notNull().default('sent'),
+}, (table) => ({
+  notifLogRecipientIdx: index('idx_notification_recipient').on(table.recipientType, table.recipientId, table.serverSentAt),
+  notifLogStatusIdx: index('idx_notification_status').on(table.deliveryStatus),
+}));
+
+export type NotificationLogEntry = typeof notificationLog.$inferSelect;
+export type InsertNotificationLogEntry = typeof notificationLog.$inferInsert;
+
+// ─── COURIER BLUEPRINT v29 — COURIER KPI DAILY (MATERIALIZED) ────────────────
+export const courierKpiDaily = sqliteTable('courier_kpi_daily', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courierId: integer('courier_id').notNull().references(() => couriers.id),
+  kpiDate: text('kpi_date').notNull(),
+  totalAssigned: integer('total_assigned').notNull().default(0),
+  totalDelivered: integer('total_delivered').notNull().default(0),
+  totalFailed: integer('total_failed').notNull().default(0),
+  totalRejectedOffers: integer('total_rejected_offers').notNull().default(0),
+  onTimeRate: real('on_time_rate'),
+  avgDeliveryMinutes: real('avg_delivery_minutes'),
+  totalDistanceKm: real('total_distance_km'),
+  totalEarnings: integer('total_earnings').notNull().default(0),
+  attendanceStatus: text('attendance_status'),
+  computedAt: text('computed_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  kpiCourierDateIdx: index('idx_kpi_courier_date').on(table.courierId, table.kpiDate),
+  kpiUnique: uniqueIndex('idx_kpi_courier_date_unique').on(table.courierId, table.kpiDate),
+}));
+
+export type CourierKpiDaily = typeof courierKpiDaily.$inferSelect;
+export type InsertCourierKpiDaily = typeof courierKpiDaily.$inferInsert;
 
 
