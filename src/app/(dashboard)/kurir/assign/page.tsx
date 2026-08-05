@@ -114,7 +114,7 @@ export default function AssignCourierPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-400">Tidak ada pengiriman yang menunggu kurir.</p>
-          <p className="text-gray-400 text-sm mt-1">Ubah status pesanan menjadi "Kirim" dulu di halaman Transaksi.</p>
+          <p className="text-gray-400 text-sm mt-1">Ubah status pesanan menjadi &quot;Kirim&quot; dulu di halaman Transaksi.</p>
         </div>
       ) : (
         <div className="space-y-3">
