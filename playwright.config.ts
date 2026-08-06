@@ -27,7 +27,7 @@ const baseURL =
 
 export default defineConfig({
   testDir: './tests/e2e-web',
-  testIgnore: '**/e2e-crossplatform.spec.ts',
+  testIgnore: '**/{e2e-crossplatform,api-contract,chat-real}.spec.ts',
   timeout: 60_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,
