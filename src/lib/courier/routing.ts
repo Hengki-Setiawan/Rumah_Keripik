@@ -96,6 +96,49 @@ function reverseSegment<T>(route: T[], i: number, k: number): void {
   }
 }
 
+function routeCost<T extends LatLng>(r: T[]): number {
+  let s = 0;
+  for (let i = 0; i < r.length - 1; i++) {
+    s += haversineKm(r[i].lat, r[i].lng, r[i + 1].lat, r[i + 1].lng);
+  }
+  return s;
+}
+
+/**
+ * Or-opt (node insertion): menghapus satu kota lalu menyisipkannya kembali
+ * di posisi terbaik. Suplemen 2-opt — biasanya memberi perbaikan 2-4% lagi.
+ */
+export function orOpt<T extends LatLng>(route: T[], maxIterations = 20): T[] {
+  let r = [...route];
+  if (r.length < 4) return r;
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    let improved = false;
+    const base = routeCost(r);
+    for (let a = 0; a < r.length && !improved; a++) {
+      const node = r[a];
+      const without = r.filter((_, i) => i !== a);
+      let best = r;
+      let bestCost = base;
+      for (let b = 0; b <= without.length; b++) {
+        const cand = [...without.slice(0, b), node, ...without.slice(b)];
+        const c = routeCost(cand);
+        if (c < bestCost - 1e-9) {
+          best = cand;
+          bestCost = c;
+        }
+      }
+      if (best !== r) {
+        r = best;
+        improved = true;
+      }
+    }
+    if (!improved) break;
+  }
+
+  return r;
+}
+
 export function routeTotalKm<T extends LatLng>(ordered: T[]): number {
   return ordered.length > 1
     ? Math.round(ordered.slice(0, -1).reduce((sum, wp, i) =>
