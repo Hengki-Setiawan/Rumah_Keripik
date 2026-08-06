@@ -3,6 +3,7 @@ import { Hanken_Grotesk, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -38,7 +39,7 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", hankenGrotesk.variable, jetbrainsMono.variable, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col">
-        {children}
+        <PostHogProvider>{children}</PostHogProvider>
         <PwaInstallPrompt />
       </body>
     </html>

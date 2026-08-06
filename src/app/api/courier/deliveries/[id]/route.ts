@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { deliveryAssignment, transaksi, couriers, deliveryRoutePoint } from '@/lib/schema';
+import { deliveryAssignment, transaksi, couriers, deliveryRoutePoint, detailTransaksi } from '@/lib/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireCourierAuth } from '@/lib/courier-auth';
 
@@ -32,6 +32,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         alamatPenerima: transaksi.alamat_penerima,
         catatan: transaksi.catatan,
         totalBayar: transaksi.total_bayar,
+        statusPembayaran: transaksi.status_pembayaran,
+        paymentStatus: transaksi.payment_status,
+        tipePenjualan: transaksi.tipe_penjualan,
+        paymentMethod: transaksi.payment_method,
       })
       .from(deliveryAssignment)
       .innerJoin(transaksi, eq(deliveryAssignment.id_transaksi, transaksi.id_transaksi))
@@ -49,6 +53,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .orderBy(deliveryRoutePoint.sequence_no)
       .catch(() => []);
 
+    const items = await db
+      .select()
+      .from(detailTransaksi)
+      .where(eq(detailTransaksi.id_transaksi, assignment.idTransaksi))
+      .catch(() => []);
+
+    const totalQty = items.reduce((sum, it) => sum + (it.qty_terjual || 0), 0);
+    const totalBeratGram = items.reduce((sum, it) => sum + (it.berat_gram_snapshot || 0), 0);
+
     return NextResponse.json({
       ok: true,
       delivery: {
@@ -62,13 +75,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         alamatPenerima: assignment.alamatPenerima,
         catatan: assignment.catatan,
         totalBayar: assignment.totalBayar,
+        statusPembayaran: assignment.statusPembayaran,
+        paymentStatus: assignment.paymentStatus,
+        tipePenjualan: assignment.tipePenjualan,
+        paymentMethod: assignment.paymentMethod,
         createdAt: assignment.createdAt,
         notes: assignment.notes,
+        totalQty,
+        totalBeratGram,
         routePoints: routePoints.map((rp) => ({
           lat: rp.lat,
           lng: rp.lng,
           address: rp.address,
           sequenceNo: rp.sequence_no,
+        })),
+        items: items.map((it) => ({
+          namaProduk: it.nama_produk_snapshot,
+          varian: it.nama_varian_snapshot,
+          qty: it.qty_terjual,
+          harga: it.harga_snapshot,
+          subtotal: it.subtotal,
+          beratGram: it.berat_gram_snapshot,
         })),
       },
     });
