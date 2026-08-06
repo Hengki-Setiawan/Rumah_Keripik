@@ -4,9 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --webpack",
-    "pages:build": "npx @opennextjs/cloudflare build",
-    "deploy": "npx wrangler deploy"
+    "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --webpack"
   },
   "dependencies": {
     "@rumah-keripik/db": "file:../../packages/db",
@@ -38,9 +36,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.2",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "wrangler": "^4.114.0"
+    "typescript": "^5"
   }
 }

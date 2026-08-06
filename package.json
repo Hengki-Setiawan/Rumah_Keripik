@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --webpack",
-    "pages:build": "node -e \"const fs=require('fs');try{fs.rmSync('.open-next',{recursive:true,force:true})}catch(e){}\" && npx @opennextjs/cloudflare build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
@@ -101,9 +100,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
     "@netlify/plugin-nextjs": "^5.15.12",
-    "@opennextjs/cloudflare": "^1.20.2",
     "@playwright/mcp": "^0.0.78",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
@@ -118,7 +115,6 @@
     "playwright": "^1.61.1",
     "tailwindcss": "^4",
     "tsx": "^4.11.0",
-    "typescript": "^5",
-    "wrangler": "^4.114.0"
+    "typescript": "^5"
   }
 }
