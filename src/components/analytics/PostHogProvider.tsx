@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { posthog } from 'posthog-js';
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
 
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
+function PostHogInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialized = useRef(false);
@@ -37,4 +37,12 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, searchParams]);
 
   return <>{children}</>;
+}
+
+export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <PostHogInner>{children}</PostHogInner>
+    </Suspense>
+  );
 }
