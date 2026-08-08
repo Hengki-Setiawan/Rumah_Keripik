@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ ok: false, error: 'Hanya bisa dijadwal ulang sebelum mulai antar' }, { status: 400 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const parsed = RescheduleSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: parsed.error.flatten() }, { status: 400 });

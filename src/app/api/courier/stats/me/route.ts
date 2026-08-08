@@ -17,7 +17,7 @@ export async function GET(req: Request) {
       .from(courierPerformanceDaily)
       .where(and(
         eq(courierPerformanceDaily.courierId, auth.courierId),
-        sql`date(${courierPerformanceDaily.date}) >= date('now', '-' || ${days} || ' days')`,
+        sql`date(${courierPerformanceDaily.date}) >= date(datetime('now', '+8 hours'), '-' || ${days} || ' days')`,
       ));
 
     const totalAssigned = performance.reduce((s, r) => s + (r.totalAssigned || 0), 0);
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       score: sql<number>`sum(${courierPerformanceDaily.score})`,
     })
       .from(courierPerformanceDaily)
-      .where(sql`date(${courierPerformanceDaily.date}) >= date('now', '-' || ${days} || ' days')`)
+      .where(sql`date(${courierPerformanceDaily.date}) >= date(datetime('now', '+8 hours'), '-' || ${days} || ' days')`)
       .groupBy(courierPerformanceDaily.courierId)
       .orderBy(sql`sum(${courierPerformanceDaily.score}) desc`);
 

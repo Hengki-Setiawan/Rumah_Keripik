@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { courierEarnings } from '@/lib/schema';
 import { eq, desc, and, sum, sql } from 'drizzle-orm';
 import { requireCourierAuth } from '@/lib/courier-auth';
+import { witaTodayStartIso } from '@/lib/wita-date';
 
 export async function GET(req: Request) {
   try {
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
     const now = new Date();
     let startDate: string;
     if (period === 'daily') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      startDate = witaTodayStartIso();
     } else if (period === 'weekly') {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);

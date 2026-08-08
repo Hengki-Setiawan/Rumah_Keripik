@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { courierEarnings, courierPerformanceDaily } from '@/lib/schema';
-import { sql, eq, and } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { witaToday } from '@/lib/wita-date';
 
 export const COURIER_BASE_FEE = (() => {
   const raw = process.env.COURIER_BASE_FEE;
@@ -9,7 +10,7 @@ export const COURIER_BASE_FEE = (() => {
 })();
 
 function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return witaToday();
 }
 
 function earningId(): string {

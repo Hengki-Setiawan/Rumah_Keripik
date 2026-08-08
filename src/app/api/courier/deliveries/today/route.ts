@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { deliveryAssignment, transaksi, detailTransaksi, deliveryRoutePoint } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { eq, and, sql } from 'drizzle-orm';
+import { witaToday } from '@/lib/wita-date';
 
 export async function GET(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = witaToday();
 
     const deliveries = await db
       .select({

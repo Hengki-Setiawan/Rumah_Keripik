@@ -23,7 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ ok: false, error: 'ID tidak valid' }, { status: 400 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const parsed = CourierCompleteDeliverySchema.safeParse({ delivery_id: deliveryId, ...body });
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: parsed.error.flatten() }, { status: 400 });

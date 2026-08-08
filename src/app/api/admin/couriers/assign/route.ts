@@ -4,6 +4,7 @@ import { couriers, deliveryAssignment, transaksi } from '@/lib/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireAdminRole } from '@/lib/admin-actor';
 import { sendCourierPushNotification, sendOrderPushNotification } from '@/lib/expo-push';
+import { bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
 import { z } from 'zod';
 
 const AssignSchema = z.object({
@@ -70,9 +71,15 @@ export async function POST(request: Request) {
 
     await sendOrderPushNotification(parsed.data.id_transaksi, 'shipping');
 
+    try {
+      await bumpCourierPerformanceDaily(parsed.data.kurir_id, 'assigned');
+    } catch (perfErr) {
+      console.error('[ADMIN_COURIER_ASSIGN_PERFORMANCE]', perfErr);
+    }
+
     return NextResponse.json({ ok: true, assignment: { id: assignment.id, status: assignment.status } });
-  } catch (error: any) {
-    if (error.message === 'UNAUTHORIZED_ADMIN' || error.message === 'FORBIDDEN_ADMIN_PERMISSION') {
+  } catch (error) {
+    if (error instanceof Error && (error.message === 'UNAUTHORIZED_ADMIN' || error.message === 'FORBIDDEN_ADMIN_PERMISSION')) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 403 });
     }
     console.error('[ADMIN_COURIER_ASSIGN]', error);
