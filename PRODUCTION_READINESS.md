@@ -70,9 +70,10 @@ Run against production:
 ```bash
 curl -H "Authorization: Bearer <CRON_SECRET>" https://your-production-domain/api/cron/worker
 curl -H "Authorization: Bearer <CRON_SECRET>" https://your-production-domain/api/cron/payment-ops
+curl -H "Authorization: Bearer <CRON_SECRET>" https://your-production-domain/api/cron/courier-ops
 ```
 
-Expected: both return JSON with `ok: true`.
+Expected: all return JSON with `ok: true`. `courier-ops` mengagregasi performa harian kurir (`courier_performance_daily` dari `delivery_assignment` di hari WITA) dan mengirim reminder clock-in ke kurir aktif yang belum clock-in.
 
 ## Known External Dependencies
 
