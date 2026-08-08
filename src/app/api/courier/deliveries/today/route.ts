@@ -83,8 +83,7 @@ export async function GET(request: Request) {
       longitude: d.longitude,
       distance_km: d.distance_km,
       notes: d.notes,
-      route_order: d.route_order,
-      items: itemsMap[d.id_transaksi] || [],
+      items: (d.id_transaksi ? itemsMap[d.id_transaksi] : []) || [],
     }));
 
     return NextResponse.json({ ok: true, deliveries: result });
