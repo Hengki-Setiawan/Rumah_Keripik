@@ -1,9 +1,9 @@
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/web';
 import { readFileSync } from 'fs';
 
 async function main() {
   const client = createClient({
-    url: process.env.TURSO_DATABASE_URL!,
+    url: process.env.TURSO_DATABASE_URL!.replace(/^libsql:\/\//, 'https://'),
     authToken: process.env.TURSO_AUTH_TOKEN!,
   });
 

@@ -8,6 +8,7 @@ import { sendOrderPushNotification } from '@/lib/expo-push';
 import { awardPointsForCompletedOrder } from '@/services/loyalty-service';
 import { recordRevenue, ensureDefaultCategories } from '@/services/ledger-service';
 import { insertDeliveryEvent } from '@/lib/courier-event';
+import { recordCourierEarning, bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ ok: false, error: 'ID tidak valid' }, { status: 400 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const parsed = CourierCompleteDeliverySchema.safeParse({ delivery_id: deliveryId, ...body });
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: parsed.error.flatten() }, { status: 400 });
@@ -90,6 +91,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       eventType: 'completed',
       metadata: { id_transaksi: assignment.id_transaksi, signature: signatureData ? 'yes' : 'no' },
     });
+
+    try {
+      await recordCourierEarning({
+        courierId: courier.id,
+        deliveryAssignmentId: deliveryId,
+        orderId: assignment.id_transaksi,
+        note: 'Otomatis dari delivery completed',
+      });
+      await bumpCourierPerformanceDaily(courier.id, 'completed');
+    } catch (earningErr) {
+      console.error('[COURIER_COMPLETE_EARNINGS]', earningErr);
+    }
 
     try {
       await ensureDefaultCategories();

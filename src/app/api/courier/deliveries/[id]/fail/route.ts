@@ -6,6 +6,7 @@ import { CourierFailDeliverySchema } from '@/lib/courier-types';
 import { eq, and } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
 import { insertDeliveryEvent } from '@/lib/courier-event';
+import { bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ ok: false, error: 'ID tidak valid' }, { status: 400 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const parsed = CourierFailDeliverySchema.safeParse({ delivery_id: deliveryId, ...body });
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: parsed.error.flatten() }, { status: 400 });
@@ -86,6 +87,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       eventType: 'failed',
       metadata: { id_transaksi: assignment.id_transaksi, reason: parsed.data.reason, notes: parsed.data.notes },
     });
+
+    try {
+      await bumpCourierPerformanceDaily(courier.id, 'failed');
+    } catch (perfErr) {
+      console.error('[COURIER_FAIL_PERFORMANCE]', perfErr);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

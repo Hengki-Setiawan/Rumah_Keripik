@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { couriers } from '@/lib/schema';
+import { couriers, courierLocations } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierLocationBatchSchema } from '@/lib/courier-types';
 import { eq } from 'drizzle-orm';
@@ -30,6 +30,18 @@ export async function POST(request: Request) {
         updated_at: now,
       })
       .where(eq(couriers.id, courier.id));
+
+    await db.insert(courierLocations).values(
+      parsed.data.locations.map((loc) => ({
+        courierId: courier.id,
+        lat: String(loc.lat),
+        lng: String(loc.lng),
+        accuracy: loc.accuracy ?? null,
+        speed: loc.speed ?? null,
+        recordedAt: new Date(loc.timestamp).toISOString(),
+        receivedAt: now,
+      }))
+    );
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -4,6 +4,7 @@ import { couriers, deliveryAssignment, transaksi, deliveryEvents } from '@/lib/s
 import { eq, and } from 'drizzle-orm';
 import { requireAdminRole } from '@/lib/admin-actor';
 import { sendCourierPushNotification, sendOrderPushNotification } from '@/lib/expo-push';
+import { bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
 import { z } from 'zod';
 
 const ReassignSchema = z.object({
@@ -95,6 +96,12 @@ export async function POST(request: Request) {
     }
 
     await sendOrderPushNotification(assignment.id_transaksi, 'shipping').catch(() => {});
+
+    try {
+      await bumpCourierPerformanceDaily(target.id, 'assigned');
+    } catch (perfErr) {
+      console.error('[ADMIN_DISPATCH_REASSIGN_PERFORMANCE]', perfErr);
+    }
 
     return NextResponse.json({
       ok: true,

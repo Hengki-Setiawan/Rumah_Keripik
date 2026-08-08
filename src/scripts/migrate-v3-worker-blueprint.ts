@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/web';
 
 function loadEnvLocal() {
   const envPath = path.join(process.cwd(), '.env.local');

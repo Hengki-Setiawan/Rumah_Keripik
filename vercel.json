@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/worker",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/courier-ops",
+      "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/cron/courier-ops",
+      "schedule": "30 1 * * *"
     }
   ]
 }

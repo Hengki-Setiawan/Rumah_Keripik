@@ -17,7 +17,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/web';
 
 function loadEnvLocal() {
   const envPath = path.join(process.cwd(), '.env.local');
@@ -45,7 +45,7 @@ async function main() {
   try {
     // 1. Restore ke staging
     console.log(`[DR] Memulai restore dari snapshot ${snapshotId} ke staging...`);
-    const stagingClient = createClient({ url: stagingUrl, authToken: stagingToken });
+    const stagingClient = createClient({ url: stagingUrl.replace(/^libsql:\/\//, 'https://'), authToken: stagingToken });
 
     // 2. Verifikasi data
     const tableCount = await stagingClient.execute("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table'");

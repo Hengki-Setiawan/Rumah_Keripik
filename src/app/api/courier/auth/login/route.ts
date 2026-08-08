@@ -98,7 +98,8 @@ export async function POST(req: Request) {
         name: courier.name,
         phone: courier.phone,
         vehicle: courier.vehicle,
-        platNo: courier.plat_no,
+        plat_no: courier.plat_no,
+        is_active: courier.is_active,
         photo_url: courier.photo_url,
       },
     });

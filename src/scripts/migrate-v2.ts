@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/web';
 
 // Helper to manually load environment variables from .env.local
 function loadEnvLocal() {
