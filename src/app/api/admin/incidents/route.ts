@@ -8,6 +8,7 @@ import { getAdminActor } from '@/lib/admin-actor';
 import { sendCourierPushNotification } from '@/lib/expo-push';
 
 const UpdateSchema = z.object({
+  id: z.number().int().positive(),
   status: z.enum(['open', 'acknowledged', 'resolved', 'false_alarm']),
   resolutionNote: z.string().max(1000).optional(),
 });
@@ -64,9 +65,7 @@ export async function PATCH(req: Request) {
     const body = UpdateSchema.safeParse(await req.json());
     if (!body.success) return NextResponse.json({ ok: false, error: 'Data tidak valid' }, { status: 400 });
 
-    const { id } = await req.json().catch(() => ({})) as { id?: number };
-    if (!id) return NextResponse.json({ ok: false, error: 'ID wajib diisi' }, { status: 400 });
-
+    const id = body.data.id;
     const [existing] = await db.select().from(sosIncidents).where(eq(sosIncidents.id, id)).limit(1);
     if (!existing) return NextResponse.json({ ok: false, error: 'Insiden tidak ditemukan' }, { status: 404 });
 

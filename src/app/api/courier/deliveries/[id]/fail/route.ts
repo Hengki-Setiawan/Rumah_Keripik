@@ -6,6 +6,7 @@ import { CourierFailDeliverySchema } from '@/lib/courier-types';
 import { eq, and } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
 import { insertDeliveryEvent } from '@/lib/courier-event';
+import { bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -86,6 +87,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       eventType: 'failed',
       metadata: { id_transaksi: assignment.id_transaksi, reason: parsed.data.reason, notes: parsed.data.notes },
     });
+
+    try {
+      await bumpCourierPerformanceDaily(courier.id, 'failed');
+    } catch (perfErr) {
+      console.error('[COURIER_FAIL_PERFORMANCE]', perfErr);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
