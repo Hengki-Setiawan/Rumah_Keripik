@@ -49,12 +49,14 @@ export async function GET(request: Request) {
 
     const items = await Promise.all(
       deliveries.map(async (d) => {
+        if (!d.id_transaksi) return { id_transaksi: '', items: [] };
+        const idTx: string = d.id_transaksi;
         const detailItems = await db
           .select()
           .from(detailTransaksi)
-          .where(eq(detailTransaksi.id_transaksi, d.id_transaksi));
+          .where(eq(detailTransaksi.id_transaksi, idTx));
         return {
-          id_transaksi: d.id_transaksi,
+          id_transaksi: idTx,
           items: detailItems.map((item) => ({
             name: item.nama_produk_snapshot || item.id_produk,
             quantity: item.qty_terjual,
