@@ -30,19 +30,19 @@ export async function GET(request: Request) {
         distance_km: transaksi.jarak_km_dari_gudang,
         route_order: deliveryRoutePoint.sequence_no,
       })
-      .from(deliveryAssignment)
-      .innerJoin(transaksi, eq(deliveryAssignment.id_transaksi, transaksi.id_transaksi))
+      .from(transaksi)
+      .leftJoin(deliveryAssignment, eq(transaksi.id_transaksi, deliveryAssignment.id_transaksi))
       .leftJoin(
         deliveryRoutePoint,
         and(
-          eq(deliveryRoutePoint.id_transaksi, deliveryAssignment.id_transaksi),
+          eq(deliveryRoutePoint.id_transaksi, transaksi.id_transaksi),
           eq(deliveryRoutePoint.route_date, today)
         )
       )
       .where(
         and(
-          eq(deliveryAssignment.kurir_id, courier.id),
-          sql`${deliveryAssignment.created_at} LIKE ${today + '%'}`
+          sql`${transaksi.order_status} IN ('ready', 'confirmed', 'shipping', 'awaiting_admin_confirmation', 'Menunggu_Verifikasi')`,
+          sql`(${deliveryAssignment.kurir_id} IS NULL OR ${deliveryAssignment.kurir_id} = ${courier.id})`
         )
       )
       .orderBy(deliveryRoutePoint.sequence_no);
