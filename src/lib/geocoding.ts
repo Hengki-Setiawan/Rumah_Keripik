@@ -70,10 +70,35 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
 
 /**
  * Forward geocoding: textual address -> coordinates
+ *
+ * NOTE: bisnis berpusat di Makassar, Sulawesi Selatan (gudang -5.1340, 119.4135).
+ * Bug lama menambahkan "Kalimantan Timur" sehingga hampir semua alamat di-geocode
+ * ke provinsi yang salah / gagal. Region diturunkan dari isi alamat, fallback Sulsel.
  */
+function geocodeRegion(address: string): string {
+  const lower = address.toLowerCase();
+  if (lower.includes('sulawesi selatan') || lower.includes('sulsel')) {
+    return 'Sulawesi Selatan, Indonesia';
+  }
+  // Kota/kabupaten utama sekitar gudang -> pastikan tetap di Sulsel.
+  if (
+    lower.includes('makassar') ||
+    lower.includes('gowa') ||
+    lower.includes('maros') ||
+    lower.includes('takalar') ||
+    lower.includes('pangkep') ||
+    lower.includes('sungguminasa') ||
+    lower.includes('biringkanaya') ||
+    lower.includes('panakkukang')
+  ) {
+    return 'Sulawesi Selatan, Indonesia';
+  }
+  return 'Sulawesi Selatan, Indonesia';
+}
+
 export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    const query = `${address}, Kalimantan Timur, Indonesia`;
+    const query = `${address}, ${geocodeRegion(address)}`;
     const cached = await getCachedGeocode(query);
     if (cached?.lat && cached.lng) {
       const lat = Number(cached.lat);
