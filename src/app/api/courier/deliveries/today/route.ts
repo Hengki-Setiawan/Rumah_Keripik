@@ -3,7 +3,32 @@ import { db } from '@/lib/db';
 import { deliveryAssignment, transaksi, detailTransaksi, deliveryRoutePoint } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { eq, and, sql } from 'drizzle-orm';
-import { witaToday } from '@/lib/wita-date';
+import { witaToday, witaTodayStartIso } from '@/lib/wita-date';
+
+// Area operasional: radius sekitar gudang Makassar (-5.1340, 119.4135).
+// Filter ini menyingkirkan data sampah/smoke-test dari kota lain (Samarinda, Jakarta, dll)
+// yang selama ini mencemari daftar "Rute Hari Ini".
+const GUDANG_LAT = -5.1340;
+const GUDANG_LNG = 119.4135;
+const MAX_DELIVERY_KM = 60;
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function inServiceArea(lat: string | null, lng: string | null): boolean {
+  if (!lat || !lng) return false;
+  const la = Number(lat);
+  const ln = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(ln)) return false;
+  return haversineKm(la, ln, GUDANG_LAT, GUDANG_LNG) <= MAX_DELIVERY_KM;
+}
 
 export async function GET(request: Request) {
   try {
@@ -42,7 +67,7 @@ export async function GET(request: Request) {
       .where(
         and(
           sql`${transaksi.order_status} IN ('ready', 'confirmed', 'shipping', 'awaiting_admin_confirmation', 'Menunggu_Verifikasi')`,
-          sql`(${deliveryAssignment.kurir_id} IS NULL OR ${deliveryAssignment.kurir_id} = ${courier.id})`
+          sql`(${deliveryAssignment.kurir_id} = ${courier.id} OR (${deliveryAssignment.kurir_id} IS NULL AND ${transaksi.waktu_simpan} >= ${witaTodayStartIso()}))`
         )
       )
       .orderBy(deliveryRoutePoint.sequence_no);
@@ -70,21 +95,23 @@ export async function GET(request: Request) {
       items.map((i) => [i.id_transaksi, i.items])
     );
 
-    const result = deliveries.map((d) => ({
-      id: d.id,
-      id_transaksi: d.id_transaksi,
-      kode_pesanan: d.kode_pesanan,
-      status: d.status,
-      created_at: d.created_at,
-      customer_name: d.customer_name || '',
-      customer_phone: d.customer_phone || '',
-      address: d.address || '',
-      latitude: d.latitude,
-      longitude: d.longitude,
-      distance_km: d.distance_km,
-      notes: d.notes,
-      items: (d.id_transaksi ? itemsMap[d.id_transaksi] : []) || [],
-    }));
+    const result = deliveries
+      .filter((d) => inServiceArea(d.latitude, d.longitude))
+      .map((d) => ({
+        id: d.id,
+        id_transaksi: d.id_transaksi,
+        kode_pesanan: d.kode_pesanan,
+        status: d.status,
+        created_at: d.created_at,
+        customer_name: d.customer_name || '',
+        customer_phone: d.customer_phone || '',
+        address: d.address || '',
+        latitude: d.latitude,
+        longitude: d.longitude,
+        distance_km: d.distance_km,
+        notes: d.notes,
+        items: (d.id_transaksi ? itemsMap[d.id_transaksi] : []) || [],
+      }));
 
     return NextResponse.json({ ok: true, deliveries: result });
   } catch (error) {
