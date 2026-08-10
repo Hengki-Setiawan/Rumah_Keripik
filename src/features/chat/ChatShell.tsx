@@ -23,6 +23,7 @@ export function ChatShell() {
   const [started, setStarted] = useState(false);
   const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
   const [stage, setStage] = useState<string>('idle');
+  const [draft, setDraft] = useState('');
   const autoStarted = useRef(false);
 
   const loadSessions = useCallback(async () => {
@@ -452,7 +453,13 @@ export function ChatShell() {
                     transition={{ duration: 0.42, ease: 'easeOut', delay: 0.08 }}
                     className="mx-auto mt-8 w-full max-w-4xl"
                   >
-                    <ChatComposer disabled={loading || sending} onSend={sendMessage} idle />
+                    <ChatComposer
+                      disabled={loading || sending}
+                      value={draft}
+                      onValueChange={setDraft}
+                      onSend={sendMessage}
+                      idle
+                    />
                   </motion.div>
                 ) : null
               }
@@ -486,7 +493,12 @@ export function ChatShell() {
                       </button>
                     </div>
                   ) : (
-                    <ChatComposer disabled={loading || sending || !chatSessionId} onSend={sendMessage} />
+                    <ChatComposer
+                      disabled={loading || sending || !chatSessionId}
+                      value={draft}
+                      onValueChange={setDraft}
+                      onSend={sendMessage}
+                    />
                   )}
                 </div>
                 </motion.div>
