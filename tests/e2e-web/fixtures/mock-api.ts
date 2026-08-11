@@ -1,4 +1,4 @@
-import type { Page, Route } from '@playwright/test';
+import { expect, type Page, type Route } from '@playwright/test';
 import { mockGreetingMessage, mockChatSession, mockProducts, mockPaymentMethods } from '../mocks/handlers';
 
 const cartData = { id: 'cart-mock', items: [{ id: 'item-1', productId: 'prod-1', productName: 'Kripik Balado', quantity: 2, unitPrice: 15000 }], itemCount: 1, total: 30000 };

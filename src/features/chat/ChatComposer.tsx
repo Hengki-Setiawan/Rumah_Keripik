@@ -1,24 +1,26 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent } from 'react';
 import { Loader2, SendHorizonal, Sparkles } from 'lucide-react';
 
 export function ChatComposer({
   disabled,
   idle = false,
+  value,
+  onValueChange,
   onSend,
 }: {
   disabled?: boolean;
   idle?: boolean;
+  value: string;
+  onValueChange: (value: string) => void;
   onSend: (message: string) => Promise<void> | void;
 }) {
-  const [message, setMessage] = useState('');
-
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const text = message.trim();
+    const text = value.trim();
     if (!text || disabled) return;
-    setMessage('');
+    onValueChange('');
     await onSend(text);
   }
 
@@ -38,8 +40,8 @@ export function ChatComposer({
         <div className="min-w-0 flex-1">
           <textarea
             data-testid="chat-input"
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
+            value={value}
+            onChange={(event) => onValueChange(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -55,7 +57,7 @@ export function ChatComposer({
         <button
           type="submit"
           data-testid="chat-send-button"
-          disabled={disabled || !message.trim()}
+          disabled={disabled || !value.trim()}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#c55a2b] text-white shadow-[0_12px_28px_rgba(197,90,43,0.16)] transition hover:scale-[1.02] hover:bg-[#ae4d23] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c55a2b]/20 disabled:cursor-not-allowed disabled:bg-[#d8c8b8] disabled:shadow-none md:h-11 md:w-11"
           aria-label="Kirim pesan"
         >
