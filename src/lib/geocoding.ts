@@ -2,6 +2,10 @@ import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { geocodeCache } from './schema';
 import { isValidCoordinate } from './location-parser';
+import { orsGeocode } from '@/lib/courier/ors';
+
+const WAREHOUSE_LAT = -5.134;
+const WAREHOUSE_LNG = 119.4135;
 
 const GEOCODING_CACHE = new Map<string, string>();
 
@@ -106,6 +110,26 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
       if (isValidCoordinate(lat, lng)) return { lat, lng };
     }
 
+    // 1) ORS Geocoding (Pelias) — primary. Dibias ke area gudang Makassar,
+    //    dibatasi negara ID supaya "Kalimantan Timur"-style false-positive
+    //    (bug lama Nominatim) tidak terulang.
+    const orsHits = await orsGeocode(address, {
+      focus: { lat: WAREHOUSE_LAT, lng: WAREHOUSE_LNG },
+      country: 'ID',
+      limit: 1,
+    });
+    if (orsHits.length > 0) {
+      const hit = orsHits[0];
+      await saveGeocodeCache(query, {
+        lat: hit.lat,
+        lng: hit.lng,
+        formatted_address: hit.label || address,
+        raw_json: JSON.stringify({ source: 'ors-pelias', confidence: hit.confidence }),
+      });
+      return { lat: hit.lat, lng: hit.lng };
+    }
+
+    // 2) Fallback: Nominatim (regions sudah dipin ke Sulsel).
     const encoded = encodeURIComponent(query);
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`;
     
@@ -137,6 +161,35 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
     console.warn('[Geocoding] Forward geocoding error:', err);
     return null;
   }
+}
+
+/**
+ * Resolve koordinat order. Jika pelanggan sudah memberi lat/lng (pin maps /
+ * GPS) langsung dipakai; jika tidak, otomatis geocode dari teks alamat.
+ * Berjalan di luar transaksi sehingga kegagalan geocoding tidak menggagalkan
+ * pembuatan order — order tetap tersimpan, koordinat diisi belakangan (backfill).
+ */
+export async function resolveOrderCoordinates(
+  addressText: string,
+  lat?: string | null,
+  lng?: string | null,
+): Promise<{ lat: string | null; lng: string | null; source: 'manual' | 'gps' | 'geocoded' }> {
+  const hasExplicit = lat && lng && isValidCoordinate(Number(lat), Number(lng));
+  if (hasExplicit) {
+    return { lat, lng, source: 'manual' };
+  }
+  if (!addressText || addressText.trim().length === 0) {
+    return { lat: null, lng: null, source: 'manual' };
+  }
+  try {
+    const hit = await geocodeAddress(addressText.trim());
+    if (hit) {
+      return { lat: String(hit.lat), lng: String(hit.lng), source: 'geocoded' };
+    }
+  } catch {
+    // silent — order tetap jalan tanpa koordinat
+  }
+  return { lat: null, lng: null, source: 'manual' };
 }
 
 async function getCachedGeocode(query: string) {

@@ -23,6 +23,7 @@ import { buildPaymentInstructionPayload, generatePaymentIntentId } from '@/lib/p
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
 import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
+import { resolveOrderCoordinates } from '@/lib/geocoding';
 
 export const runtime = 'nodejs';
 
@@ -71,8 +72,15 @@ export async function POST(req: Request) {
     const normalizedPhone = normalizePhoneNumber(payload.customer.phone);
     const customerId = buildCustomerId(payload.source, payload.chatId, normalizedPhone);
     const channel = customerId.startsWith('tg_') ? 'telegram' : 'wa';
-    const lat = parseCoordinate(payload.address.lat);
-    const lng = parseCoordinate(payload.address.lng);
+    // Koordinat: pin maps/GPS jika ada; jika tidak, otomatis geocode dari teks
+    // alamat (ORS Geocoding primary, Nominatim fallback).
+    const resolved = await resolveOrderCoordinates(
+      payload.address.text,
+      parseCoordinate(payload.address.lat),
+      parseCoordinate(payload.address.lng),
+    );
+    const lat = resolved.lat;
+    const lng = resolved.lng;
     const ids = [...new Set(payload.items.map((item) => item.id_produk))];
 
     const result = await db.transaction(async (tx) => {
