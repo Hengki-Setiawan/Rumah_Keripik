@@ -1,4 +1,4 @@
-import { eq, and, gte, sum, sql } from 'drizzle-orm';
+import { eq, and, gte, sum } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { aiRuns, aiBudgetConfig, botSetting } from '@/lib/schema';
 import { generateIdAiRun } from '@/lib/id-generator';
@@ -7,7 +7,13 @@ import { getCachedData, setCachedData } from '@/lib/redis-cache';
 import { generateGeminiText } from '@/lib/gemini';
 import { callOpenAICompatibleProvider } from './openai-compatible';
 import { sanitizeMessages } from '@/lib/ai/data-sanitizer';
-import type { AIModelTaskConfig, AIProviderConfig, GenerateTextInput, GenerateTextResult } from './provider-types';
+import {
+  getBanditConfig,
+  getBanditState,
+  rankProvidersByBandit,
+  recordBanditOutcome,
+} from '@/lib/ai/bandit';
+import type { AIModelTaskConfig, AITask, AIProviderConfig, GenerateTextInput, GenerateTextResult } from './provider-types';
 
 export const defaultProviderConfigs: AIProviderConfig[] = [
   { id: 'deterministic', name: 'deterministic', enabled: true, apiKeyEnv: '', defaultModel: 'template', supportsToolCalling: false, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 180, priority: 99 },
@@ -107,7 +113,8 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
   const id = generateIdAiRun();
   const { providerConfigs, taskConfigs } = await loadRouterConfig();
   const taskConfig = taskConfigs.find((item) => item.task === input.task) || defaultTaskConfigs.find((item) => item.task === input.task);
-  const providerOrder = taskConfig ? [taskConfig.primaryProviderId, ...taskConfig.fallbackProviderIds] : ['groq', 'gemini', 'deterministic'];
+  const baseProviderOrder = taskConfig ? [taskConfig.primaryProviderId, ...taskConfig.fallbackProviderIds] : ['groq', 'gemini', 'deterministic'];
+  const providerOrder = await rankProvidersByTask(input.task, baseProviderOrder);
   const maxTokens = input.maxTokens || taskConfig?.maxOutputTokens || 180;
   const temperature = input.temperature ?? taskConfig?.temperature ?? 0.2;
 
@@ -138,12 +145,14 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
       console.warn(`[BUDGET] Skipping ${providerId} (budget exhausted)`);
       continue;
     }
+    const attemptStarted = Date.now();
     try {
       if (provider.name === 'groq') {
         const result = await callGroqLLM(sanitizedMessages, maxTokens, temperature, input.systemPrompt);
         const routed = { text: result.text, provider: result.provider, model: result.model || provider.defaultModel, tokensUsed: result.tokensUsed };
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
+        recordBandit(input.task, providerId, true, 'success', Date.now() - attemptStarted, providerOrder);
         if (cacheKey) {
           localPromptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
           setCachedData(`prompt:${cacheKey}`, routed, 60).catch(() => {});
@@ -154,6 +163,7 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         const routed = await generateGeminiText(sanitizedMessages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
+        recordBandit(input.task, providerId, true, 'success', Date.now() - attemptStarted, providerOrder);
         if (cacheKey) {
           localPromptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
           setCachedData(`prompt:${cacheKey}`, routed, 60).catch(() => {});
@@ -164,6 +174,7 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         const routed = await callOpenAICompatibleProvider(provider, { ...input, messages: sanitizedMessages }, maxTokens, temperature);
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
+        recordBandit(input.task, providerId, true, 'success', Date.now() - attemptStarted, providerOrder);
         return routed;
       }
       if (provider.name === 'deterministic') {
@@ -173,6 +184,7 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
       }
     } catch (error) {
       recordFailure(providerId);
+      recordBandit(input.task, providerId, false, 'error', Date.now() - attemptStarted, providerOrder);
       await logRun(id, input, { text: '', provider: provider.name, model: provider.defaultModel }, Date.now() - started, 'error', error instanceof Error ? error.message : 'AI provider error');
     }
   }
@@ -240,4 +252,46 @@ async function logRun(id: string, input: GenerateTextInput, result: GenerateText
   } catch {
     // AI logging must never break chat.
   }
+}
+
+/**
+ * RL — urutkan provider untuk sebuah task: bandit Thompson sampling jika
+ * ada state, fallback ke hierarki statis jika GAGAL baca state. Selalu
+ * mempertahankan 'deterministic' di urutan paling akhir sebagai jaring
+ * pengaman, sehingga fallback manual admin TIDAK diacak.
+ */
+async function rankProvidersByTask(task: AITask, baseOrder: string[]): Promise<string[]> {
+  try {
+    const config = await getBanditConfig();
+    if (!config.enabled || baseOrder.length <= 1) return baseOrder;
+
+    const state = await getBanditState();
+    // Mulai dari hierarki statis (primary/fallback admin) lalu biarkan bandit
+    // menggeser di antara provider nyata. Deterministic selalu di akhir.
+    const ranked = rankProvidersByBandit(task, baseOrder, state, config);
+
+    const detAt = ranked.indexOf('deterministic');
+    if (detAt >= 0 && detAt !== ranked.length - 1) {
+      const withoutDet = ranked.filter((p) => p !== 'deterministic');
+      withoutDet.push('deterministic');
+      return withoutDet;
+    }
+    return ranked;
+  } catch {
+    return baseOrder;
+  }
+}
+
+/** RL — fire-and-forget pencatatan hasil satu attempt ke bandit. */
+function recordBandit(task: AITask, provider: string, success: boolean, status: 'success' | 'error' | 'fallback', latencyMs: number, candidates: string[]) {
+  recordBanditOutcome({
+    task,
+    provider,
+    success,
+    status,
+    latencyMs,
+    candidateProviders: candidates,
+  }).catch(() => {
+    // bandit must never break chat
+  });
 }
