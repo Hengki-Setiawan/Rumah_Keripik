@@ -4,30 +4,19 @@ import { deliveryAssignment, transaksi, detailTransaksi, deliveryRoutePoint } fr
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { eq, and, sql } from 'drizzle-orm';
 import { witaToday, witaTodayStartIso } from '@/lib/wita-date';
+import { haversineKm } from '@/lib/courier-distance';
 
-// Area operasional: radius sekitar gudang Makassar (-5.1340, 119.4135).
-// Filter ini menyingkirkan data sampah/smoke-test dari kota lain (Samarinda, Jakarta, dll)
-// yang selama ini mencemari daftar "Rute Hari Ini".
-const GUDANG_LAT = -5.1340;
-const GUDANG_LNG = 119.4135;
+// Semua pusat area & jarak WAJIB dari posisi GPS realtime kurir (couriers.last_lat/lng),
+// BUKAN dari gudang/pusat bisnis. Tanpa GPS kurir, tidak ada filter area yang diterapkan
+// pada kandidat baru (hanya hygiene null-koordinat).
 const MAX_DELIVERY_KM = 60;
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-function inServiceArea(lat: string | null, lng: string | null): boolean {
+function inServiceArea(lat: string | null, lng: string | null, centerLat: number, centerLng: number): boolean {
   if (!lat || !lng) return false;
   const la = Number(lat);
   const ln = Number(lng);
   if (!Number.isFinite(la) || !Number.isFinite(ln)) return false;
-  return haversineKm(la, ln, GUDANG_LAT, GUDANG_LNG) <= MAX_DELIVERY_KM;
+  return haversineKm(la, ln, centerLat, centerLng) <= MAX_DELIVERY_KM;
 }
 
 export async function GET(request: Request) {
@@ -36,6 +25,16 @@ export async function GET(request: Request) {
     if (!courier) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Pusat area + jarak WAJIB dari GPS realtime kurir (couriers.last_lat/lng).
+    // Tanpa fix GPS: tidak ada pusat area — semua kandidat baru yang punya
+    // koordinat ditampilkan apa adanya (filter radius dinonaktifkan), jarak = null.
+    const centerLat = Number(courier.last_lat);
+    const centerLng = Number(courier.last_lng);
+    const hasGpsFix =
+      Number.isFinite(centerLat) && Number.isFinite(centerLng) && !(centerLat === 0 && centerLng === 0);
+    const areaLat = hasGpsFix ? centerLat : 0;
+    const areaLng = hasGpsFix ? centerLng : 0;
 
     const today = witaToday();
 
@@ -52,7 +51,6 @@ export async function GET(request: Request) {
         address: transaksi.alamat_penerima,
         latitude: transaksi.lat_pengiriman,
         longitude: transaksi.lng_pengiriman,
-        distance_km: transaksi.jarak_km_dari_gudang,
         route_order: deliveryRoutePoint.sequence_no,
       })
       .from(transaksi)
@@ -96,22 +94,39 @@ export async function GET(request: Request) {
     );
 
     const result = deliveries
-      .filter((d) => inServiceArea(d.latitude, d.longitude))
-      .map((d) => ({
-        id: d.id,
-        id_transaksi: d.id_transaksi,
-        kode_pesanan: d.kode_pesanan,
-        status: d.status,
-        created_at: d.created_at,
-        customer_name: d.customer_name || '',
-        customer_phone: d.customer_phone || '',
-        address: d.address || '',
-        latitude: d.latitude,
-        longitude: d.longitude,
-        distance_km: d.distance_km,
-        notes: d.notes,
-        items: (d.id_transaksi ? itemsMap[d.id_transaksi] : []) || [],
-      }));
+      .filter((d) => {
+        // Pesanan yang SUDAH di-assign ke kurir ini WAJIB tampil apa pun koordinatnya
+        // (banyak transaksi lama tidak punya lat/lng). Hanya kandidat baru yang belum
+        // di-assign yang disaring radius operasional di sekitar GPS kurir.
+        if (d.id != null) return true;
+        if (!hasGpsFix) return true;
+        if (!d.latitude || !d.longitude) return true;
+        return inServiceArea(d.latitude, d.longitude, areaLat, areaLng);
+      })
+      .map((d) => {
+        const dlLat = Number(d.latitude);
+        const dlLng = Number(d.longitude);
+        const hasDeliveryCoord =
+          Number.isFinite(dlLat) && Number.isFinite(dlLng) && !(dlLat === 0 && dlLng === 0);
+        const distance_km = hasGpsFix && hasDeliveryCoord
+          ? String(Math.round(haversineKm(centerLat, centerLng, dlLat, dlLng) * 10) / 10)
+          : null;
+        return {
+          id: d.id,
+          id_transaksi: d.id_transaksi,
+          kode_pesanan: d.kode_pesanan,
+          status: d.status,
+          created_at: d.created_at,
+          customer_name: d.customer_name || '',
+          customer_phone: d.customer_phone || '',
+          address: d.address || '',
+          latitude: d.latitude,
+          longitude: d.longitude,
+          distance_km,
+          notes: d.notes,
+          items: (d.id_transaksi ? itemsMap[d.id_transaksi] : []) || [],
+        };
+      });
 
     return NextResponse.json({ ok: true, deliveries: result });
   } catch (error) {

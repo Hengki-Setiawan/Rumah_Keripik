@@ -4,8 +4,8 @@ import { geocodeCache } from './schema';
 import { isValidCoordinate } from './location-parser';
 import { orsGeocode } from '@/lib/courier/ors';
 
-const WAREHOUSE_LAT = -5.134;
-const WAREHOUSE_LNG = 119.4135;
+const MAKASSAR_CENTER_LAT = -5.134;
+const MAKASSAR_CENTER_LNG = 119.4135;
 
 const GEOCODING_CACHE = new Map<string, string>();
 
@@ -75,7 +75,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
 /**
  * Forward geocoding: textual address -> coordinates
  *
- * NOTE: bisnis berpusat di Makassar, Sulawesi Selatan (gudang -5.1340, 119.4135).
+ * NOTE: bisnis berpusat di Makassar, Sulawesi Selatan (pusat area -5.1340, 119.4135).
  * Bug lama menambahkan "Kalimantan Timur" sehingga hampir semua alamat di-geocode
  * ke provinsi yang salah / gagal. Region diturunkan dari isi alamat, fallback Sulsel.
  */
@@ -84,7 +84,7 @@ function geocodeRegion(address: string): string {
   if (lower.includes('sulawesi selatan') || lower.includes('sulsel')) {
     return 'Sulawesi Selatan, Indonesia';
   }
-  // Kota/kabupaten utama sekitar gudang -> pastikan tetap di Sulsel.
+  // Kota/kabupaten utama sekitar pusat area -> pastikan tetap di Sulsel.
   if (
     lower.includes('makassar') ||
     lower.includes('gowa') ||
@@ -114,7 +114,7 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
     //    dibatasi negara ID supaya "Kalimantan Timur"-style false-positive
     //    (bug lama Nominatim) tidak terulang.
     const orsHits = await orsGeocode(address, {
-      focus: { lat: WAREHOUSE_LAT, lng: WAREHOUSE_LNG },
+      focus: { lat: MAKASSAR_CENTER_LAT, lng: MAKASSAR_CENTER_LNG },
       country: 'ID',
       limit: 1,
     });

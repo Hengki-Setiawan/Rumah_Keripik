@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/brand/BrandLogo';
-import { LayoutDashboard, Menu, PackageSearch, Sparkles, X } from 'lucide-react';
-import type { ChatCartDto, ChatMessageDto, CustomerContextDto } from '@/lib/chat-v3/types';
+import { LayoutDashboard, Menu, MessageSquare, PackageSearch, Sparkles, X } from 'lucide-react';
+import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatComposer } from './ChatComposer';
 import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
@@ -24,7 +24,12 @@ export function ChatShell() {
   const [sessionLoadingId, setSessionLoadingId] = useState<string | null>(null);
   const [stage, setStage] = useState<string>('idle');
   const [draft, setDraft] = useState('');
-  const autoStarted = useRef(false);
+
+
+  // Sesi lama yang bisa di-resume — ditampilkan sebagai chip elegan
+  const [resumableSession, setResumableSession] = useState<{ id: string; preview: string } | null>(null);
+  // Session ID yang sudah siap dipakai (diinisialisasi) tapi belum "started"
+  const pendingSessionIdRef = useRef<string>('');
 
   const loadSessions = useCallback(async () => {
     const response = await fetch('/api/chat/sessions');
@@ -34,6 +39,11 @@ export function ChatShell() {
     return loadedSessions as ChatSessionSummary[];
   }, []);
 
+  /**
+   * Bootstrap: siapkan sesi di background.
+   * TIDAK memuat pesan lama ke layar dan TIDAK memicu auto-greeting.
+   * Hero tetap tampil sampai user berinteraksi.
+   */
   async function bootstrap(forceNew = false) {
     setLoading(true);
     const response = await fetch('/api/customer/session', {
@@ -46,92 +56,49 @@ export function ChatShell() {
 
     const sessionMessages: ChatMessageDto[] = data.messages || [];
     const sessionCart: ChatCartDto | null = data.cart || null;
-    const customerCtx: CustomerContextDto | null = data.customerContext || null;
 
+    pendingSessionIdRef.current = data.chatSession.id;
     setChatSessionId(data.chatSession.id);
-    setMessages(sessionMessages);
     setCart(sessionCart);
-    setStarted(sessionMessages.length > 0);
     setStage(data.chatSession.stage || 'idle');
-    setSidebarOpen(false);
     setLoading(false);
     loadSessions().catch(() => undefined);
 
-    // Auto-greeting saat sesi baru dan belum ada pesan
-    // (skip saat ?e2e=1 agar idle products tetap stabil untuk E2E deterministik)
-    const isE2E = new URLSearchParams(window.location.search).has('e2e');
-    if (sessionMessages.length === 0 && !forceNew && !isE2E) {
-      triggerAutoGreeting(data.chatSession.id, customerCtx, sessionCart);
-    }
-    // Deteksi cart lama saat sesi baru dibuat dengan forceNew
-    if (forceNew && sessionCart && sessionCart.itemCount > 0) {
-      triggerCartCarryoverNotice(data.chatSession.id, sessionCart);
+    // Jika ada sesi lama dengan pesan, tawarkan sebagai chip "Lanjutkan"
+    if (sessionMessages.length > 0 && !forceNew) {
+      const lastMsg = sessionMessages[sessionMessages.length - 1];
+      const preview = lastMsg?.content?.slice(0, 60) || 'Chat sebelumnya';
+      setResumableSession({ id: data.chatSession.id, preview });
     }
 
     return data.chatSession.id as string;
   }
 
-  async function ensureSession(forceNew = false) {
-    if (chatSessionId && !forceNew) return chatSessionId;
+  async function ensureSession(forceNew = false): Promise<string> {
+    if (pendingSessionIdRef.current && !forceNew) return pendingSessionIdRef.current;
     return bootstrap(forceNew);
   }
 
-  async function triggerAutoGreeting(sessionId: string, ctx: CustomerContextDto | null, currentCart: ChatCartDto | null) {
-    // Cegah double-trigger
-    if (autoStarted.current) return;
-    autoStarted.current = true;
-    try {
-      const response = await fetch('/api/chat/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatSessionId: sessionId,
-          action: ctx?.customer ? 'auto_greet_returning' : 'auto_greet_new',
-          payload: { hasCart: (currentCart?.itemCount ?? 0) > 0 },
-        }),
-      });
-      const data = await response.json();
-      if (data.ok) {
-        setMessages(data.messages || []);
-        setCart(data.cart || null);
-        setStarted((data.messages || []).length > 0);
-      }
-    } catch {
-      // Greeting gagal tidak block user
-      autoStarted.current = false;
-    }
-  }
-
-  async function triggerCartCarryoverNotice(sessionId: string, existingCart: ChatCartDto) {
-    try {
-      const response = await fetch('/api/chat/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatSessionId: sessionId,
-          action: 'cart_carryover_notice',
-          payload: { itemCount: existingCart.itemCount },
-        }),
-      });
-      const data = await response.json();
-      if (data.ok) {
-        setMessages(data.messages || []);
-        setCart(data.cart || null);
-        setStarted((data.messages || []).length > 0);
-      }
-    } catch {
-      // Non-blocking
-    }
-  }
-
+  /** User memilih "Mulai Baru" — kembali ke hero, user yang mulai duluan */
   async function startNewOrder() {
     setError('');
+    setResumableSession(null);
+    setMessages([]);
+    setCart(null);
+    setStarted(false);
     try {
-      await ensureSession(true);
+      await bootstrap(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chat belum bisa dimuat. Coba refresh halaman.');
       setLoading(false);
     }
+  }
+
+  /** User mengklik chip "Lanjutkan Chat" */
+  async function resumeSession() {
+    if (!resumableSession) return;
+    setResumableSession(null);
+    await openSession(resumableSession.id);
   }
 
   async function openSession(nextSessionId: string, nextSessions?: ChatSessionSummary[], silent = false) {
@@ -150,12 +117,14 @@ export function ChatShell() {
       } else {
         loadSessions().catch(() => undefined);
       }
+      pendingSessionIdRef.current = nextSessionId;
       setChatSessionId(nextSessionId);
       setMessages(data.messages || []);
       setCart(data.cart || null);
       setStarted((data.messages || []).length > 0);
       setStage(data.stage || 'idle');
       setSidebarOpen(false);
+      setResumableSession(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Riwayat chat gagal dibuka');
     } finally {
@@ -165,34 +134,24 @@ export function ChatShell() {
 
   // Auto-bootstrap saat halaman pertama kali dibuka
   useEffect(() => {
-    if (autoStarted.current) return;
-    bootstrap(false).catch(() => {
-      setLoading(false);
-    });
+    bootstrap(false).catch(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-
     fetch('/api/chat/sessions')
-      .then((response) => response.json())
-      .then((data) => {
-        if (cancelled || !data.ok) return;
-        setSessions(data.sessions || []);
-      })
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled && data.ok) setSessions(data.sessions || []); })
       .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const sinceRef = useRef<string>('');
 
+  // Polling hanya aktif setelah user memulai chat
   useEffect(() => {
-    if (!chatSessionId) return;
-
+    if (!chatSessionId || !started) return;
     let cancelled = false;
 
     async function poll() {
@@ -207,23 +166,24 @@ export function ChatShell() {
           if (last?.createdAt) sinceRef.current = last.createdAt;
         }
       } catch {
-        // silently retry on next tick
+        // silently retry
       }
     }
 
     poll();
     const timer = setInterval(poll, 3_000);
     return () => { cancelled = true; clearInterval(timer); };
-  }, [chatSessionId]);
-
-
+  }, [chatSessionId, started]);
 
   async function sendMessage(text: string) {
     setSending(true);
     setError('');
 
     try {
-      const sessionId = await ensureSession(isIdle);
+      const sessionId = pendingSessionIdRef.current || await ensureSession(false);
+      setStarted(true);
+      setResumableSession(null);
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,7 +193,7 @@ export function ChatShell() {
       if (!response.ok || !data.ok) throw new Error(data.error || 'Pesan gagal dikirim');
       setMessages(data.messages || []);
       setCart(data.cart || null);
-      setStarted((data.messages || []).length > 0);
+      setStarted(true);
       setStage(data.response?.stage || data.stage || 'idle');
       loadSessions().catch(() => undefined);
     } catch (err) {
@@ -245,20 +205,17 @@ export function ChatShell() {
   }
 
   async function runAction(action: string, payload: Record<string, unknown> = {}) {
-    if (action.startsWith('/')) {
-      window.location.href = action;
-      return;
-    }
-    if (/^https?:\/\//i.test(action)) {
-      window.location.href = action;
-      return;
-    }
+    if (action.startsWith('/')) { window.location.href = action; return; }
+    if (/^https?:\/\//i.test(action)) { window.location.href = action; return; }
 
     setSending(true);
     setError('');
 
     try {
-      const sessionId = await ensureSession(false);
+      const sessionId = pendingSessionIdRef.current || await ensureSession(false);
+      setStarted(true);
+      setResumableSession(null);
+
       const response = await fetch('/api/chat/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -268,7 +225,7 @@ export function ChatShell() {
       if (!response.ok || !data.ok) throw new Error(data.error || 'Aksi gagal');
       setMessages(data.messages || []);
       setCart(data.cart || null);
-      setStarted((data.messages || []).length > 0);
+      setStarted(true);
       setStage(data.stage || 'idle');
       loadSessions().catch(() => undefined);
     } catch (err) {
@@ -282,18 +239,17 @@ export function ChatShell() {
   async function deleteSession(sessionId: string) {
     setError('');
     try {
-      const response = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'Riwayat chat gagal dihapus');
-
       setSessions((current) => current.filter((item) => item.id !== sessionId));
       if (chatSessionId === sessionId) {
+        pendingSessionIdRef.current = '';
         setChatSessionId('');
         setMessages([]);
         setCart(null);
         setStarted(false);
+        setResumableSession(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Riwayat chat gagal dihapus');
@@ -303,18 +259,17 @@ export function ChatShell() {
   async function clearSessions() {
     setError('');
     try {
-      const response = await fetch('/api/chat/sessions', {
-        method: 'DELETE',
-      });
+      const response = await fetch('/api/chat/sessions', { method: 'DELETE' });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'Riwayat chat gagal dihapus');
-
       setSessions([]);
+      pendingSessionIdRef.current = '';
       setChatSessionId('');
       setMessages([]);
       setCart(null);
       setStarted(false);
       setSidebarOpen(false);
+      setResumableSession(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Riwayat chat gagal dihapus');
     }
@@ -436,6 +391,43 @@ export function ChatShell() {
               {error}
             </div>
           )}
+
+          {/* Chip "Lanjutkan Chat" — muncul elegan saat ada sesi lama */}
+          <AnimatePresence>
+            {isIdle && resumableSession && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="mx-4 mt-2 flex items-center gap-3 rounded-2xl border border-[#f0dfca] bg-[rgba(255,250,244,0.95)] px-4 py-2.5 shadow-[0_4px_14px_rgba(47,36,28,0.06)] backdrop-blur md:mx-6"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#c55a2b]/10 text-[#c55a2b]">
+                  <MessageSquare size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-[#2f241c]">Ada chat sebelumnya</p>
+                  <p className="truncate text-[11px] text-[#9b8772]">{resumableSession.preview}…</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setResumableSession(null)}
+                    className="rounded-lg px-2.5 py-1 text-xs text-[#9b8772] transition hover:text-[#6f5d4f]"
+                  >
+                    Abaikan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resumeSession}
+                    className="rounded-lg bg-[#c55a2b] px-3 py-1 text-xs font-semibold text-white transition hover:bg-[#ae4d23]"
+                  >
+                    Lanjutkan →
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="relative flex min-h-0 flex-1 flex-col">
             <ChatWindow
