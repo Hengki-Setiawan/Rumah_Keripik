@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/brand/BrandLogo';
@@ -9,6 +9,16 @@ import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatComposer } from './ChatComposer';
 import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
+
+function isGreetingMessage(msg: ChatMessageDto): boolean {
+  if (msg.metadata?.greeting) return true;
+  if (msg.metadata?.intent === 'small_talk') return true;
+  const c = msg.content || '';
+  if (c.includes('Selamat datang di Rumah Keripik!')) return true;
+  if (c.includes('Mau pesan keripik apa hari ini?')) return true;
+  if (c.includes('Mau pesan lagi hari ini?')) return true;
+  return false;
+}
 
 export function ChatShell() {
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
@@ -64,9 +74,10 @@ export function ChatShell() {
     setLoading(false);
     loadSessions().catch(() => undefined);
 
-    // Jika ada sesi lama dengan pesan, tawarkan sebagai chip "Lanjutkan"
-    if (sessionMessages.length > 0 && !forceNew) {
-      const lastMsg = sessionMessages[sessionMessages.length - 1];
+    // Jika ada sesi lama dengan pesan (bukan greeting), tawarkan sebagai chip "Lanjutkan"
+    const realMessages = sessionMessages.filter((msg) => !isGreetingMessage(msg));
+    if (realMessages.length > 0 && !forceNew) {
+      const lastMsg = realMessages[realMessages.length - 1];
       const preview = lastMsg?.content?.slice(0, 60) || 'Chat sebelumnya';
       setResumableSession({ id: data.chatSession.id, preview });
     }
@@ -275,7 +286,11 @@ export function ChatShell() {
     }
   }
 
-  const isIdle = !started && messages.length === 0 && !loading && !sending;
+  const displayMessages = useMemo(() => {
+    return messages.filter((msg) => !isGreetingMessage(msg));
+  }, [messages]);
+
+  const isIdle = !started && displayMessages.length === 0 && !loading && !sending;
 
   return (
     <main className="h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.18),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(127,159,62,0.10),transparent_20%),linear-gradient(180deg,#faf6ef_0%,#fffaf4_100%)] text-[#2f241c]">
@@ -431,7 +446,7 @@ export function ChatShell() {
 
           <div className="relative flex min-h-0 flex-1 flex-col">
             <ChatWindow
-              messages={messages}
+              messages={displayMessages}
               cart={cart}
               loading={loading || sending}
               idle={isIdle}
