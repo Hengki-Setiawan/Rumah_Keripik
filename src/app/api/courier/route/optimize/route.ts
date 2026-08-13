@@ -6,8 +6,6 @@ import { verifyCourierAuth } from '@/lib/courier/auth';
 import { nearestNeighbor, twoOpt, orOpt, routeTotalKm } from '@/lib/courier/routing';
 import { optimizeMultiVehicle, orsEnabled } from '@/lib/courier/ors';
 
-const WAREHOUSE_LAT = -5.134;
-const WAREHOUSE_LNG = 119.4135;
 // Waktu layanan per stop (detik) — serah terima + pembayaran COD.
 const DEFAULT_SERVICE_SECONDS = 300;
 
@@ -128,6 +126,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const startLat = body.currentLat ? Number(body.currentLat) : undefined;
     const startLng = body.currentLng ? Number(body.currentLng) : undefined;
+    const hasStart = Number.isFinite(startLat) && Number.isFinite(startLng);
 
     const waypoints = pendingDeliveries.map((d) => ({
       lat: Number(d.lat) || 0,
@@ -146,12 +145,13 @@ export async function POST(req: Request) {
     let source: 'ors' | 'osrm' | 'local' = 'local';
     let durationMin: number | undefined;
 
-    const start: LatLng = {
-      lat: startLat ?? WAREHOUSE_LAT,
-      lng: startLng ?? WAREHOUSE_LNG,
-    };
+    // Start = posisi kurir (UMKM tidak punya gudang). Tanpa posisi, jangan
+    // melakukan optimasi geo (pertahankan urutan input) — bukan asumsi gudang.
+    const start: LatLng = hasStart
+      ? { lat: startLat as number, lng: startLng as number }
+      : { lat: withCoords[0]?.lat ?? 0, lng: withCoords[0]?.lng ?? 0 };
 
-    if (withCoords.length > 0) {
+    if (withCoords.length > 0 && hasStart) {
       // 1) ORS optimization (VROOM): urutan jalan asli + service time ETA.
       const ors = await tryOrsOptimize(withCoords, start);
       if (ors) {
