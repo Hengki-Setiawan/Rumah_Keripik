@@ -216,7 +216,7 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
       nama_penerima: input.customer.name,
       alamat_penerima: input.address.text,
       no_hp_penerima: normalizedPhone,
-      sumber_order: 'Offline',
+      sumber_order: 'WA',
       lat_pengiriman: lat,
       lng_pengiriman: lng,
       order_status: orderStatus,
