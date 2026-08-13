@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { shifts, deliveryAssignment, courierAttendance } from '@/lib/schema';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { shifts, deliveryAssignment, courierAttendance, courierLocations } from '@/lib/schema';
+import { eq, and, sql, desc, gte, lte } from 'drizzle-orm';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { z } from 'zod';
 import { checkAttendanceGeofence } from '@/lib/courier/geofence';
+import { sumTrackedDistanceKm } from '@/lib/courier-distance';
 
 const ClockOutSchema = z.object({
   lat: z.number().min(-90).max(90).optional(),
@@ -50,12 +51,31 @@ export async function POST(req: Request) {
     const clockInTime = activeShift.clockInAt ? new Date(activeShift.clockInAt).getTime() : null;
     const totalWorkMinutes = clockInTime ? Math.round((new Date(now).getTime() - clockInTime) / 60000) : null;
 
+    // Jarak aktual shift = lintasan titik GPS kurir sejak clock-in sampai clock-out.
+    const shiftPoints = activeShift.clockInAt
+      ? await db
+          .select({ lat: courierLocations.lat, lng: courierLocations.lng })
+          .from(courierLocations)
+          .where(
+            and(
+              eq(courierLocations.courierId, courier.id),
+              gte(courierLocations.recordedAt, activeShift.clockInAt),
+              lte(courierLocations.recordedAt, now)
+            )
+          )
+          .orderBy(courierLocations.recordedAt)
+      : [];
+    const totalDistanceKm = sumTrackedDistanceKm(
+      shiftPoints.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
+    );
+
     await db.transaction(async (tx) => {
       await tx.update(shifts).set({
         clockOutAt: now,
         clockOutLat: lat != null ? String(lat) : null,
         clockOutLng: lng != null ? String(lng) : null,
         totalDeliveries: Number(deliveries[0]?.count || 0),
+        totalDistanceKm,
         status: 'ended',
       }).where(eq(shifts.id, activeShift.id));
 
@@ -89,6 +109,7 @@ export async function POST(req: Request) {
         clockOutAt: now,
         totalDeliveries: Number(deliveries[0]?.count || 0),
         totalWorkMinutes,
+        totalDistanceKm,
         geofence: geofence
           ? { inside: geofence.inside, distanceMeters: geofence.distanceMeters, warehouseName: geofence.warehouseName, zoneName: geofence.zoneName }
           : null,

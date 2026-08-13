@@ -3,6 +3,7 @@ import { getStatsKnowledgeBase } from '@/actions/knowledge-base';
 import { AiMonitorPanel } from '@/components/dashboard/AiMonitorPanel';
 import { AiSkillsPanel } from '@/components/dashboard/AiSkillsPanel';
 import { AiWorkspaceTabs } from '@/components/dashboard/AiWorkspaceTabs';
+import { BanditPanel } from '@/components/dashboard/BanditPanel';
 import { KnowledgePlayground } from '@/components/dashboard/KnowledgePlayground';
 import { KnowledgeV3QuickAdd } from '@/components/dashboard/KnowledgeV3QuickAdd';
 import { ModelRouterClient } from '@/components/dashboard/ModelRouterClient';
@@ -37,7 +38,7 @@ export default async function AiWorkspacePage({ searchParams }: { searchParams: 
       {tab === 'kb' && <KnowledgeBaseBridge stats={kbStats || { total: 0, aktif: 0, withEmbedding: 0 }} />}
       {tab === 'monitor' && <AiMonitorPanel compactHeader />}
       {tab === 'skills' && <AiSkillsPanel compactHeader />}
-      {tab === 'router' && routerSettings && <div className="space-y-6"><ModelRouterHealthPanel /><ModelRouterClient compactHeader providerConfigs={routerSettings.providerConfigs} taskConfigs={routerSettings.taskConfigs} /></div>}
+      {tab === 'router' && routerSettings && <div className="space-y-6"><ModelRouterHealthPanel /><ModelRouterClient compactHeader providerConfigs={routerSettings.providerConfigs} taskConfigs={routerSettings.taskConfigs} /><BanditPanel compactHeader /></div>}
     </div>
   );
 }

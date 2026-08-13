@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
         address: transaksi.alamat_penerima,
         latitude: transaksi.lat_pengiriman,
         longitude: transaksi.lng_pengiriman,
-        distance_km: transaksi.jarak_km_dari_gudang,
+        distance_actual_km: deliveryAssignment.distance_actual_km,
+        distance_planned_km: deliveryAssignment.distance_planned_km,
       })
       .from(deliveryAssignment)
       .innerJoin(transaksi, eq(deliveryAssignment.id_transaksi, transaksi.id_transaksi))
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
       address: d.address || '',
       latitude: d.latitude,
       longitude: d.longitude,
-      distance_km: d.distance_km,
+      distance_km: d.distance_actual_km || d.distance_planned_km || null,
       notes: d.notes,
       items: itemsMap[d.id_transaksi] || [],
     }));

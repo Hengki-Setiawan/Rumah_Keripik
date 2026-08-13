@@ -5,8 +5,8 @@ import { calculateDistance, buildMapsLink } from './location-parser';
 import { estimateShipping, reverseGeocode } from './geocoding';
 import type { OrderContext } from './order-types';
 
-const GUDANG_LAT = -5.1340;
-const GUDANG_LNG = 119.4135;
+const MAKASSAR_CENTER_LAT = -5.1340;
+const MAKASSAR_CENTER_LNG = 119.4135;
 
 export interface LocationInput {
   lat: number;
@@ -28,7 +28,7 @@ export async function processLocationMessage(
   }
 
   const mapsLink = buildMapsLink(lat, lng);
-  const jarak = calculateDistance(GUDANG_LAT, GUDANG_LNG, lat, lng);
+  const jarak = calculateDistance(MAKASSAR_CENTER_LAT, MAKASSAR_CENTER_LNG, lat, lng);
   const shipping = estimateShipping(jarak);
 
   await saveLocationToDB(no_wa, { lat, lng, address, source: location.source || 'wa_native' });
@@ -61,7 +61,7 @@ export async function processLocationMessage(
     response:
       `📍 *Lokasi diterima!*\n\n` +
       `Alamat: ${address}\n` +
-      `Jarak dari gudang: ±${jarak.toFixed(1)} km\n\n` +
+      `Jarak perkiraan dari pusat Makassar: ±${jarak.toFixed(1)} km\n\n` +
       `Mau langsung pesan kak? Ketik *pesan* untuk mulai.`,
     newContext: ctx,
   };

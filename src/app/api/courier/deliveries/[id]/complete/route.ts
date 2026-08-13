@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { deliveryAssignment, orderEvents, transaksi } from '@/lib/schema';
+import { deliveryAssignment, orderEvents, transaksi, courierLocations, deliveryEvents } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierCompleteDeliverySchema } from '@/lib/courier-types';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
 import { awardPointsForCompletedOrder } from '@/services/loyalty-service';
 import { recordRevenue, ensureDefaultCategories } from '@/services/ledger-service';
 import { insertDeliveryEvent } from '@/lib/courier-event';
 import { recordCourierEarning, bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
+import { sumTrackedDistanceKm } from '@/lib/courier-distance';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -51,6 +52,38 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const now = new Date().toISOString();
     const signatureData = parsed.data.signature_base64 || parsed.data.signature_url;
     const proofPhoto = parsed.data.proof_url || parsed.data.proof_photo_url;
+
+    // Jarak aktual = lintasan titik GPS kurir dari event 'started' sampai delivered_at.
+    const [startEvent] = await db
+      .select({ createdAt: deliveryEvents.createdAt })
+      .from(deliveryEvents)
+      .where(
+        and(
+          eq(deliveryEvents.deliveryId, deliveryId),
+          eq(deliveryEvents.eventType, 'started')
+        )
+      )
+      .orderBy(deliveryEvents.createdAt)
+      .limit(1);
+
+    const windowStart = startEvent?.createdAt || assignment.pickup_at || assignment.created_at;
+    const trackedPoints = await db
+      .select({ lat: courierLocations.lat, lng: courierLocations.lng })
+      .from(courierLocations)
+      .where(
+        and(
+          eq(courierLocations.courierId, courier.id),
+          gte(courierLocations.recordedAt, windowStart),
+          lte(courierLocations.recordedAt, now)
+        )
+      )
+      .orderBy(desc(courierLocations.recordedAt));
+
+    const distanceActualKm = sumTrackedDistanceKm(
+      trackedPoints.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
+    );
+    const distanceActualStr = distanceActualKm > 0 ? String(Math.round(distanceActualKm * 10) / 10) : null;
+
     await db
       .update(deliveryAssignment)
       .set({
@@ -59,6 +92,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         proof_url: proofPhoto || assignment.proof_url,
         notes: parsed.data.notes || assignment.notes,
         signature_url: signatureData || assignment.signature_url,
+        distance_actual_km: distanceActualStr ?? assignment.distance_actual_km,
         updated_at: now,
       })
       .where(eq(deliveryAssignment.id, deliveryId));
@@ -99,7 +133,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         orderId: assignment.id_transaksi,
         note: 'Otomatis dari delivery completed',
       });
-      await bumpCourierPerformanceDaily(courier.id, 'completed');
+      await bumpCourierPerformanceDaily(courier.id, 'completed', distanceActualKm > 0 ? distanceActualKm : undefined);
     } catch (earningErr) {
       console.error('[COURIER_COMPLETE_EARNINGS]', earningErr);
     }

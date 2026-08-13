@@ -4,9 +4,10 @@ import { deliveryAssignment, deliveryRoutePoint, transaksi } from '@/lib/schema'
 import { eq, and, sql } from 'drizzle-orm';
 import { verifyCourierAuth } from '@/lib/courier/auth';
 import { nearestNeighbor, twoOpt, orOpt, routeTotalKm } from '@/lib/courier/routing';
+import { optimizeMultiVehicle, orsEnabled } from '@/lib/courier/ors';
 
-const WAREHOUSE_LAT = -5.134;
-const WAREHOUSE_LNG = 119.4135;
+// Waktu layanan per stop (detik) — serah terima + pembayaran COD.
+const DEFAULT_SERVICE_SECONDS = 300;
 
 interface LatLng { lat: number; lng: number; }
 
@@ -15,6 +16,48 @@ interface OsrmTripResult {
   polyline: LatLng[];       // real road geometry
   distanceM: number;
   durationS: number;
+}
+
+interface OrsOptResult {
+  orderedIdx: number[];
+  distanceM: number;
+  durationS: number;
+}
+
+/**
+ * ORS Optimization (VROOM): urutan stop berbasis jalan asli + service time
+ * (waktu serah terima per stop) sehingga ETA realistis. Batch 1 request.
+ */
+async function tryOrsOptimize(coords: LatLng[], start: LatLng): Promise<OrsOptResult | null> {
+  if (!orsEnabled() || coords.length === 0) return null;
+  try {
+    const result = await optimizeMultiVehicle(
+      [{ id: 1, profile: 'driving-car', start: [start.lng, start.lat] }],
+      coords.map((c, idx) => ({
+        id: idx + 1,
+        location: [c.lng, c.lat],
+        service: DEFAULT_SERVICE_SECONDS,
+      })),
+    );
+    const route = result.routes?.[0];
+    if (!route || !Array.isArray(route.steps)) return null;
+
+    // steps berisi start -> job -> end; ambil urutan job (indeks input 0-based).
+    const orderedIdx = route.steps
+      .filter((s): s is { type: string; job: number; location: [number, number]; service?: number } =>
+        s.type === 'job' && s.job != null)
+      .map((s) => s.job - 1);
+    if (orderedIdx.length !== coords.length) return null;
+
+    return {
+      orderedIdx,
+      distanceM: route.distance ?? 0,
+      durationS: route.duration ?? 0,
+    };
+  } catch (err) {
+    console.warn('[route/optimize] ORS optimization gagal, fallback OSRM:', err);
+    return null;
+  }
 }
 
 async function tryOsrmTrip(coords: LatLng[]): Promise<OsrmTripResult | null> {
@@ -83,6 +126,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const startLat = body.currentLat ? Number(body.currentLat) : undefined;
     const startLng = body.currentLng ? Number(body.currentLng) : undefined;
+    const hasStart = Number.isFinite(startLat) && Number.isFinite(startLng);
 
     const waypoints = pendingDeliveries.map((d) => ({
       lat: Number(d.lat) || 0,
@@ -98,32 +142,41 @@ export async function POST(req: Request) {
     let ordered = [...withCoords];
     let polyline: LatLng[] | null = null;
     let totalKm = routeTotalKm(withCoords);
-    let source: 'osrm' | 'local' = 'local';
+    let source: 'ors' | 'osrm' | 'local' = 'local';
     let durationMin: number | undefined;
 
-    const start: LatLng = {
-      lat: startLat ?? WAREHOUSE_LAT,
-      lng: startLng ?? WAREHOUSE_LNG,
-    };
+    // Start = posisi kurir (UMKM tidak punya gudang). Tanpa posisi, jangan
+    // melakukan optimasi geo (pertahankan urutan input) — bukan asumsi gudang.
+    const start: LatLng = hasStart
+      ? { lat: startLat as number, lng: startLng as number }
+      : { lat: withCoords[0]?.lat ?? 0, lng: withCoords[0]?.lng ?? 0 };
 
-    if (withCoords.length > 0) {
-      const trip = await tryOsrmTrip([start, ...withCoords]);
-      if (trip && trip.order.length === withCoords.length + 1) {
-        // trip.order[i] = posisi di trip untuk input ke-i. Susun ulang dengan
-        // mengurutkan delivery (input 1..n) berdasarkan posisi trip-nya.
-        const byTripPos = trip.order
-          .map((tripPos, inputIdx) => ({ tripPos, inputIdx }))
-          .sort((a, b) => a.tripPos - b.tripPos);
-        ordered = byTripPos
-          .filter((x) => x.inputIdx > 0)
-          .map((x) => withCoords[x.inputIdx - 1]);
-        polyline = trip.polyline;
-        totalKm = Math.round((trip.distanceM / 1000) * 10) / 10;
-        durationMin = Math.round(trip.durationS / 60);
-        source = 'osrm';
+    if (withCoords.length > 0 && hasStart) {
+      // 1) ORS optimization (VROOM): urutan jalan asli + service time ETA.
+      const ors = await tryOrsOptimize(withCoords, start);
+      if (ors) {
+        ordered = ors.orderedIdx.map((idx) => withCoords[idx]);
+        totalKm = Math.round((ors.distanceM / 1000) * 10) / 10;
+        durationMin = Math.round(ors.durationS / 60);
+        source = 'ors';
       } else {
-        ordered = orOpt(twoOpt(nearestNeighbor(withCoords, startLat, startLng)));
-        totalKm = routeTotalKm(ordered);
+        // 2) OSRM Trip: TSP jalan asli (fallback jika ORS tak tersedia/gagal).
+        const trip = await tryOsrmTrip([start, ...withCoords]);
+        if (trip && trip.order.length === withCoords.length + 1) {
+          const byTripPos = trip.order
+            .map((tripPos, inputIdx) => ({ tripPos, inputIdx }))
+            .sort((a, b) => a.tripPos - b.tripPos);
+          ordered = byTripPos
+            .filter((x) => x.inputIdx > 0)
+            .map((x) => withCoords[x.inputIdx - 1]);
+          polyline = trip.polyline;
+          totalKm = Math.round((trip.distanceM / 1000) * 10) / 10;
+          durationMin = Math.round((trip.durationS + withCoords.length * DEFAULT_SERVICE_SECONDS) / 60);
+          source = 'osrm';
+        } else {
+          ordered = orOpt(twoOpt(nearestNeighbor(withCoords, startLat, startLng)));
+          totalKm = routeTotalKm(ordered);
+        }
       }
     }
 

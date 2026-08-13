@@ -23,6 +23,7 @@ import { normalizePhoneNumber } from '@/lib/utils';
 import { buildPaymentInstructionPayload, generatePaymentIntentId } from '@/lib/payments/payment-utils';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
 import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
+import { resolveOrderCoordinates } from '@/lib/geocoding';
 
 export type CreateChatOrderInput = {
   chatSessionId: string;
@@ -53,8 +54,16 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
   const customerType = input.customer.type || 'konsumen';
   const normalizedPhone = normalizePhoneNumber(input.customer.phone);
   const customerId = normalizedPhone;
-  const lat = parseCoordinate(input.address.lat);
-  const lng = parseCoordinate(input.address.lng);
+  // Koordinat: pin maps/GPS jika ada; jika tidak, otomatis geocode dari teks
+  // alamat (ORS Geocoding primary, Nominatim fallback). Dilakukan sebelum
+  // transaksi agar order tak pernah gagal gara-gara geocoding.
+  const resolved = await resolveOrderCoordinates(
+    input.address.text,
+    parseCoordinate(input.address.lat),
+    parseCoordinate(input.address.lng),
+  );
+  const lat = resolved.lat;
+  const lng = resolved.lng;
 
   const result = await db.transaction(async (tx) => {
     const [cart] = await tx

@@ -5,9 +5,6 @@ import { requireCourierAuth } from '@/lib/courier-auth';
 import { eq, and, sql } from 'drizzle-orm';
 import { nearestNeighbor, twoOpt, routeTotalKm } from '@/lib/courier/routing';
 
-const GUDANG_LAT = -5.1340;
-const GUDANG_LNG = 119.4135;
-
 interface TodayDelivery {
   delivery_id: number;
   id_transaksi: string;
@@ -23,6 +20,13 @@ export async function GET(request: Request) {
     if (!courier) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Titik mulai rute = posisi kurir (tidak ada gudang). Dikirim lewat query
+    // `startLat`/`startLng`. Tanpa posisi, urutkan by created (no geo-seed).
+    const url = new URL(request.url);
+    const startLat = Number(url.searchParams.get('startLat') ?? NaN);
+    const startLng = Number(url.searchParams.get('startLng') ?? NaN);
+    const hasStart = Number.isFinite(startLat) && Number.isFinite(startLng);
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -72,9 +76,14 @@ export async function GET(request: Request) {
         sequence_no: null,
       }));
 
-      const nn = nearestNeighbor(sortedDeliveries, GUDANG_LAT, GUDANG_LNG);
-      const optimized = twoOpt(nn, 50);
-      sortedDeliveries = optimized.map((d, i) => ({ ...d, sequence_no: i + 1 }));
+      if (hasStart) {
+        const nn = nearestNeighbor(sortedDeliveries, startLat, startLng);
+        const optimized = twoOpt(nn, 50);
+        sortedDeliveries = optimized.map((d, i) => ({ ...d, sequence_no: i + 1 }));
+      } else {
+        // Tanpa posisi kurir: pertahankan urutan input (created_at), tanpa seed geo.
+        sortedDeliveries = sortedDeliveries.map((d, i) => ({ ...d, sequence_no: i + 1 }));
+      }
 
       const startedAt = Date.now();
       await db.transaction(async (tx) => {
@@ -105,35 +114,46 @@ export async function GET(request: Request) {
         });
       });
 
-      waypoints = [
-        { lat: GUDANG_LAT, lng: GUDANG_LNG, name: 'Gudang', type: 'start' as const },
-        ...sortedDeliveries.map((d) => ({
-          lat: d.lat, lng: d.lng, name: d.address, type: 'destination' as const,
-          delivery_id: d.delivery_id, id_transaksi: d.id_transaksi, sequence_no: d.sequence_no!,
-        })),
-      ];
+      waypoints = hasStart
+        ? [
+            { lat: startLat, lng: startLng, name: 'Posisi Kurir', type: 'start' as const },
+            ...sortedDeliveries.map((d) => ({
+              lat: d.lat, lng: d.lng, name: d.address, type: 'destination' as const,
+              delivery_id: d.delivery_id, id_transaksi: d.id_transaksi, sequence_no: d.sequence_no!,
+            })),
+          ]
+        : sortedDeliveries.map((d) => ({
+            lat: d.lat, lng: d.lng, name: d.address, type: 'destination' as const,
+            delivery_id: d.delivery_id, id_transaksi: d.id_transaksi, sequence_no: d.sequence_no!,
+          }));
 
       return NextResponse.json({ ok: true, waypoints, total_deliveries: sortedDeliveries.length });
     }
 
-    waypoints = [
-      {
-        lat: GUDANG_LAT,
-        lng: GUDANG_LNG,
-        name: 'Gudang',
-        type: 'start' as const,
-      },
-      ...validDeliveries
-        .map((d) => ({
-          lat: parseFloat(d.lat!),
-          lng: parseFloat(d.lng!),
-          name: d.address || `Order ${d.id_transaksi}`,
-          type: 'destination' as const,
-          delivery_id: d.delivery_id,
-          id_transaksi: d.id_transaksi,
-          sequence_no: d.sequence_no ?? 0,
-        })),
-    ];
+    waypoints = hasStart
+      ? [
+          { lat: startLat, lng: startLng, name: 'Posisi Kurir', type: 'start' as const },
+          ...validDeliveries
+            .map((d) => ({
+              lat: parseFloat(d.lat!),
+              lng: parseFloat(d.lng!),
+              name: d.address || `Order ${d.id_transaksi}`,
+              type: 'destination' as const,
+              delivery_id: d.delivery_id,
+              id_transaksi: d.id_transaksi,
+              sequence_no: d.sequence_no ?? 0,
+            })),
+        ]
+      : validDeliveries
+          .map((d) => ({
+            lat: parseFloat(d.lat!),
+            lng: parseFloat(d.lng!),
+            name: d.address || `Order ${d.id_transaksi}`,
+            type: 'destination' as const,
+            delivery_id: d.delivery_id,
+            id_transaksi: d.id_transaksi,
+            sequence_no: d.sequence_no ?? 0,
+          }));
 
     return NextResponse.json({
       ok: true,

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { courierEarnings } from '@/lib/schema';
 import { eq, desc, and, sum, sql } from 'drizzle-orm';
 import { requireCourierAuth } from '@/lib/courier-auth';
-import { witaTodayStartIso } from '@/lib/wita-date';
+import { witaTodayStartDb } from '@/lib/wita-date';
 
 export async function GET(req: Request) {
   try {
@@ -18,15 +18,15 @@ export async function GET(req: Request) {
     const now = new Date();
     let startDate: string;
     if (period === 'daily') {
-      startDate = witaTodayStartIso();
+      startDate = witaTodayStartDb();
     } else if (period === 'weekly') {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      startDate = weekAgo.toISOString();
+      startDate = weekAgo.toISOString().replace('T', ' ').slice(0, 19);
     } else {
       const monthAgo = new Date(now);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      startDate = monthAgo.toISOString();
+      startDate = monthAgo.toISOString().replace('T', ' ').slice(0, 19);
     }
 
     const earnings = await db
