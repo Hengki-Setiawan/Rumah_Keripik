@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { deliveryAssignment, transaksi, detailTransaksi, deliveryRoutePoint } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { eq, and, sql } from 'drizzle-orm';
-import { witaToday, witaTodayStartIso } from '@/lib/wita-date';
+import { witaToday, witaTodayStartDb } from '@/lib/wita-date';
 import { haversineKm } from '@/lib/courier-distance';
 
 // Semua pusat area & jarak WAJIB dari posisi GPS realtime kurir (couriers.last_lat/lng),
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
       .where(
         and(
           sql`${transaksi.order_status} IN ('ready', 'confirmed', 'shipping', 'awaiting_admin_confirmation', 'Menunggu_Verifikasi')`,
-          sql`(${deliveryAssignment.kurir_id} = ${courier.id} OR (${deliveryAssignment.kurir_id} IS NULL AND ${transaksi.waktu_simpan} >= ${witaTodayStartIso()}))`
+          sql`(${deliveryAssignment.kurir_id} = ${courier.id} OR (${deliveryAssignment.kurir_id} IS NULL AND ${transaksi.waktu_simpan} >= ${witaTodayStartDb()}))`
         )
       )
       .orderBy(deliveryRoutePoint.sequence_no);
