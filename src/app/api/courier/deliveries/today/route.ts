@@ -65,7 +65,7 @@ export async function GET(request: Request) {
       .where(
         and(
           sql`${transaksi.order_status} IN ('ready', 'confirmed', 'shipping', 'awaiting_admin_confirmation', 'Menunggu_Verifikasi')`,
-          sql`(${deliveryAssignment.kurir_id} = ${courier.id} OR (${deliveryAssignment.kurir_id} IS NULL AND ${transaksi.waktu_simpan} >= ${witaTodayStartDb()}))`
+          sql`(${deliveryAssignment.kurir_id} = ${courier.id} OR ${deliveryAssignment.kurir_id} IS NULL)`
         )
       )
       .orderBy(deliveryRoutePoint.sequence_no);
