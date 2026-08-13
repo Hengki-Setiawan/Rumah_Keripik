@@ -114,11 +114,12 @@ export function ChatWindow({
                     <motion.button
                       key={product.id}
                       data-testid={`idle-product-${product.id}`}
+                      disabled={loading}
                       initial={reducedMotion ? false : { opacity: 0, y: 14 }}
                       animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
                       transition={{ duration: 0.28, delay: 0.06 * index, ease: 'easeOut' }}
-                      onClick={() => onAction('add_to_cart', { productId: product.id, quantity: 1 })}
-                      className="group flex flex-col items-center gap-2 rounded-[1.4rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-3 text-center shadow-[0_8px_18px_rgba(47,36,28,0.04)] backdrop-blur transition hover:-translate-y-1 hover:border-[#dfc5a8] hover:bg-white"
+                      onClick={() => !loading && onAction('add_to_cart', { productId: product.id, quantity: 1 })}
+                      className="group flex flex-col items-center gap-2 rounded-[1.4rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] p-3 text-center shadow-[0_8px_18px_rgba(47,36,28,0.04)] backdrop-blur transition hover:-translate-y-1 hover:border-[#dfc5a8] hover:bg-white disabled:opacity-50 disabled:pointer-events-none"
                     >
                       <div className="h-20 w-full overflow-hidden rounded-[0.9rem] bg-[#f7eddf]">
                         <img
@@ -143,11 +144,12 @@ export function ChatWindow({
                     key={item.label}
                     type="button"
                     data-testid={`chat-starter-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    disabled={loading}
                     initial={reducedMotion ? false : { opacity: 0, y: 14 }}
                     animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.28, delay: 0.08 * index + 0.2, ease: 'easeOut' }}
-                    onClick={() => onSend(item.label)}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] px-3.5 py-2 text-sm font-medium text-[#5f4d3f] shadow-[0_8px_18px_rgba(47,36,28,0.04)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white"
+                    onClick={() => !loading && onSend(item.label)}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#f0dfca] bg-[rgba(255,250,244,0.88)] px-3.5 py-2 text-sm font-medium text-[#5f4d3f] shadow-[0_8px_18px_rgba(47,36,28,0.04)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#dfc5a8] hover:bg-white disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <span className="text-[#c55a2b]">{item.icon}</span>
                     {item.label}
@@ -160,20 +162,25 @@ export function ChatWindow({
           </div>
         ) : (
           <div ref={listRef} className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-6 pt-4">
-            {messages.map((message, index) => {
-              const isFirstAssistant = message.role === 'assistant' && messages.slice(0, index).every((item) => item.role !== 'assistant');
-              return (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  cart={cart}
-                  onSend={onSend}
-                  onAction={onAction}
-                  isFirstAssistant={isFirstAssistant}
-                  hideQuickReplies
-                />
-              );
-            })}
+            {(() => {
+              const lastCartMsgId = [...messages].reverse().find((m) => m.components?.some((c) => c.type === 'cart_summary'))?.id;
+              return messages.map((message, index) => {
+                const isFirstAssistant = message.role === 'assistant' && messages.slice(0, index).every((item) => item.role !== 'assistant');
+                const hideCartSummary = Boolean(lastCartMsgId && message.id !== lastCartMsgId);
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    cart={cart}
+                    onSend={onSend}
+                    onAction={onAction}
+                    isFirstAssistant={isFirstAssistant}
+                    hideQuickReplies
+                    hideCartSummary={hideCartSummary}
+                  />
+                );
+              });
+            })()}
 
             {loading && (
               <div className="flex items-start gap-3">
