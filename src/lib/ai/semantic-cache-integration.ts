@@ -15,6 +15,7 @@ export async function semanticCacheLookup(
   task?: string,
 ): Promise<{ hit: boolean; response?: string }> {
   if (!isCacheable({ query, task })) return { hit: false };
+  if (query.trim().length < 4) return { hit: false };
 
   try {
     const redisKey = `semantic:${task}:${query.slice(0, 100)}`;
@@ -47,6 +48,7 @@ export async function semanticCacheStore(
   task: string,
 ): Promise<void> {
   if (!isCacheable({ query, task })) return;
+  if (query.trim().length < 4 || response.trim().length < 10) return;
 
   try {
     const redisKey = `semantic:${task}:${query.slice(0, 100)}`;

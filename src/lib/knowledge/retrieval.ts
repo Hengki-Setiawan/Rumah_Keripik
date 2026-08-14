@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client';
+import { createClient } from '@libsql/client/web';
 import { and, desc, eq, like, or } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { aiKnowledgeBase } from '@/lib/schema';

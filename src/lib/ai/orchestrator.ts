@@ -8,6 +8,7 @@ import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
 import { buildMemoryPrompt } from '@/lib/chat-v3/memory';
 import { getChatV3Stage } from '@/lib/chat-v3/stage';
 import type { ChatV3Stage } from '@/lib/chat-v3/stage';
+import { buildIdentityFlowResponse } from '@/lib/chat-v3/identity-handler';
 import { recommendProducts } from '@/lib/ai/tools/products';
 import { addToChatCart, getChatCart } from '@/lib/ai/tools/cart';
 import { getActivePaymentMethods } from '@/lib/ai/tools/payment';
@@ -21,7 +22,26 @@ import { getAgentLoopConfig, shouldUseAgentLoop } from '@/lib/ai/feature-flags';
 import { runAgentLoop } from '@/lib/ai/agent-loop';
 import { semanticCacheLookup, semanticCacheStore } from '@/lib/ai/semantic-cache-integration';
 
+const RECENT_MESSAGE_DEDUPE_MS = 20_000;
+const recentMessageSeen = new Map<string, number>();
+
+function isRepeatedMessage(chatSessionId: string, message: string): boolean {
+  const key = `${chatSessionId}:${message.trim().toLowerCase().slice(0, 120)}`;
+  const lastSeen = recentMessageSeen.get(key);
+  const now = Date.now();
+  recentMessageSeen.set(key, now);
+  if (recentMessageSeen.size > 300) {
+    const oldest = recentMessageSeen.keys().next().value as string | undefined;
+    if (oldest) recentMessageSeen.delete(oldest);
+  }
+  return lastSeen != null && now - lastSeen < RECENT_MESSAGE_DEDUPE_MS;
+}
+
 export async function buildChatResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
+  if (isRepeatedMessage(chatSessionId, message)) {
+    return { reply: 'Pesan kakak baru saja terkirim. Kalau mau lanjut, ketik pesan baru ya.', intent: 'small_talk', components: defaultQuickReplies(), confidence: 1.0 };
+  }
+
   const deterministic = await buildDeterministicResponse(chatSessionId, message);
   const shouldTryModel = !deterministic || deterministic.confidence == null || deterministic.confidence < 0.9;
   if (!shouldTryModel) return deterministic;
@@ -58,7 +78,7 @@ export async function buildChatResponse(chatSessionId: string, message: string):
 
   try {
     const [history, customerContext, cart] = await Promise.all([
-      getChatMessages(chatSessionId, 8),
+      getChatMessages(chatSessionId, 10, { recent: true }),
       getCustomerContextForChat(chatSessionId),
       getChatCart(chatSessionId),
     ]);
@@ -80,7 +100,7 @@ export async function buildChatResponse(chatSessionId: string, message: string):
       task: 'structured_chat_response',
       chatSessionId,
       systemPrompt: contextPrompt,
-      messages: history.map((item) => ({ role: item.role === 'user' ? 'user' : item.role === 'assistant' ? 'assistant' : 'system', content: item.content })),
+      messages: history.slice(-6).map((item) => ({ role: item.role === 'user' ? 'user' : item.role === 'assistant' ? 'assistant' : 'system', content: item.content })),
       maxTokens: 220,
       temperature: 0.15,
     });
@@ -263,6 +283,9 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
   // ── CHECKOUT STAGES ──
 
   if (CHECKOUT_STAGES.includes(stage)) {
+    const identityResponse = await buildIdentityFlowResponse(chatSessionId, message);
+    if (identityResponse) return identityResponse;
+
     if (/^(ya|pakai|gunakan).*(data|alamat)|data ini|alamat ini/.test(lower) && customerContext.customer) {
       return { reply: customerContext.defaultAddress ? 'Siap kak, aku pakai data tersimpan. Sekarang lanjut ke pembayaran ya.' : 'Siap kak, data customer dipakai. Tinggal lengkapi alamat pengiriman ya.', intent: 'confirm_customer_data', components: customerContext.defaultAddress ? defaultQuickReplies() : [{ type: 'location_picker', mode: 'both' }], confidence: 0.92 };
     }
@@ -332,7 +355,7 @@ async function maybeSearchKnowledge(message: string) {
 
 function formatKnowledgePrompt(chunks: KnowledgeChunk[]) {
   if (chunks.length === 0) return '';
-  return `Knowledge base relevan:\n${chunks.map((chunk, index) => `[${index + 1}] ${chunk.judul} (${chunk.kategori || 'Umum'}, score ${chunk.score.toFixed(2)}): ${chunk.teks}`).join('\n')}`;
+  return `Knowledge base relevan:\n${chunks.map((chunk, index) => `[${index + 1}] ${chunk.judul} (${chunk.kategori || 'Umum'}, score ${chunk.score.toFixed(2)}): ${chunk.teks.slice(0, 400)}`).join('\n')}`;
 }
 
 function summarizeKnowledgeChunks(chunks: KnowledgeChunk[]) {

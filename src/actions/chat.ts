@@ -6,7 +6,6 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { sendTelegramMessage } from '@/lib/telegram-bot';
 import { detectChannel, parseTelegramChatId } from '@/lib/utils';
-import { sendTextMessage as sendEvolutionMessage, getInboundMessageHistory } from '@/lib/evolution';
 
 export async function getDaftarChat() {
   try {
@@ -72,7 +71,6 @@ export async function kirimPesanManual(no_wa: string, pesan: string) {
   try {
     const channel = detectChannel(no_wa)
     let id_external: string | null = null;
-    let status_kirim: 'sent' | 'failed' = 'sent';
 
     if (channel === 'telegram') {
       const chatId = parseTelegramChatId(no_wa)
@@ -82,15 +80,8 @@ export async function kirimPesanManual(no_wa: string, pesan: string) {
       }
       id_external = String(Date.now())
     } else {
-      const res = await sendEvolutionMessage(no_wa, pesan);
-
-      if (res.success) {
-        const data = res.data as { key?: { id?: string }; messageId?: string } | undefined;
-        id_external = data?.key?.id ?? data?.messageId ?? null;
-      } else {
-        status_kirim = 'failed';
-        return { success: false, message: `Evolution API error: ${res.error || 'Unknown error'}` };
-      }
+      // WA: kirim manual via tombol wa.me (tanpa API gateway).
+      return { success: true, message: 'WA dikirim manual via WhatsApp (wa.me)', id_external: null };
     }
 
     await db.insert(pesanChat).values({
@@ -100,7 +91,6 @@ export async function kirimPesanManual(no_wa: string, pesan: string) {
       sumber: 'admin',
       teks: pesan,
       id_external,
-      status_kirim,
     });
 
     await db
@@ -132,28 +122,9 @@ export async function getRiwayatChat(no_wa: string) {
 
     const outMessages = outMsgs.reverse();
 
-    let inMessages: {
-      channel: string;
-      direction: 'in';
-      sumber: 'konsumen';
-      teks: string;
-      timestamp: string;
-    }[] = [];
+    // Inbound WA tidak tersedia (Fonnte hanya untuk kirim OTP/notifikasi).
 
-    try {
-      const rawIn = await getInboundMessageHistory(no_wa, 100);
-      inMessages = rawIn.map((m) => ({
-        channel: 'wa',
-        direction: 'in' as const,
-        sumber: 'konsumen' as const,
-        teks: m.teks,
-        timestamp: m.timestamp,
-      }));
-    } catch (err) {
-      console.warn('[Live Chat] Evolution inbound gagal, tampilkan pesan keluar saja:', err);
-    }
-
-    const merged = [...outMessages, ...inMessages]
+    const merged = [...outMessages]
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     return merged;

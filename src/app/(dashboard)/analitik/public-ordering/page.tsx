@@ -6,8 +6,6 @@ type FunnelRow = { eventType: string; count: number; conversionFromPrevious: num
 type Operations = {
   summary: {
     orders30d: number;
-    paymentProofs: { pending: number; accepted: number; rejected: number };
-    ocrJobs: { pending: number; failed: number };
   };
   recentEvents: Array<{ eventType: string; payload: string | null; createdAt: string }>;
 };
@@ -40,16 +38,13 @@ export default function PublicOrderingAnalyticsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-headline-lg text-headline-lg text-on-surface">Public Ordering Analytics</h1>
-        <p className="text-on-surface-variant">Funnel /pesan, payment proof, OCR queue, dan event operasional 30 hari terakhir.</p>
+        <p className="text-on-surface-variant">Funnel /pesan dan event operasional 30 hari terakhir.</p>
       </div>
       {message && <p className="rounded-xl border border-outline-variant bg-white p-3 text-sm font-medium text-on-surface-variant">{message}</p>}
 
       {ops && (
         <section className="grid gap-3 md:grid-cols-4">
           <Metric label="Order 30 hari" value={ops.summary.orders30d} />
-          <Metric label="Proof pending" value={ops.summary.paymentProofs.pending} />
-          <Metric label="Proof accepted" value={ops.summary.paymentProofs.accepted} />
-          <Metric label="OCR issue" value={ops.summary.ocrJobs.pending + ops.summary.ocrJobs.failed} />
         </section>
       )}
 

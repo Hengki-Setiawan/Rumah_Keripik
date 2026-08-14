@@ -73,13 +73,12 @@ async function processIncomingMessageInternal(
   const isOrderFlowActive = ctx.step && ctx.step !== 'IDLE' && ctx.step !== 'QA_MODE';
 
   if (isOrderFlowActive) {
-    // Jika gambar masuk saat DRAFT_TERSIMPAN → proses bukti bayar
-    if (isImage && ctx.step === 'DRAFT_TERSIMPAN' && imageMessageId) {
-      const { processPaymentProof } = await import('./media-handler');
-      const result = await processPaymentProof(no_wa, imageMessageId, ctx);
-      await updateContext(no_wa, result.newContext);
-      await logChat(no_wa, `[Gambar: bukti bayar]`, result.response, 'rule');
-      return { response: result.response, source: 'order_flow' };
+    // Gambar masuk saat DRAFT_TERSIMPAN — kirim bukti bayar via channel ini tidak didukung lagi.
+    if (isImage && ctx.step === 'DRAFT_TERSIMPAN') {
+      const response = 'Maaf kak, kirim foto bukti bayar lewat chat ini tidak didukung lagi. Silakan kirim foto bukti transfer melalui aplikasi/website pemesanan ya 🙏';
+      await updateContext(no_wa, ctx);
+      await logChat(no_wa, `[Gambar: bukti bayar]`, response, 'rule');
+      return { response, source: 'order_flow' };
     }
 
     // Jika lokasi masuk saat FORM_ALAMAT → proses lokasi

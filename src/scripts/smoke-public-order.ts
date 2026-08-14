@@ -7,9 +7,9 @@ async function main() {
   const { and, eq, sql } = await import('drizzle-orm');
   const { buildPaymentInstructionPayload, generatePaymentIntentId } = await import('@/lib/payments/payment-utils');
   const { resolveCustomerByPhone } = await import('@/lib/customer-resolver');
-  const { generateAnonymousToken, generateIdPaymentProof, generateIdTransaksi, generateIdWebSession, generateKodePesanan, generateOrderStatusToken } = await import('@/lib/id-generator');
-  const { canApproveCod, canApprovePaymentProof } = await import('@/lib/order-status-policy');
-  const { customerAddress, detailTransaksi, orderStatusHistory, paymentIntent, paymentMethod, paymentProof, produk, produkVarian, transaksi, webOrderSession } = await import('@/lib/schema');
+  const { generateAnonymousToken, generateIdTransaksi, generateIdWebSession, generateKodePesanan, generateOrderStatusToken } = await import('@/lib/id-generator');
+  const { canApproveCod } = await import('@/lib/order-status-policy');
+  const { customerAddress, detailTransaksi, orderStatusHistory, paymentIntent, paymentMethod, produk, produkVarian, transaksi, webOrderSession } = await import('@/lib/schema');
 
   async function createSmokeOrder(input: { variantId: string; paymentMethodId: string; name: string; phone: string }) {
     const [variant] = await db.select().from(produkVarian).where(eq(produkVarian.id_varian, input.variantId)).limit(1);
@@ -66,18 +66,6 @@ async function main() {
     return true;
   }
 
-  const beforeOriginal = await db.select({ stok: produkVarian.stok }).from(produkVarian).where(eq(produkVarian.id_varian, 'VAR-SMOKE-ORI-100')).limit(1);
-  const transfer = await createSmokeOrder({ variantId: 'VAR-SMOKE-ORI-100', paymentMethodId: 'PM-SMOKE-BANK-BCA', name: 'Smoke Transfer', phone: `0812${Date.now().toString().slice(-8)}` });
-  const [transferOrder] = await db.select().from(transaksi).where(eq(transaksi.id_transaksi, transfer.idTransaksi)).limit(1);
-  const proofId = generateIdPaymentProof();
-  await db.insert(paymentProof).values({ id_payment_proof: proofId, id_transaksi: transfer.idTransaksi, cloudinary_public_id: `rumah-keripik/payment-proofs/smoke/${proofId}`, secure_url: `https://res.cloudinary.com/smoke/image/upload/payment-proofs/${proofId}.jpg`, amount_claimed: transferOrder.total_bayar, status: 'pending' });
-  const [proof] = await db.select().from(paymentProof).where(eq(paymentProof.id_payment_proof, proofId)).limit(1);
-  if (!canApprovePaymentProof(transferOrder, proof)) throw new Error('Policy menolak approve proof smoke yang valid');
-  await deductStockOnce(transfer.idTransaksi, 'payment_approved');
-  await db.update(paymentProof).set({ status: 'accepted', verified_by: 'smoke', verified_at: sql`(datetime('now', 'utc'))` }).where(eq(paymentProof.id_payment_proof, proofId));
-  await db.update(transaksi).set({ status_pembayaran: 'Lunas', payment_status: 'verified', order_status: 'processing', verified_by: 'smoke', verified_at: sql`(datetime('now', 'utc'))` }).where(eq(transaksi.id_transaksi, transfer.idTransaksi));
-  const afterOriginal = await db.select({ stok: produkVarian.stok }).from(produkVarian).where(eq(produkVarian.id_varian, 'VAR-SMOKE-ORI-100')).limit(1);
-
   const cod = await createSmokeOrder({ variantId: 'VAR-SMOKE-PEDAS-100', paymentMethodId: 'PM-SMOKE-COD', name: 'Smoke COD', phone: `0821${Date.now().toString().slice(-8)}` });
   const [codOrderBefore] = await db.select().from(transaksi).where(eq(transaksi.id_transaksi, cod.idTransaksi)).limit(1);
   if (!canApproveCod(codOrderBefore)) throw new Error('Policy menolak approve COD smoke yang valid');
@@ -88,7 +76,6 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    transfer: { id: transfer.idTransaksi, stockBefore: beforeOriginal[0]?.stok, stockAfter: afterOriginal[0]?.stok, expectedStockDelta: 1 },
     cod: { id: cod.idTransaksi, paymentStatus: codOrderAfter.payment_status, orderStatus: codOrderAfter.order_status },
   }, null, 2));
 }

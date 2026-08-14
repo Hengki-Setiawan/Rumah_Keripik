@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { broadcastCampaign, broadcastTemplate, pelangganChatbot, pesanChat } from '@/lib/schema';
+import { broadcastCampaign, broadcastTemplate } from '@/lib/schema';
 import { eq, desc, like, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -36,6 +36,7 @@ export async function createCampaign(data: {
 }
 
 export async function sendCampaign(id: number) {
+  // Broadcast WhatsApp dinonaktifkan (Fonnte hanya untuk OTP & notifikasi kurir).
   try {
     const [campaign] = await db
       .select()
@@ -47,78 +48,16 @@ export async function sendCampaign(id: number) {
 
     await db
       .update(broadcastCampaign)
-      .set({ status: 'sending' })
-      .where(eq(broadcastCampaign.id, id));
-
-    const targetTags = JSON.parse(campaign.target_tags || '[]');
-    let pelangganList;
-
-    if (targetTags.length === 0) {
-      pelangganList = await db
-        .select()
-        .from(pelangganChatbot)
-        .where(eq(pelangganChatbot.status_handle, 'AI_Bot'))
-        .limit(200);
-    } else {
-      pelangganList = await db
-        .select()
-        .from(pelangganChatbot)
-        .limit(200);
-
-      pelangganList = pelangganList.filter((p: any) => {
-        const tags = JSON.parse(p.tags || '[]');
-        return targetTags.some((t: string) => tags.includes(t));
-      });
-    }
-
-    let sentCount = 0;
-    for (const p of pelangganList) {
-      try {
-        const res = await fetch(
-          `${process.env.EVOLUTION_API_URL}/message/sendText/${process.env.EVOLUTION_INSTANCE_NAME}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': process.env.EVOLUTION_API_KEY || '',
-            },
-            body: JSON.stringify({ number: p.no_wa_pelanggan, text: campaign.pesan }),
-          }
-        );
-
-        let id_external: string | null = null;
-        if (res.ok) {
-          const data = await res.json();
-          id_external = data?.key?.id ?? data?.messageId ?? null;
-        }
-
-        await db.insert(pesanChat).values({
-          no_wa_pelanggan: p.no_wa_pelanggan,
-          direction: 'out',
-          sumber: 'sistem',
-          teks: campaign.pesan,
-          id_external,
-          status_kirim: res.ok ? 'sent' : 'failed',
-        });
-
-        if (res.ok) sentCount++;
-      } catch {
-        // skip failed sends
-      }
-    }
-
-    await db
-      .update(broadcastCampaign)
       .set({
         status: 'sent',
-        sent_count: sentCount,
-        total_count: pelangganList.length,
+        sent_count: 0,
+        total_count: 0,
         sent_at: sql`(datetime('now', 'utc'))`,
       })
       .where(eq(broadcastCampaign.id, id));
 
     revalidatePath('/broadcast');
-    return { success: true, message: `Pesan terkirim ke ${sentCount}/${pelangganList.length} pelanggan` };
+    return { success: false, message: 'Broadcast WhatsApp dinonaktifkan — tidak ada pesan terkirim' };
   } catch (error) {
     return { success: false, message: 'Gagal mengirim campaign' };
   }

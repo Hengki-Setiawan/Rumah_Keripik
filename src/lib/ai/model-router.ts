@@ -17,19 +17,20 @@ import type { AIModelTaskConfig, AITask, AIProviderConfig, GenerateTextInput, Ge
 
 export const defaultProviderConfigs: AIProviderConfig[] = [
   { id: 'deterministic', name: 'deterministic', enabled: true, apiKeyEnv: '', defaultModel: 'template', supportsToolCalling: false, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 180, priority: 99 },
-  { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-2.5-flash', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
   { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'gemma-4-31b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
   { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'llama-3.3/3.1 fallback chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
+  { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-2.5-flash-lite', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
   { id: 'qwen', name: 'qwen', enabled: false, baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', apiKeyEnv: 'QWEN_API_KEY', defaultModel: 'qwen-plus', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 4 },
+  { id: 'ollama', name: 'ollama', enabled: false, baseUrl: 'http://localhost:11434/v1', apiKeyEnv: 'OLLAMA_API_KEY', defaultModel: 'qwen3', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 5 },
 ];
 
 export const defaultTaskConfigs: AIModelTaskConfig[] = [
-  { task: 'intent_detection', primaryProviderId: 'groq', fallbackProviderIds: ['cerebras', 'gemini', 'deterministic'], maxInputTokens: 1500, maxOutputTokens: 120, temperature: 0.1, timeoutMs: 8000 },
+  { task: 'intent_detection', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 1500, maxOutputTokens: 120, temperature: 0.1, timeoutMs: 8000 },
   { task: 'structured_chat_response', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 3200, maxOutputTokens: 260, temperature: 0.15, timeoutMs: 14000 },
-  { task: 'faq_answer', primaryProviderId: 'cerebras', fallbackProviderIds: ['gemini', 'groq', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 180, temperature: 0.15, timeoutMs: 12000 },
-  { task: 'memory_extraction', primaryProviderId: 'cerebras', fallbackProviderIds: ['gemini', 'groq', 'deterministic'], maxInputTokens: 2500, maxOutputTokens: 180, temperature: 0.1, timeoutMs: 12000 },
+  { task: 'faq_answer', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 180, temperature: 0.15, timeoutMs: 12000 },
+  { task: 'memory_extraction', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 2500, maxOutputTokens: 180, temperature: 0.1, timeoutMs: 12000 },
   { task: 'admin_summary', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 4000, maxOutputTokens: 260, temperature: 0.2, timeoutMs: 14000 },
-  { task: 'agentic_reasoning', primaryProviderId: 'groq', fallbackProviderIds: ['cerebras', 'gemini', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 400, temperature: 0.15, timeoutMs: 18000 },
+  { task: 'agentic_reasoning', primaryProviderId: 'gemini', fallbackProviderIds: ['cerebras', 'groq', 'deterministic'], maxInputTokens: 3000, maxOutputTokens: 400, temperature: 0.15, timeoutMs: 18000 },
 ];
 
 const circuitBreakerState = new Map<string, { failures: number; lastFailureAt: number; cooldownUntil: number }>();
@@ -37,14 +38,32 @@ const CIRCUIT_BREAKER_THRESHOLD = 3;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 120_000;
 
 const localPromptCache = new Map<string, { result: GenerateTextResult; cachedAt: number }>();
-const PROMPT_CACHE_TTL_MS = 60_000;
+const PROMPT_CACHE_TTL_MS = 300_000;
 const CACHE_MIN_TOKEN_LENGTH = 100;
+const CACHE_MAX_CACHE_SIZE = 500;
 
 function getCacheKey(input: GenerateTextInput): string | null {
   if (!input.systemPrompt || input.systemPrompt.length < CACHE_MIN_TOKEN_LENGTH) return null;
   const prefix = input.systemPrompt.slice(0, 200);
-  const lastMsg = input.messages?.[input.messages.length - 1]?.content?.slice(0, 100) || '';
-  return `${input.task}|${input.temperature}|${prefix}|${lastMsg}`;
+  const lastMsg = input.messages?.[input.messages.length - 1]?.content?.slice(0, 120) || '';
+  const msgCount = input.messages?.length || 0;
+  return `${input.task}|${input.temperature}|${msgCount}|${prefix}|${lastMsg}`;
+}
+
+function prunePromptCache() {
+  if (localPromptCache.size <= CACHE_MAX_CACHE_SIZE) return;
+  const now = Date.now();
+  let removed = 0;
+  for (const [key, entry] of localPromptCache.entries()) {
+    if (now - entry.cachedAt > PROMPT_CACHE_TTL_MS) {
+      localPromptCache.delete(key);
+      removed++;
+    }
+  }
+  if (removed === 0) {
+    const oldestKey = localPromptCache.keys().next().value as string | undefined;
+    if (oldestKey) localPromptCache.delete(oldestKey);
+  }
 }
 
 function isCircuitOpen(providerId: string): boolean {
@@ -129,6 +148,7 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
     const redisCached = await getCachedData<GenerateTextResult>(`prompt:${cacheKey}`);
     if (redisCached) {
       localPromptCache.set(cacheKey, { result: redisCached, cachedAt: Date.now() });
+      prunePromptCache();
       return redisCached;
     }
   }
@@ -155,7 +175,8 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         recordBandit(input.task, providerId, true, 'success', Date.now() - attemptStarted, providerOrder);
         if (cacheKey) {
           localPromptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
-          setCachedData(`prompt:${cacheKey}`, routed, 60).catch(() => {});
+          prunePromptCache();
+          setCachedData(`prompt:${cacheKey}`, routed, 300).catch(() => {});
         }
         return routed;
       }
@@ -166,7 +187,8 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         recordBandit(input.task, providerId, true, 'success', Date.now() - attemptStarted, providerOrder);
         if (cacheKey) {
           localPromptCache.set(cacheKey, { result: routed, cachedAt: Date.now() });
-          setCachedData(`prompt:${cacheKey}`, routed, 60).catch(() => {});
+          prunePromptCache();
+          setCachedData(`prompt:${cacheKey}`, routed, 300).catch(() => {});
         }
         return routed;
       }

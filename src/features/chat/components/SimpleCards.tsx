@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, CreditCard, Edit3, MapPinned, Navigation, PackageCheck, ShieldCheck, UserRound } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
-import type { AddressConfirmComponent, AdminHandoffComponent, CustomerConfirmComponent, OrderStatusComponent, OrderSummaryComponent, PaymentUploadComponent } from '@/lib/chat-v3/types';
+import type { AddressConfirmComponent, AdminHandoffComponent, CustomerConfirmComponent, OrderStatusComponent, OrderSummaryComponent, PaymentUploadComponent, PhoneOtpComponent } from '@/lib/chat-v3/types';
 
 const cardClass = 'rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.9)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur';
 const panelClass = 'mt-3 rounded-[1.2rem] bg-[#fbf2e7] p-3 text-sm leading-6 text-[#5f4d3f]';
@@ -168,7 +168,7 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
 
 export function OrderSummaryCard({ component, onSend, onAction }: { component: OrderSummaryComponent; onSend?: (message: string) => void; onAction: (action: string, payload?: Record<string, unknown>) => void }) {
   const [step, setStep] = useState<'customer' | 'address' | 'payment' | 'review'>(component.savedCustomerId && component.savedAddressId ? 'review' : 'customer');
-  const [customer, setCustomer] = useState({ name: '', phone: '', type: 'konsumen', pin: '' });
+  const [customer, setCustomer] = useState({ name: '', phone: '', type: 'konsumen' });
   const [address, setAddress] = useState({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
   const [paymentMethodId, setPaymentMethodId] = useState(component.paymentMethodId || '');
   const [notes, setNotes] = useState('');
@@ -202,7 +202,6 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
             name: data.profile.nama || '',
             phone: data.profile.phone || '',
             type: 'konsumen',
-            pin: data.profile.pin || '',
           });
           // Skip customer step since data is loaded, go to address step
           if (!component.savedAddressId) {
@@ -218,7 +217,7 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
   }, [component.savedAddressId]);
 
   function canSubmit() {
-    return customer.name.trim().length >= 2 && customer.phone.trim().length >= 8 && customer.pin.length === 4 && address.text.trim().length >= 8 && paymentMethodId.trim().length > 0;
+    return customer.name.trim().length >= 2 && customer.phone.trim().length >= 8 && address.text.trim().length >= 8 && paymentMethodId.trim().length > 0;
   }
 
   function useLocation() {
@@ -308,13 +307,12 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
         {step === 'customer' && <>
         <input data-testid="order-customer-name" value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} placeholder="Nama penerima" className={inputClass} />
         <input data-testid="order-customer-phone" value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} placeholder="Nomor WhatsApp" inputMode="tel" className={inputClass} />
-        <input data-testid="order-customer-pin" value={customer.pin} onChange={(event) => setCustomer({ ...customer, pin: event.target.value.replace(/\D/g, '').slice(0, 4) })} placeholder="Buat PIN 4-Digit Baru (untuk restore data)" inputMode="numeric" maxLength={4} className={inputClass} />
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {(['konsumen', 'warung', 'reseller'] as const).map((type) => (
             <button key={type} type="button" onClick={() => setCustomer({ ...customer, type })} className={`rounded-2xl border px-3 py-2 text-xs font-medium capitalize transition ${customer.type === type ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f3f4f6]'}`}>{type}</button>
           ))}
         </div>
-        <button data-testid="order-step-address" type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8 || customer.pin.length < 4} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
+        <button data-testid="order-step-address" type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
         </>}
         {step === 'address' && <>
         {savedAddresses.length > 0 && (
@@ -444,6 +442,63 @@ export function AdminHandoffCard({
           Buka order lama
         </Link>
       </div>
+    </div>
+  );
+}
+
+export function PhoneOtpCard({ component, onSend }: { component: PhoneOtpComponent; onSend?: (message: string) => void }) {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  function handleVerify() {
+    if (code.trim().length !== 6) {
+      setError('Kode OTP terdiri dari 6 digit angka.');
+      return;
+    }
+    setError('');
+    setVerifying(true);
+    onSend?.(code.trim());
+  }
+
+  return (
+    <div className={cardClass}>
+      <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Verifikasi nomor WhatsApp</h3></div>
+      <div className={panelClass}>
+        {component.otpSent ? (
+          <p>Kode OTP sudah dikirim ke <span className="font-medium text-[#111827]">{component.phoneMasked || 'nomor kakak'}</span>. Ketik 6 digit kodenya di bawah atau balas langsung di chat.</p>
+        ) : (
+          <p>Kode OTP akan dikirim ke WhatsApp kakak untuk memastikan nomor ini milik kakak.</p>
+        )}
+        {component.phoneFound && component.purpose === 'login' && (
+          <p className="mt-2 text-xs text-[#16a34a]">✅ Nomor terdaftar — data tersimpan akan dipakai otomatis.</p>
+        )}
+        {component.displayName && (
+          <p className="mt-1 text-xs text-[#6b7280]">Terhubung sebagai <span className="font-medium text-[#111827]">{component.displayName}</span></p>
+        )}
+        {component.devModeOtp && (
+          <p className="mt-2 rounded-xl bg-[#eef6dd] px-3 py-2 text-xs font-medium text-[#3d5a13]" data-testid="otp-dev-code">Mode pengembangan — kode: <span className="font-mono font-bold">{component.devModeOtp}</span></p>
+        )}
+      </div>
+
+      {component.otpSent && (
+        <div className="mt-3 flex gap-2">
+          <input
+            data-testid="otp-code-input"
+            value={code}
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="Kode 6 digit"
+            inputMode="numeric"
+            maxLength={6}
+            className={`${inputClass} flex-1`}
+          />
+          <button data-testid="otp-verify-button" type="button" disabled={verifying || code.trim().length !== 6} onClick={handleVerify} className={primaryButtonClass}>
+            {verifying ? 'Cek...' : 'Verifikasi'}
+          </button>
+        </div>
+      )}
+      {error && <p className="mt-2 text-xs text-[#dc2626]" data-testid="otp-error">{error}</p>}
+      <p className="mt-3 text-[11px] text-[#9ca3af]">Tidak menerima kode? Balas "kirim ulang" di chat. Kode berlaku 5 menit.</p>
     </div>
   );
 }

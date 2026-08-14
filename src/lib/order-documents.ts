@@ -1,6 +1,6 @@
 import { and, eq, like, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { detailTransaksi, orderDocument, paymentIntent, paymentMethod, paymentProof, transaksi } from '@/lib/schema';
+import { detailTransaksi, orderDocument, paymentIntent, paymentMethod, transaksi } from '@/lib/schema';
 import { formatRupiah } from '@/lib/utils';
 import { randomUUID } from 'crypto';
 import { canIssueReceipt, canPrintPackingLabel } from '@/lib/order-status-policy';
@@ -30,14 +30,10 @@ export async function getOrderDocumentData(id_transaksi: string, documentType?: 
     .where(eq(paymentIntent.id_transaksi, id_transaksi))
     .limit(1);
 
-  const proofs = await db
-    .select()
-    .from(paymentProof)
-    .where(eq(paymentProof.id_transaksi, id_transaksi));
 
   const document = documentType ? await getOrCreateOrderDocument(id_transaksi, documentType, order) : null;
 
-  return { order, items, paymentIntent: intent?.intent ?? null, paymentMethod: intent?.method ?? null, proofs, document };
+  return { order, items, paymentIntent: intent?.intent ?? null, paymentMethod: intent?.method ?? null, document };
 }
 
 export async function getOrCreateOrderDocument(id_transaksi: string, documentType: DocumentType, order?: { payment_status: string; status_pembayaran: string; order_status: string; payment_method: string | null }) {
