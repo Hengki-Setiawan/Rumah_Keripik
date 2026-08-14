@@ -38,6 +38,7 @@ export type ChatComponent =
   | PaymentMethodsComponent
   | PaymentUploadComponent
   | OrderSummaryComponent
+  | PhoneOtpComponent
   | OrderStatusComponent
   | AdminHandoffComponent;
 
@@ -110,6 +111,18 @@ export type OrderSummaryComponent = {
   actions?: Array<'confirm_order' | 'edit_cart' | 'edit_address'>;
 };
 
+export type PhoneOtpComponent = {
+  type: 'phone_otp';
+  purpose: 'login' | 'register' | 'checkout_verification';
+  phone?: string;
+  phoneMasked?: string;
+  phoneFound?: boolean;
+  otpSent: boolean;
+  displayName?: string | null;
+  expiresInSeconds?: number;
+  devModeOtp?: string;
+};
+
 export type OrderStatusComponent = {
   type: 'order_status_card';
   orderId: string;
@@ -140,6 +153,7 @@ export type AIChatIntent =
   | 'show_payment'
   | 'track_order'
   | 'handoff_to_admin'
+  | 'identity_verification'
   | 'unsupported';
 
 export type AIChatResponse = {

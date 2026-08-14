@@ -38,7 +38,7 @@ export function PaymentInstructionCard({ amount, instruction }: Props) {
   return (
     <section className="mt-6 rounded-[1.5rem] border border-[#e5e7eb] bg-[#f7f7f8] p-5 text-[#111827]">
       <p className="text-sm font-medium text-[#6b7280]">Instruksi pembayaran</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{instruction.label || 'Pembayaran Manual'}</h2>
+      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{instruction.label || 'Instruksi Pembayaran'}</h2>
       <p className="mt-2 text-sm text-[#6b7280]">
         {isCod
           ? 'Pesanan COD akan dicek admin sebelum diproses.'

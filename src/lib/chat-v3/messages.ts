@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chatMessages } from '@/lib/schema';
 import { generateIdChatMessage } from '@/lib/id-generator';
@@ -55,7 +55,17 @@ export async function createChatMessage(input: {
   return toMessageDto(created);
 }
 
-export async function getChatMessages(chatSessionId: string, limit = 80) {
+export async function getChatMessages(chatSessionId: string, limit = 80, options: { recent?: boolean } = {}) {
+  if (options.recent) {
+    const rows = await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.chatSessionId, chatSessionId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+    return rows.reverse().map(toMessageDto);
+  }
+
   const rows = await db
     .select()
     .from(chatMessages)

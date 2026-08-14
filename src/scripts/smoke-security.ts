@@ -5,20 +5,14 @@ config({ path: '.env.local' });
 async function main() {
   const baseUrl = process.env.SMOKE_BASE_URL || 'http://localhost:3000';
   const { db } = await import('@/lib/db');
-  const { desc, eq } = await import('drizzle-orm');
-  const { paymentProof, transaksi } = await import('@/lib/schema');
+  const { desc } = await import('drizzle-orm');
+  const { transaksi } = await import('@/lib/schema');
 
   const [order] = await db
     .select()
     .from(transaksi)
     .orderBy(desc(transaksi.waktu_simpan))
     .limit(1);
-  const [proof] = await db
-    .select()
-    .from(paymentProof)
-    .orderBy(desc(paymentProof.uploaded_at))
-    .limit(1);
-
   const checks: Array<{ name: string; run: () => Promise<{ status: number; ok: boolean }> }> = [];
 
   if (order?.kode_pesanan) {
@@ -40,33 +34,6 @@ async function main() {
       },
     });
   }
-
-  if (proof?.id_payment_proof) {
-    checks.push({
-      name: 'admin approve rejects anonymous',
-      run: async () => {
-        const res = await fetch(`${baseUrl}/api/admin/payment-proofs/${encodeURIComponent(proof.id_payment_proof)}/approve`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ note: 'anonymous smoke should fail' }),
-          redirect: 'manual',
-        });
-        return { status: res.status, ok: [302, 307, 401].includes(res.status) };
-      },
-    });
-  }
-
-  checks.push({
-    name: 'invalid proof upload payload rejected',
-    run: async () => {
-      const res = await fetch(`${baseUrl}/api/public/payment-proof/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      return { status: res.status, ok: res.status === 400 };
-    },
-  });
 
   checks.push({
     name: 'chat send rejects missing customer session cookie',

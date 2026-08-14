@@ -87,6 +87,18 @@ export const OrderSummaryComponentSchema = z.object({
   actions: z.array(z.enum(['confirm_order', 'edit_cart', 'edit_address'])).max(4).optional(),
 });
 
+export const PhoneOtpComponentSchema = z.object({
+  type: z.literal('phone_otp'),
+  purpose: z.enum(['login', 'register', 'checkout_verification']),
+  phone: z.string().min(8).optional(),
+  phoneMasked: z.string().optional(),
+  phoneFound: z.boolean().optional(),
+  otpSent: z.boolean(),
+  displayName: z.string().nullable().optional(),
+  expiresInSeconds: z.number().int().optional(),
+  devModeOtp: z.string().optional(),
+});
+
 export const OrderStatusComponentSchema = z.object({
   type: z.literal('order_status_card'),
   orderId: z.string().min(1),
@@ -112,6 +124,7 @@ export const ChatComponentSchema = z.discriminatedUnion('type', [
   PaymentMethodsComponentSchema,
   PaymentUploadComponentSchema,
   OrderSummaryComponentSchema,
+  PhoneOtpComponentSchema,
   OrderStatusComponentSchema,
   AdminHandoffComponentSchema,
 ]);
@@ -133,6 +146,7 @@ export const AIChatResponseSchema = z.object({
     'show_payment',
     'track_order',
     'handoff_to_admin',
+    'identity_verification',
     'unsupported',
   ]),
   components: z.array(ChatComponentSchema).max(6).optional(),

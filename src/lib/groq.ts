@@ -113,80 +113,14 @@ export async function callGroqLLM(
     } catch (error) {
       console.warn(`❌ Error Groq ${modelConfig.label}:`, error);
 
-      // Jika ini model terakhir di Groq, jangan throw — lanjut ke fallback
+      // Jika ini model terakhir di Groq, throw — router memindah ke provider lain
       if (i === GROQ_CHAIN.length - 1) {
-        console.log('🔄 Semua Groq model gagal, fallback ke Gemini...');
-        const fallbackMessages = systemPrompt
-          ? [{ role: 'system' as const, content: systemPrompt }, ...messages]
-          : messages;
-        return await callGeminiLLM(fallbackMessages, maxTokens, temperature);
+        throw new Error('Semua Groq model gagal');
       }
     }
   }
 
   throw new Error('Gagal call semua LLM models');
-}
-
-/**
- * Gemini Fallback LLM
- */
-async function callGeminiLLM(
-  messages: Message[],
-  maxTokens: number = 1024,
-  temperature: number = 0.7
-): Promise<LLMResult> {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-
-  if (!geminiApiKey) {
-    throw new Error('GEMINI_API_KEY tidak ditemukan di environment');
-  }
-
-  // Format messages untuk Gemini API
-  const contents = messages
-    .filter((m) => m.role !== 'system')
-    .map((m) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    }));
-
-  const systemPrompt = messages.find((m) => m.role === 'system')?.content || '';
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          system_instruction: systemPrompt,
-          contents,
-          generationConfig: {
-            maxOutputTokens: maxTokens,
-            temperature,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw error;
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    return {
-      text,
-      provider: 'gemini',
-      model: 'gemini-2.5-flash',
-    };
-  } catch (error) {
-    console.error('❌ Error Gemini:', error);
-    throw new Error('Gemini fallback juga gagal');
-  }
 }
 
 /**

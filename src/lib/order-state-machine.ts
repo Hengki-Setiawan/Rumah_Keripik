@@ -481,10 +481,8 @@ async function handleRekapOrder(no_wa: string, message: string, ctx: OrderContex
           `✅ *Pesanan Kakak telah berhasil dicatat!* ✅\n\n` +
           `🔖 *Kode Pesanan:* ${kode_pesanan}\n` +
           `💰 *Total Pembayaran:* Rp ${totalBayar.toLocaleString('id-ID')}\n\n` +
-          `💳 *INFORMASI REKENING TRANSFER:*\n` +
-          `*Bank BNI:* 123-456-7890\n` +
-          `*Atas Nama:* RUMAH KERIPIK\n\n` +
-          `Silakan lakukan transfer sesuai total belanja. Setelah transfer, *kirim foto bukti transfer/pembayaran Kakak di sini* ya untuk proses verifikasi. Terima kasih! 🙏`,
+          `💳 *Metode pembayaran tersedia:* QRIS (scan QR setelah pesanan dibuat) atau COD (bayar tunai ke kurir).\n\n` +
+          `Silakan lanjutkan ke checkout online untuk melihat instruksi QRIS, atau pilih COD saat pesanan. Terima kasih! 🙏`,
         source: 'rule',
         newContext: newCtx,
       };
@@ -507,7 +505,7 @@ async function handleRekapOrder(no_wa: string, message: string, ctx: OrderContex
 
 async function handleDraftTersimpan(no_wa: string, message: string, ctx: OrderContext): Promise<StepResult> {
   return {
-    response: `Pesanan dengan Kode *${ctx.kode_pesanan || ctx.id_transaksi}* masih menunggu pembayaran 💳\n\nTotal: *Rp ${(ctx.total_bayar || 0).toLocaleString('id-ID')}*\nRekening: *Bank BNI 123-456-7890 a/n RUMAH KERIPIK*\n\nSetelah transfer, kirimkan *foto bukti transfer* di chat ini ya kak 📸`,
+    response: `Pesanan dengan Kode *${ctx.kode_pesanan || ctx.id_transaksi}* masih menunggu pembayaran 💳\n\nTotal: *Rp ${(ctx.total_bayar || 0).toLocaleString('id-ID')}*\nMetode: *QRIS* (scan QR di checkout online) atau *COD* (bayar tunai ke kurir saat tiba) 📲`,
     source: 'rule',
     newContext: ctx,
   };
@@ -515,7 +513,7 @@ async function handleDraftTersimpan(no_wa: string, message: string, ctx: OrderCo
 
 async function handleBuktiDiterima(no_wa: string, message: string, ctx: OrderContext): Promise<StepResult> {
   return {
-    response: `✅ *Bukti pembayaran sedang diverifikasi*\n\nKode: ${ctx.kode_pesanan || ctx.id_transaksi}\nStatus: *Menunggu Verifikasi Admin*\n\nKami akan mengonfirmasi setelah pembayaran diverifikasi ya kak 🙏`,
+    response: `✅ *Pembayaran diverifikasi!*\n\nKode: ${ctx.kode_pesanan || ctx.id_transaksi}\nStatus: *Menunggu Proses*\n\nPesanan sudah terkonfirmasi dan akan segera diproses ya kak 🙏`,
     source: 'rule',
     newContext: ctx,
   };

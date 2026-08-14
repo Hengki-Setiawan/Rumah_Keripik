@@ -12,8 +12,6 @@ import { ExportButton } from '@/components/ui/export-button';
 type PublicOpsAnalytics = {
   summary: {
     orders30d: number;
-    paymentProofs: { pending: number; accepted: number; rejected: number };
-    ocrJobs: { pending: number; failed: number };
   };
 };
 
@@ -188,17 +186,6 @@ export function AnalyticsHub() {
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
             <p className="text-sm text-on-surface-variant">Order public 30 hari</p>
             <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-primary">{publicOps.summary.orders30d}</p>
-          </div>
-          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
-            <p className="text-sm text-on-surface-variant">Bukti pembayaran</p>
-            <p className="mt-2 text-sm font-bold text-on-surface">Pending: {publicOps.summary.paymentProofs.pending}</p>
-            <p className="text-sm font-bold text-green-700">Accepted: {publicOps.summary.paymentProofs.accepted}</p>
-            <p className="text-sm font-bold text-red-700">Rejected: {publicOps.summary.paymentProofs.rejected}</p>
-          </div>
-          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
-            <p className="text-sm text-on-surface-variant">OCR assist jobs</p>
-            <p className="mt-2 text-sm font-bold text-on-surface">Pending: {publicOps.summary.ocrJobs.pending}</p>
-            <p className="text-sm font-bold text-red-700">Failed: {publicOps.summary.ocrJobs.failed}</p>
           </div>
         </div>
       )}

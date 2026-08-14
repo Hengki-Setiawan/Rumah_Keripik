@@ -37,8 +37,11 @@ export async function getCustomerMemory(customerId?: string | null, limit = 10):
 export function buildMemoryPrompt(memory: CustomerMemorySummary[]) {
   if (memory.length === 0) return '';
   return memory
-    .slice(0, 10)
-    .map((item) => `- ${item.key}: ${item.value}`)
+    .slice(0, 8)
+    .map((item) => {
+      const value = item.value.length > 200 ? `${item.value.slice(0, 200)}…` : item.value;
+      return `- ${item.key}: ${value}`;
+    })
     .join('\n');
 }
 

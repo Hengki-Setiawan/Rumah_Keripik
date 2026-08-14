@@ -1,4 +1,4 @@
-export type AIProvider = 'deterministic' | 'groq' | 'gemini' | 'cerebras' | 'qwen';
+export type AIProvider = 'deterministic' | 'groq' | 'gemini' | 'cerebras' | 'qwen' | 'ollama';
 
 export type AITask =
   | 'intent_detection'

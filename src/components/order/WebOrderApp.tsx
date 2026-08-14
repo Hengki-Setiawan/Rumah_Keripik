@@ -429,7 +429,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
               </div>
               <div className="rounded-3xl border border-[#e8dcc9] bg-[#fff9f1] p-4">
                 <p className="font-semibold text-[#2f241c]">Pembayaran aman</p>
-                <p className="mt-1">Transfer, QRIS, e-wallet, atau COD sesuai pilihan aktif.</p>
+                <p className="mt-1">QRIS (scan instan) atau COD sesuai pilihan aktif.</p>
               </div>
               <div className="rounded-3xl border border-[#e8dcc9] bg-[#fff9f1] p-4">
                 <p className="font-semibold text-[#2f241c]">Bisa dilacak</p>
@@ -691,7 +691,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                     >
                       {method.type === 'cod' ? <Truck className="mb-2" /> : <Store className="mb-2" />}
                       <p className="font-semibold">{method.label}</p>
-                      <p className="text-xs text-[#6b5a4d]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Pembayaran dicek manual oleh admin')}</p>
+                      <p className="text-xs text-[#6b5a4d]">{method.note || (method.type === 'cod' ? 'Admin konfirmasi COD sebelum diproses' : 'Bayar otomatis via QRIS Midtrans. Scan QR setelah pesanan dibuat')}</p>
                       {disabledByMin && <p className="mt-2 text-xs font-medium text-red-700">Minimal {formatRupiah(method.minOrderTotal || 0)}</p>}
                       {disabledByMax && <p className="mt-2 text-xs font-medium text-red-700">Maksimal {formatRupiah(method.maxOrderTotal || 0)}</p>}
                     </button>
@@ -709,7 +709,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
                     <p className="mb-2 font-semibold text-[#2f241c]">QRIS statis</p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={paymentMethods.find((method) => method.id === paymentMethodId)?.qrisImageUrl || ''} alt="QRIS" className="mx-auto max-h-56 rounded-2xl object-contain" />
-                    <p className="mt-2">Pastikan nominal sesuai total sebelum upload bukti.</p>
+                    <p className="mt-2">QRIS statis Rumah Keripik. Scan sesuai nominal total.</p>
                   </div>
                 )}
                 {(() => {
@@ -771,7 +771,7 @@ export function WebOrderApp({ products, categories = [], paymentMethods = [], qu
             <FaqItem question="Apakah stok di website akurat?" answer="Stok mengikuti katalog aktif. Jika ada perubahan mendadak, admin akan mengonfirmasi pesananmu." />
             <FaqItem question="Apakah bisa COD?" answer="COD bisa dipilih jika metode COD sedang aktif dan memenuhi ketentuan pesanan." />
             <FaqItem question="Bagaimana ongkir dihitung?" answer="Ongkir dikonfirmasi admin berdasarkan alamat pengiriman. Tulis alamat lengkap agar prosesnya lebih cepat." />
-            <FaqItem question="Bagaimana pembayaran diverifikasi?" answer="Bukti pembayaran dicek manual oleh admin sebelum pesanan diproses." />
+            <FaqItem question="Bagaimana pembayaran diverifikasi?" answer="Bayar online (QRIS) otomatis terverifikasi oleh gateway. Untuk COD, admin mengonfirmasi saat pesanan diproses." />
             <FaqItem question="Bagaimana cara lacak pesanan?" answer="Setelah checkout, kamu mendapat kode atau link status pesanan yang bisa dibuka kembali." />
           </div>
         </section>

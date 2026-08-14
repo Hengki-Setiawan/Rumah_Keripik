@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react';
 import type { ChatUIResponse } from '@/lib/public-order/types';
 import { formatRupiah } from '@/lib/utils';
-import { PaymentProofUploader } from './PaymentProofUploader';
 
 type UserEvent =
   | { type: 'text'; text: string }
@@ -188,9 +187,6 @@ function ResponseCard({ response, sendEvent }: { response: ChatUIResponse; sendE
             ))}
           </div>
         </div>
-        {response.paymentMethods.some((method) => method.type !== 'cod') && (
-          <PaymentProofUploader orderId={response.orderId} statusToken={(response as { statusToken?: string }).statusToken || ''} />
-        )}
         <div className="mt-3 flex flex-wrap gap-2">
           <a href={`/pesan/status/${encodeURIComponent(response.orderCode)}${(response as { statusToken?: string }).statusToken ? `?token=${encodeURIComponent((response as { statusToken?: string }).statusToken || '')}` : ''}`} className="rounded-full bg-[#111827] px-4 py-2 text-sm font-medium text-white">Lihat Status</a>
           <a href="/pesan/lacak" className="rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#111827]">Lacak Pesanan</a>

@@ -34,7 +34,7 @@ export function OrderDocument({ data, type }: Props) {
       `}</style>
 
       <div className="no-print mx-auto mb-4 flex max-w-4xl items-center justify-between gap-3">
-        <Link href="/pembayaran/verifikasi" className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium">
+        <Link href="/pembayaran" className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium">
           Kembali
         </Link>
         <PrintDocumentButton orderId={order.id_transaksi} documentType={type} />

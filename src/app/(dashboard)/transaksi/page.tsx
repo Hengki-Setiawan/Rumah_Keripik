@@ -7,7 +7,6 @@ import { getAllProdukAktif } from '@/actions/produk';
 import { getAllWarungAktif } from '@/actions/warung';
 import { useToast } from '@/components/ui/toast';
 import { formatRupiah } from '@/lib/utils';
-import { PaymentVerificationPanel } from '@/components/transaksi/PaymentVerificationPanel';
 import { DeliveryZonesManager } from '@/components/dashboard/DeliveryZonesManager';
 import dynamic from 'next/dynamic';
 import {
@@ -24,7 +23,6 @@ import {
   ChevronRight,
   User,
   Store,
-  Shield,
   MapPin,
 } from 'lucide-react';
 
@@ -33,7 +31,7 @@ const MiniMap = dynamic(() => import('@/components/maps/MiniDeliveryMap').then((
 export default function TransaksiHubPage() {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang' | 'verifikasi' | 'zona'>('riwayat');
+  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang' | 'zona'>('riwayat');
 
   // Unified Lists
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -76,7 +74,7 @@ export default function TransaksiHubPage() {
 
   useEffect(() => {
     const nextTab = searchParams.get('tab');
-    if (nextTab === 'riwayat' || nextTab === 'catat' || nextTab === 'piutang' || nextTab === 'verifikasi' || nextTab === 'zona') {
+    if (nextTab === 'riwayat' || nextTab === 'catat' || nextTab === 'piutang' || nextTab === 'zona') {
       setActiveTab(nextTab);
     }
   }, [searchParams]);
@@ -255,7 +253,7 @@ export default function TransaksiHubPage() {
         <div>
           <h1 className="font-headline-lg text-headline-lg text-on-surface">Transaksi & Pengiriman</h1>
           <p className="text-on-surface-variant font-body-md mt-1">
-            Pantau pesanan, verifikasi pembayaran, piutang, dan zona pengiriman dari satu halaman kerja
+            Pantau pesanan, piutang, dan zona pengiriman dari satu halaman kerja
           </p>
         </div>
         {activeTab !== 'catat' && activeTab !== 'zona' && (
@@ -298,7 +296,6 @@ export default function TransaksiHubPage() {
       <div className="flex gap-1 bg-surface-container-lowest border border-neutral-200 rounded-xl p-1 w-full md:w-fit">
         {[
           { key: 'riwayat' as const, label: 'Semua Transaksi', icon: ShoppingCart },
-          { key: 'verifikasi' as const, label: 'Verifikasi', icon: Shield },
           { key: 'zona' as const, label: 'Zona Pengiriman', icon: MapPin },
           { key: 'catat' as const, label: 'Catat Penjualan (Offline)', icon: Plus },
           { key: 'piutang' as const, label: 'Daftar Piutang', icon: DollarSign, count: piutang.length },
@@ -535,9 +532,7 @@ export default function TransaksiHubPage() {
         </div>
       )}
 
-      {/* --- TAB 2: VERIFIKASI PEMBAYARAN --- */}
-      {activeTab === 'verifikasi' && <PaymentVerificationPanel compactHeader />}
-
+      {/* --- TAB 2: ZONA PENGIRIMAN --- */}
       {activeTab === 'zona' && (
         <DeliveryZonesManager />
       )}

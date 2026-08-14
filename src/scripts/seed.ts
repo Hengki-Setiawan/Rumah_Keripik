@@ -157,7 +157,7 @@ async function seed() {
       { keyword: 'menu,katalog,produk,mau beli,beli,pesan', response: '📋 *Menu:* 1. Original Rp8rb 2. Pedas Rp9rb 3. Balado Rp9rb 4. BBQ Rp10rb\n\nKetik nama varian untuk pesan!', is_active: 1 },
       { keyword: 'harga,berapa,price', response: '💸 *Harga:* Original Rp8.000, Pedas Rp9.000, Balado Rp9.000, BBQ Rp10.000', is_active: 1 },
       { keyword: 'ongkir,pengiriman,sampai,kirim,delivery', response: '🚚 Dalam kota Makassar Rp5-10rb (1-3 jam). Luar kota via JNE/J&T. Min 5 pcs.', is_active: 1 },
-      { keyword: 'bayar,pembayaran,transfer,bank,rekening', response: '💳 BCA: 1234567890 a.n. Rumah Kripik\nBRI: 9876543210 a.n. Rumah Kripik\nCOD Makassar +Rp2.000', is_active: 1 },
+      { keyword: 'bayar,pembayaran,transfer,bank,rekening', response: '💳 Pembayaran bisa via *QRIS* (scan QR setelah pesanan dibuat) atau *COD* (bayar tunai ke kurir saat tiba). Ketik *pesan* untuk mulai order!', is_active: 1 },
       { keyword: 'batal,cancel,refund', response: '❌ Hubungi admin untuk pembatalan. Kami proses secepatnya! 🙏', is_active: 1 },
       { keyword: 'jam,operasional,buka,tutup', response: '⏰ Senin-Sabtu: 08.00-17.00 WITA. Minggu/libur tutup.', is_active: 1 },
       { keyword: 'terima kasih,makasih,thanks,thx', response: 'Sama-sama kak! 😊 Senang bisa membantu! 🍟', is_active: 1 },
@@ -167,13 +167,10 @@ async function seed() {
     console.log('💳 Menambah data metode pembayaran...');
     await db.insert(paymentMethod).values([
       {
-        id_payment_method: 'PM-BCA-TRANSFER',
-        type: 'bank_transfer',
-        label: 'Transfer Bank BCA',
-        bank_name: 'BCA',
-        account_number: '123-456-7890',
-        account_name: 'Rumah Keripik',
-        note: 'Silakan transfer ke rekening BCA di atas, lalu upload bukti pembayaran.',
+        id_payment_method: 'PM-QRIS-MIDTRANS',
+        type: 'qris',
+        label: 'QRIS (Bayar Online)',
+        note: 'Bayar otomatis via QRIS Midtrans. Scan QR yang muncul setelah pesanan dibuat.',
         min_order_total: 0,
         max_order_total: null,
         sort_order: 1,
@@ -187,6 +184,16 @@ async function seed() {
         min_order_total: 0,
         max_order_total: 1000000,
         sort_order: 2,
+        is_active: 1,
+      },
+      {
+        id_payment_method: 'PM-COD-AREA-TERJANGKAU',
+        type: 'cod',
+        label: 'COD Area Terjangkau',
+        note: 'Bayar tunai ke kurir saat pesanan Anda sampai.',
+        min_order_total: 0,
+        max_order_total: null,
+        sort_order: 3,
         is_active: 1,
       },
     ]).onConflictDoNothing();

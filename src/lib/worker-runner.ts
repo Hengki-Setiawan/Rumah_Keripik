@@ -1,10 +1,8 @@
 import { db } from '@/lib/db';
-import { analyzePaymentProof } from '@/lib/payment-ocr';
 import { geocodeAddress } from '@/lib/geocoding';
 import { learnFromInteraction } from '@/lib/memory-engine';
 import { completeJob, failJob, claimNextJob, heartbeat } from '@/lib/worker-queue';
 import { outboundMessageQueue } from '@/lib/schema';
-import { savePaymentOcrResult } from '@/lib/payment-ocr-results';
 
 export async function processWorkerBatch(workerId: string, limit = 5) {
   await heartbeat(workerId, { mode: 'cron-batch', limit });
@@ -16,13 +14,6 @@ export async function processWorkerBatch(workerId: string, limit = 5) {
 
     try {
       const payload = JSON.parse(job.payload_json || '{}');
-      if (job.type === 'payment_proof_ocr_assist') {
-        const result = await analyzePaymentProof(payload);
-        await savePaymentOcrResult(result, job.id);
-        await completeJob(job.id, result);
-        results.push({ id: job.id, type: job.type, status: 'completed' });
-        continue;
-      }
       if (job.type === 'geocode_address') {
         const result = await geocodeAddress(payload.address || payload.query || '');
         await completeJob(job.id, { result });

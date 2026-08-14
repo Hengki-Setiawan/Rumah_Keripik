@@ -771,7 +771,7 @@ function buildPaymentInstruction(
     type: 'payment_instruction',
     message: method === 'cod'
       ? 'Pesanan COD dibuat dan menunggu konfirmasi admin.'
-      : 'Pesanan dibuat. Silakan bayar sesuai nominal, lalu upload bukti pembayaran pada tahap berikutnya.',
+      : 'Pesanan dibuat. Silakan selesaikan pembayaran Anda (QRIS/transfer) pada tahap berikutnya.',
     orderId,
     orderCode,
     amount,
@@ -783,7 +783,6 @@ function buildPaymentInstruction(
       note: buildInstructionNote(instruction),
     }],
     actions: [
-      { label: 'Upload Bukti Bayar', action: 'upload_payment_proof', value: orderId },
       { label: 'Tanya Admin', action: 'ask_admin' },
     ],
   };

@@ -20,6 +20,11 @@ export function sanitizeForAi(text: string): string {
 export function sanitizeMessages(messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>) {
   return messages.map((msg) => ({
     ...msg,
-    content: sanitizeForAi(msg.content || ''),
+    content: truncateContent(sanitizeForAi(msg.content || '')),
   }));
+}
+
+export function truncateContent(content: string, maxChars = 900): string {
+  if (!content || content.length <= maxChars) return content;
+  return `${content.slice(0, maxChars)}…[dipotong]`;
 }

@@ -500,62 +500,6 @@ export const buktiPembayaran = sqliteTable('bukti_pembayaran', {
   waktu_verifikasi: text('waktu_verifikasi'),
 });
 
-export const paymentProof = sqliteTable(
-  'payment_proof',
-  {
-    id_payment_proof: text('id_payment_proof').primaryKey(),
-    id_transaksi: text('id_transaksi')
-      .notNull()
-      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
-    cloudinary_public_id: text('cloudinary_public_id').notNull(),
-    secure_url: text('secure_url').notNull(),
-    original_filename: text('original_filename'),
-    file_format: text('file_format'),
-    file_size_bytes: integer('file_size_bytes'),
-    amount_claimed: integer('amount_claimed'),
-    status: text('status', { enum: ['pending', 'accepted', 'rejected'] }).notNull().default('pending'),
-    uploaded_at: text('uploaded_at').notNull().default(sql`(datetime('now', 'utc'))`),
-    verified_by: text('verified_by'),
-    verified_at: text('verified_at'),
-    admin_note: text('admin_note'),
-  },
-  (table) => ({
-    transaksiIdx: index('idx_payment_proof_transaksi').on(table.id_transaksi),
-    statusTimeIdx: index('idx_payment_proof_status_time').on(table.status, table.uploaded_at),
-  })
-);
-
-export const paymentOcrResult = sqliteTable(
-  'payment_ocr_result',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    id_payment_proof: text('id_payment_proof')
-      .notNull()
-      .references(() => paymentProof.id_payment_proof, { onDelete: 'cascade' }),
-    id_transaksi: text('id_transaksi')
-      .notNull()
-      .references(() => transaksi.id_transaksi, { onDelete: 'cascade' }),
-    worker_job_id: integer('worker_job_id'),
-    engine: text('engine').notNull().default('rule_based_mvp'),
-    extracted_text: text('extracted_text'),
-    extracted_amount: integer('extracted_amount'),
-    reference_number: text('reference_number'),
-    status_keywords_json: text('status_keywords_json').notNull().default('[]'),
-    score: integer('score').notNull().default(0),
-    warnings_json: text('warnings_json').notNull().default('[]'),
-    summary: text('summary'),
-    raw_json: text('raw_json'),
-    created_at: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
-    updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
-  },
-  (table) => ({
-    proofIdx: index('idx_payment_ocr_result_proof').on(table.id_payment_proof),
-    transaksiIdx: index('idx_payment_ocr_result_transaksi').on(table.id_transaksi),
-    scoreIdx: index('idx_payment_ocr_result_score').on(table.score),
-    refIdx: index('idx_payment_ocr_result_reference').on(table.reference_number),
-  })
-);
-
 export const paymentMethod = sqliteTable(
   'payment_method',
   {
@@ -1031,6 +975,61 @@ export const customerSessions = sqliteTable(
   })
 );
 
+// ─── PROGRESSIVE IDENTITY v19 — OTP / DEVICE TOKENS ──────────────────────────
+export const otpRequests = sqliteTable('otp_requests', {
+  id: text('id').primaryKey(),
+  phoneNumber: text('phone_number').notNull(),
+  codeHash: text('code_hash').notNull(),
+  purpose: text('purpose').notNull().default('checkout_verification'),
+  attempts: integer('attempts').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(3),
+  expiresAt: text('expires_at').notNull(),
+  consumedAt: text('consumed_at'),
+  ipAddress: text('ip_address'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  otpPhoneCreatedIdx: index('idx_otp_phone_created').on(table.phoneNumber, table.createdAt),
+}));
+
+export type OtpRequest = typeof otpRequests.$inferSelect;
+export type InsertOtpRequest = typeof otpRequests.$inferInsert;
+
+export const deviceTokens = sqliteTable('device_tokens', {
+  id: text('id').primaryKey(),
+  displayName: text('display_name'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  lastSeenAt: text('last_seen_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type DeviceToken = typeof deviceTokens.$inferSelect;
+export type InsertDeviceToken = typeof deviceTokens.$inferInsert;
+
+export const deviceIdentityLinks = sqliteTable('device_identity_links', {
+  id: text('id').primaryKey(),
+  deviceTokenId: text('device_token_id').notNull().references(() => deviceTokens.id),
+  customerId: text('customer_id').notNull().references(() => customerProfile.id_customer),
+  linkedAt: text('linked_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  deviceCustomerIdx: uniqueIndex('uq_device_customer_link').on(table.deviceTokenId, table.customerId),
+}));
+
+export type DeviceIdentityLink = typeof deviceIdentityLinks.$inferSelect;
+export type InsertDeviceIdentityLink = typeof deviceIdentityLinks.$inferInsert;
+
+export const oauthLinks = sqliteTable('oauth_links', {
+  id: text('id').primaryKey(),
+  customerId: text('customer_id').notNull().references(() => customerProfile.id_customer),
+  provider: text('provider').notNull(),
+  providerAccountId: text('provider_account_id').notNull(),
+  email: text('email'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  oauthProviderIdx: uniqueIndex('uq_oauth_provider_account').on(table.provider, table.providerAccountId),
+}));
+
+export type OauthLink = typeof oauthLinks.$inferSelect;
+export type InsertOauthLink = typeof oauthLinks.$inferInsert;
+
 export const chatSessions = sqliteTable(
   'chat_sessions',
   {
@@ -1054,6 +1053,37 @@ export const chatSessions = sqliteTable(
     orderIdx: index('idx_chat_sessions_order').on(table.activeOrderId),
   })
 );
+
+// ─── PROGRESSIVE IDENTITY — FLOW STATE MACHINE PER CHAT SESSION ──────────────
+export const chatIdentityFlows = sqliteTable(
+  'chat_identity_flows',
+  {
+    id: text('id').primaryKey(),
+    chatSessionId: text('chat_session_id')
+      .notNull()
+      .references(() => chatSessions.id, { onDelete: 'cascade' }),
+    purpose: text('purpose', { enum: ['login', 'register', 'checkout_verification'] }).notNull().default('checkout_verification'),
+    step: text('step', {
+      enum: ['ask_prior_order', 'ask_phone_login', 'ask_phone_mismatch', 'ask_name', 'ask_address', 'ask_phone_register', 'ask_use_existing', 'otp_pending', 'complete', 'cancelled'],
+    }).notNull().default('ask_prior_order'),
+    phoneNumber: text('phone_number'),
+    displayName: text('display_name'),
+    addressText: text('address_text'),
+    addressNote: text('address_note'),
+    addressLat: text('address_lat'),
+    addressLng: text('address_lng'),
+    mapsLink: text('maps_link'),
+    otpRequestId: text('otp_request_id'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+  },
+  (table) => ({
+    identitySessionIdx: uniqueIndex('uq_identity_flow_session').on(table.chatSessionId),
+  })
+);
+
+export type ChatIdentityFlow = typeof chatIdentityFlows.$inferSelect;
+export type InsertChatIdentityFlow = typeof chatIdentityFlows.$inferInsert;
 
 export const chatMessages = sqliteTable(
   'chat_messages',
@@ -1321,11 +1351,6 @@ export type InsertMemoryPelanggan = typeof memoryPelanggan.$inferInsert;
 
 export type BuktiPembayaran = typeof buktiPembayaran.$inferSelect;
 export type InsertBuktiPembayaran = typeof buktiPembayaran.$inferInsert;
-
-export type PaymentProof = typeof paymentProof.$inferSelect;
-export type InsertPaymentProof = typeof paymentProof.$inferInsert;
-export type PaymentOcrResult = typeof paymentOcrResult.$inferSelect;
-export type InsertPaymentOcrResult = typeof paymentOcrResult.$inferInsert;
 
 export type PaymentMethod = typeof paymentMethod.$inferSelect;
 export type InsertPaymentMethod = typeof paymentMethod.$inferInsert;
@@ -1691,7 +1716,7 @@ export const deliveryEvents = sqliteTable('delivery_events', {
   deliveryId: integer('delivery_id').notNull().references(() => deliveryAssignment.id, { onDelete: 'cascade' }),
   courierId: integer('courier_id').references(() => couriers.id),
   eventType: text('event_type', {
-    enum: ['assigned', 'started', 'arrived', 'completed', 'failed', 'reassigned', 'cancelled', 'note_added'],
+    enum: ['assigned', 'started', 'arrived', 'completed', 'failed', 'reassigned', 'cancelled', 'note_added', 'notify_arriving', 'notify_arrived'],
   }).notNull(),
   lat: text('lat'),
   lng: text('lng'),
@@ -2081,5 +2106,4 @@ export const courierKpiDaily = sqliteTable('courier_kpi_daily', {
 
 export type CourierKpiDaily = typeof courierKpiDaily.$inferSelect;
 export type InsertCourierKpiDaily = typeof courierKpiDaily.$inferInsert;
-
 

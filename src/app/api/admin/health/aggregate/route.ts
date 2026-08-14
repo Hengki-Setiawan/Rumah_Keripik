@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { rateLimits, aiRuns, transaksi, paymentProof } from '@/lib/schema';
-import { sql, gte, eq, and } from 'drizzle-orm';
+import { rateLimits, aiRuns, transaksi } from '@/lib/schema';
+import { sql, gte, and, eq } from 'drizzle-orm';
 
 export async function GET() {
   const session = await auth();
@@ -12,11 +12,10 @@ export async function GET() {
   const lastHour = new Date(now - 3600000).toISOString();
 
   try {
-    const [[rateLimitCount], [aiErrorCount], [todayOrders], [pendingVerifications]] = await Promise.all([
+    const [[rateLimitCount], [aiErrorCount], [todayOrders]] = await Promise.all([
       db.select({ total: sql<number>`count(*)` }).from(rateLimits).where(gte(rateLimits.resetAt, now)),
       db.select({ total: sql<number>`count(*)` }).from(aiRuns).where(and(gte(aiRuns.createdAt, lastHour), eq(aiRuns.status, 'error'))),
       db.select({ total: sql<number>`count(*)` }).from(transaksi).where(gte(transaksi.waktu_simpan, lastHour)),
-      db.select({ total: sql<number>`count(*)` }).from(paymentProof).where(eq(paymentProof.status, 'pending')),
     ]);
 
     return NextResponse.json({
@@ -26,12 +25,10 @@ export async function GET() {
         rateLimitActiveKeys: Number(rateLimitCount?.total || 0),
         aiErrorsLastHour: Number(aiErrorCount?.total || 0),
         ordersLastHour: Number(todayOrders?.total || 0),
-        pendingPaymentVerifications: Number(pendingVerifications?.total || 0),
       },
       status: {
         rateLimiting: Number(rateLimitCount?.total || 0) < 100 ? 'healthy' : 'many_active_limits',
         aiErrors: Number(aiErrorCount?.total || 0) < 10 ? 'healthy' : 'elevated',
-        paymentBacklog: Number(pendingVerifications?.total || 0) < 5 ? 'healthy' : 'backlog',
       },
     });
   } catch (error) {

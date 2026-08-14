@@ -36,7 +36,7 @@ interface NotifCounts {
 
 const coreMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart, activeHrefs: ['/transaksi', '/pembayaran/verifikasi'] },
+  { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart, activeHrefs: ['/transaksi', '/pembayaran'] },
   { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },

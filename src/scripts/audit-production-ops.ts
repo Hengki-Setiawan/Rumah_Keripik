@@ -5,7 +5,7 @@ config({ path: '.env.local' });
 async function main() {
   const { asc, desc, like } = await import('drizzle-orm');
   const { db } = await import('@/lib/db');
-  const { paymentProof, produk, produkVarian, transaksi, workerJob } = await import('@/lib/schema');
+  const { produk, produkVarian, transaksi, workerJob } = await import('@/lib/schema');
 
   const smokeOrders = await db
     .select({
@@ -21,18 +21,6 @@ async function main() {
     .where(like(transaksi.nama_penerima, '%Smoke%'))
     .orderBy(desc(transaksi.waktu_simpan))
     .limit(20);
-
-  const recentProofs = await db
-    .select({
-      id: paymentProof.id_payment_proof,
-      orderId: paymentProof.id_transaksi,
-      status: paymentProof.status,
-      amount: paymentProof.amount_claimed,
-      uploaded: paymentProof.uploaded_at,
-    })
-    .from(paymentProof)
-    .orderBy(desc(paymentProof.uploaded_at))
-    .limit(10);
 
   const lowVariants = await db
     .select({
@@ -71,7 +59,6 @@ async function main() {
   console.log(JSON.stringify({
     ok: true,
     smokeOrders,
-    recentProofs,
     lowVariants,
     lowProducts,
     recentWorkerJobs,

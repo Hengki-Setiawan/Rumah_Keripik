@@ -23,27 +23,6 @@ async function main() {
   const client = createClient({ url, authToken });
 
   const statements = [
-    `CREATE TABLE IF NOT EXISTS payment_ocr_result (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      id_payment_proof TEXT NOT NULL REFERENCES payment_proof(id_payment_proof) ON DELETE CASCADE,
-      id_transaksi TEXT NOT NULL REFERENCES transaksi(id_transaksi) ON DELETE CASCADE,
-      worker_job_id INTEGER,
-      engine TEXT NOT NULL DEFAULT 'rule_based_mvp',
-      extracted_text TEXT,
-      extracted_amount INTEGER,
-      reference_number TEXT,
-      status_keywords_json TEXT NOT NULL DEFAULT '[]',
-      score INTEGER NOT NULL DEFAULT 0,
-      warnings_json TEXT NOT NULL DEFAULT '[]',
-      summary TEXT,
-      raw_json TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
-    )`,
-    `CREATE INDEX IF NOT EXISTS idx_payment_ocr_result_proof ON payment_ocr_result(id_payment_proof)`,
-    `CREATE INDEX IF NOT EXISTS idx_payment_ocr_result_transaksi ON payment_ocr_result(id_transaksi)`,
-    `CREATE INDEX IF NOT EXISTS idx_payment_ocr_result_score ON payment_ocr_result(score)`,
-    `CREATE INDEX IF NOT EXISTS idx_payment_ocr_result_reference ON payment_ocr_result(reference_number)`,
     `CREATE TABLE IF NOT EXISTS order_document (
       id_document TEXT PRIMARY KEY,
       id_transaksi TEXT NOT NULL REFERENCES transaksi(id_transaksi) ON DELETE CASCADE,
