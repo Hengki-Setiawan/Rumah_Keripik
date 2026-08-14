@@ -29,24 +29,24 @@ async function query(sql: string, args: unknown[] = []) {
 }
 
 async function main() {
-  console.log('\n=== 📦 DELIVERY ASSIGNMENTS (last 20) ===');
+  console.log('\n===  DELIVERY ASSIGNMENTS (last 20) ===');
   const da = await query('SELECT id, kurir_id, id_transaksi, status, created_at FROM delivery_assignment ORDER BY created_at DESC LIMIT 20');
-  if (da.length === 0) console.log('❌ KOSONG — Tidak ada delivery assignment sama sekali!');
+  if (da.length === 0) console.log(' KOSONG — Tidak ada delivery assignment sama sekali!');
   else console.table(da);
 
-  console.log('\n=== 🛒 TRANSAKSI (last 20) ===');
+  console.log('\n===  TRANSAKSI (last 20) ===');
   const tx = await query('SELECT id_transaksi, kode_pesanan, order_status, status_pembayaran, waktu_simpan FROM transaksi ORDER BY waktu_simpan DESC LIMIT 20');
-  if (tx.length === 0) console.log('❌ KOSONG — Tidak ada transaksi sama sekali!');
+  if (tx.length === 0) console.log(' KOSONG — Tidak ada transaksi sama sekali!');
   else console.table(tx);
 
-  console.log('\n=== 🏍️ COURIERS ===');
+  console.log('\n=== ️ COURIERS ===');
   const couriers = await query('SELECT id, nama, phone, is_active FROM couriers LIMIT 20');
-  if (couriers.length === 0) console.log('❌ KOSONG — Tidak ada data kurir!');
+  if (couriers.length === 0) console.log(' KOSONG — Tidak ada data kurir!');
   else console.table(couriers);
 
   console.log('\n=== ⏳ TRANSAKSI siap dispatch (ready/confirmed/awaiting) ===');
   const ready = await query("SELECT id_transaksi, kode_pesanan, order_status, status_pembayaran FROM transaksi WHERE order_status IN ('ready','confirmed','awaiting_admin_confirmation','Menunggu_Verifikasi') LIMIT 20");
-  if (ready.length === 0) console.log('❌ Tidak ada pesanan yang menunggu dispatch!');
+  if (ready.length === 0) console.log(' Tidak ada pesanan yang menunggu dispatch!');
   else console.table(ready);
 }
 

@@ -54,7 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           if (tokens.length > 0) {
             await sendPushNotification(
               tokens.map((t) => t.token),
-              'Kurir Hampir Tiba 🚚',
+              'Kurir Hampir Tiba',
               `Kurir sudah sampai di lokasi! Pesanan ${tx.kodePesanan || ''} akan segera diantar.`,
               { deliveryId: id, orderId: delivery.id_transaksi, type: 'courier_arrived' }
             );

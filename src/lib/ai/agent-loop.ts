@@ -162,8 +162,8 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
             ? [{ type: 'address_confirm' as const, addressId: customerContext.defaultAddress.id, address: customerContext.defaultAddress, actions: ['use_saved_address', 'edit_address', 'send_new_location'] }]
             : []),
           { type: 'quick_replies', options: [
-            { id: 'confirm-yes', label: '✅ Konfirmasi Pesanan', value: 'konfirmasi', action: 'send_message' },
-            { id: 'confirm-edit', label: '✏️ Edit Pesanan', value: 'edit pesanan', action: 'send_message' },
+            { id: 'confirm-yes', label: 'Konfirmasi Pesanan', value: 'konfirmasi', action: 'send_message' },
+            { id: 'confirm-edit', label: 'Edit Pesanan', value: 'edit pesanan', action: 'send_message' },
           ]},
         ],
         scratchpad,

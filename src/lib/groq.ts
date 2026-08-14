@@ -79,7 +79,7 @@ export async function callGroqLLM(
 
         if (!response.ok) {
           const error = await response.json();
-          console.warn(`⚠️ Groq ${modelConfig.label} gagal (${response.status}):`, error);
+          console.warn(`Groq ${modelConfig.label} gagal (${response.status}):`, error);
 
           if (response.status === 429) {
             await delay(500);
@@ -95,7 +95,7 @@ export async function callGroqLLM(
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          console.warn(`⚠️ Groq ${modelConfig.label} timeout (12s)`);
+          console.warn(`Groq ${modelConfig.label} timeout (12s)`);
           continue;
         }
         throw fetchError;
@@ -111,7 +111,7 @@ export async function callGroqLLM(
         tokensUsed: data.usage?.total_tokens,
       };
     } catch (error) {
-      console.warn(`❌ Error Groq ${modelConfig.label}:`, error);
+      console.warn(`Error Groq ${modelConfig.label}:`, error);
 
       // Jika ini model terakhir di Groq, throw — router memindah ke provider lain
       if (i === GROQ_CHAIN.length - 1) {

@@ -48,9 +48,9 @@ export async function processLocationMessage(
 
     return {
       response:
-        `📍 *Lokasi diterima!*\n\n` +
+        `*Lokasi diterima!*\n\n` +
         `Alamat terdeteksi: *${address}*\n` +
-        `🔗 ${mapsLink}\n\n` +
+        `${mapsLink}\n\n` +
         `Estimasi ongkir: *Rp ${shipping.ongkir.toLocaleString('id-ID')}* (${shipping.zona})\n\n` +
         `Apakah alamat pengiriman ke sini kak? Ketik *ya* untuk konfirmasi.`,
       newContext,
@@ -59,7 +59,7 @@ export async function processLocationMessage(
 
   return {
     response:
-      `📍 *Lokasi diterima!*\n\n` +
+      `*Lokasi diterima!*\n\n` +
       `Alamat: ${address}\n` +
       `Jarak perkiraan dari pusat Makassar: ±${jarak.toFixed(1)} km\n\n` +
       `Mau langsung pesan kak? Ketik *pesan* untuk mulai.`,

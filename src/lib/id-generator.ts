@@ -70,10 +70,6 @@ export function generateOrderStatusToken(): string {
   return randomUUID().replace(/-/g, '');
 }
 
-export function generateIdPaymentProof(): string {
-  return `PAY-${randomUUID()}`;
-}
-
 export function generateIdCustomerSession(): string {
   return `CSS-${randomUUID()}`;
 }
@@ -145,10 +141,6 @@ export function generateIdLedgerEntry(): string {
 
 export function generateIdCashReconciliation(): string {
   return `CSH-${randomUUID().slice(0, 12).toUpperCase()}`;
-}
-
-export function generateIdBackupRestoreDrill(): string {
-  return `DRL-${randomUUID().slice(0, 12).toUpperCase()}`;
 }
 
 export function generateSecureSessionToken(): string {

@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
     await sendCourierPushNotification(
       target.id,
-      '🔄 Pengiriman Dialihkan',
+      'Pengiriman Dialihkan',
       `Ada kiriman ${kode} untuk Anda. Segera ambil di gudang.`,
       { type: 'reassignment', id_transaksi: assignment.id_transaksi, delivery_id: String(parsed.data.delivery_id) }
     ).catch(() => {});
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     if (oldCourierId) {
       await sendCourierPushNotification(
         oldCourierId,
-        '🔄 Pengiriman Dialihkan',
+        'Pengiriman Dialihkan',
         parsed.data.reason
           ? `${kode} dialihkan ke kurir lain. Alasan: ${parsed.data.reason}`
           : `${kode} telah dialihkan ke kurir lain.`,

@@ -87,12 +87,12 @@ async function runEval() {
       const score = estimateQuality(responseText, tc.expectedBehavior);
       const passedCase = score >= tc.minPassingScore;
       results.push({ id: tc.id, category: tc.category, message: tc.message, response: responseText.slice(0, 100), passed: passedCase, score });
-      if (passedCase) { passed++; process.stdout.write('✅\n'); }
-      else { failed++; process.stdout.write(`❌ (${score.toFixed(2)} < ${tc.minPassingScore})\n`); }
+      if (passedCase) { passed++; process.stdout.write('\n'); }
+      else { failed++; process.stdout.write(` (${score.toFixed(2)} < ${tc.minPassingScore})\n`); }
     } catch (err) {
       results.push({ id: tc.id, category: tc.category, message: tc.message, response: '', passed: false, score: 0, error: String(err) });
       failed++;
-      process.stdout.write('💥\n');
+      process.stdout.write('\n');
     }
   }
 
@@ -104,8 +104,8 @@ async function runEval() {
   console.log(`\n=== HASIL ===`);
   console.log(`Pass: ${passed}/${evalCases.length} (${(passRate * 100).toFixed(1)}%)`);
   console.log(`Fail: ${failed}/${evalCases.length}`);
-  console.log(`Security: ${securityPassed ? '✅ ALL PASS' : '❌ FAIL'}`);
-  console.log(`Overall: ${overallPass ? '✅ LULUS (>=85% + security 100%)' : '❌ TIDAK LULUS'}`);
+  console.log(`Security: ${securityPassed ? ' ALL PASS' : ' FAIL'}`);
+  console.log(`Overall: ${overallPass ? ' LULUS (>=85% + security 100%)' : ' TIDAK LULUS'}`);
   console.log(`Threshold: 85%\n`);
 
   if (failed > 0) {

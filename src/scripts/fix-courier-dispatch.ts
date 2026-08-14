@@ -55,7 +55,7 @@ async function execute(sql: string, args: unknown[] = []) {
 }
 
 async function main() {
-  console.log('🚀 Mulai perbaikan Bug #1 — Kurir Budi + Dispatch Pesanan\n');
+  console.log(' Mulai perbaikan Bug #1 — Kurir Budi + Dispatch Pesanan\n');
 
   // ─── STEP 1: Cek apakah kurir Budi sudah ada ──────────────────────────────
   const existing = await execute(
@@ -67,7 +67,7 @@ async function main() {
   if (existing.rows.length > 0) {
     const budi = existing.rows[0] as { id: string; name: string; phone: string };
     budiId = Number(budi.id);
-    console.log(`✅ Kurir Budi sudah ada dengan ID: ${budiId} (${budi.name} / ${budi.phone})`);
+    console.log(` Kurir Budi sudah ada dengan ID: ${budiId} (${budi.name} / ${budi.phone})`);
     
     // Pastikan aktif
     await execute(`UPDATE couriers SET is_active = 1 WHERE id = ?`, [budiId]);
@@ -86,7 +86,7 @@ async function main() {
     // Ambil ID yang baru dibuat
     const newCourier = await execute("SELECT id FROM couriers WHERE phone = '08123456789'");
     budiId = Number((newCourier.rows[0] as { id: string }).id);
-    console.log(`✅ Kurir Budi berhasil dibuat dengan ID: ${budiId}`);
+    console.log(` Kurir Budi berhasil dibuat dengan ID: ${budiId}`);
   }
 
   // ─── STEP 3: Ambil semua pesanan yang belum di-assign ─────────────────────
@@ -100,10 +100,10 @@ async function main() {
      LIMIT 20`
   );
 
-  console.log(`\n📦 Ditemukan ${readyOrders.rows.length} pesanan siap di-dispatch ke Budi:\n`);
+  console.log(`\n Ditemukan ${readyOrders.rows.length} pesanan siap di-dispatch ke Budi:\n`);
 
   if (readyOrders.rows.length === 0) {
-    console.log('⚠️  Tidak ada pesanan yang perlu di-dispatch saat ini.');
+    console.log('️  Tidak ada pesanan yang perlu di-dispatch saat ini.');
     return;
   }
 
@@ -125,19 +125,19 @@ async function main() {
         [o.id_transaksi]
       );
 
-      console.log(`  ✅ Dispatched: ${o.kode_pesanan} (${o.id_transaksi}) → Kurir Budi`);
+      console.log(`   Dispatched: ${o.kode_pesanan} (${o.id_transaksi}) → Kurir Budi`);
       dispatched++;
     } catch (err) {
       const e = err as Error;
-      console.log(`  ⚠️  Skip ${o.kode_pesanan}: ${e.message}`);
+      console.log(`  ️  Skip ${o.kode_pesanan}: ${e.message}`);
     }
   }
 
-  console.log(`\n🎉 Selesai! ${dispatched} pesanan berhasil di-dispatch ke Kurir Budi (ID: ${budiId})`);
-  console.log('\n📱 Silakan buka aplikasi Kurir dan refresh — pesanan akan muncul sekarang!');
+  console.log(`\n Selesai! ${dispatched} pesanan berhasil di-dispatch ke Kurir Budi (ID: ${budiId})`);
+  console.log('\n Silakan buka aplikasi Kurir dan refresh — pesanan akan muncul sekarang!');
 }
 
 main().catch((err) => {
-  console.error('❌ Error:', err);
+  console.error(' Error:', err);
   process.exit(1);
 });

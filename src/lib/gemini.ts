@@ -111,7 +111,7 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ Gemini Embedding Error:', error);
+      console.error('Gemini Embedding Error:', error);
       throw new Error(`Gemini API Error: ${error.error?.message || 'Unknown error'}`);
     }
 
@@ -127,7 +127,7 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
       tokensUsed: data.usageMetadata?.totalTokenCount,
     };
   } catch (error) {
-    console.error('❌ Error generating embedding:', error);
+    console.error('Error generating embedding:', error);
     throw error;
   }
 }
@@ -167,7 +167,7 @@ export async function generateQueryEmbedding(text: string): Promise<EmbeddingRes
 
     return { embedding, tokensUsed: data.usageMetadata?.totalTokenCount };
   } catch (error) {
-    console.error('❌ Error generating query embedding:', error);
+    console.error('Error generating query embedding:', error);
     throw error;
   }
 }

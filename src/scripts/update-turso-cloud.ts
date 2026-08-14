@@ -25,7 +25,7 @@ async function execute(sql: string, args: unknown[] = []) {
 }
 
 async function main() {
-  console.log('⚡ Meng-update Database Turso Real-Time Cloud agar 21 Pesanan Siap Kirim...');
+  console.log(' Meng-update Database Turso Real-Time Cloud agar 21 Pesanan Siap Kirim...');
 
   // Update status transaksi di Turso Cloud real-time
   await execute(`
@@ -35,7 +35,7 @@ async function main() {
        OR kode_pesanan LIKE '%DEMO%'
   `);
 
-  console.log('✅ Database Turso Cloud Real-Time berhasil diperbarui!');
+  console.log(' Database Turso Cloud Real-Time berhasil diperbarui!');
 }
 
 main().catch(console.error);

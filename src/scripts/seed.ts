@@ -2,11 +2,11 @@ import { db } from '../lib/db';
 import { produk, warungRetail, pelangganChatbot, aiKnowledgeBase, botAutoReply, paymentMethod } from '../lib/schema';
 
 async function seed() {
-  console.log('🌱 Memulai seed data...');
+  console.log(' Memulai seed data...');
 
   try {
     // ─── SEED PRODUK ────────────────────────────────────────────────────────
-    console.log('📦 Menambah data produk...');
+    console.log(' Menambah data produk...');
     await db
       .insert(produk)
       .values([
@@ -47,10 +47,10 @@ async function seed() {
       ])
       .onConflictDoNothing();
 
-    console.log('✓ Produk berhasil di-seed (4 varian)');
+    console.log(' Produk berhasil di-seed (4 varian)');
 
     // ─── SEED WARUNG RETAIL ─────────────────────────────────────────────────
-    console.log('🏪 Menambah data warung retail...');
+    console.log(' Menambah data warung retail...');
     await db
       .insert(warungRetail)
       .values([
@@ -77,10 +77,10 @@ async function seed() {
       ])
       .onConflictDoNothing();
 
-    console.log('✓ Warung retail berhasil di-seed (2 entri)');
+    console.log(' Warung retail berhasil di-seed (2 entri)');
 
     // ─── SEED PELANGGAN CHATBOT (Opsional — contoh data) ────────────────────
-    console.log('👤 Menambah data pelanggan chatbot...');
+    console.log(' Menambah data pelanggan chatbot...');
     await db
       .insert(pelangganChatbot)
       .values([
@@ -101,10 +101,10 @@ async function seed() {
       ])
       .onConflictDoNothing();
 
-    console.log('✓ Pelanggan chatbot berhasil di-seed (2 contoh)');
+    console.log(' Pelanggan chatbot berhasil di-seed (2 contoh)');
 
     // ─── SEED AI KNOWLEDGE BASE ──────────────────────────────────────────────
-    console.log('📚 Menambah data knowledge base...');
+    console.log(' Menambah data knowledge base...');
     const kbEntries = [
       {
         judul: 'Tentang Rumah Kripik',
@@ -145,26 +145,26 @@ async function seed() {
 
     await db.insert(aiKnowledgeBase).values(kbEntries).onConflictDoNothing();
 
-    console.log('✓ Knowledge base berhasil di-seed (5 entri)');
+    console.log(' Knowledge base berhasil di-seed (5 entri)');
     console.log(
-      '\n📝 CATATAN: Vector embedding masih kosong. Jalankan script reembed untuk mengisi embedding data KB.'
+      '\n CATATAN: Vector embedding masih kosong. Jalankan script reembed untuk mengisi embedding data KB.'
     );
     console.log('   Perintah: npm run db:seed:embed\n');
 
-    console.log('🌱 Menambah auto-reply rules...');
+    console.log(' Menambah auto-reply rules...');
     await db.insert(botAutoReply).values([
-      { keyword: 'halo,hai,hi,hey,pagi,siang,malam', response: 'Halo! Ada yang bisa kami bantu? 😊 Ketik *MENU* untuk lihat produk kami.', is_active: 1 },
-      { keyword: 'menu,katalog,produk,mau beli,beli,pesan', response: '📋 *Menu:* 1. Original Rp8rb 2. Pedas Rp9rb 3. Balado Rp9rb 4. BBQ Rp10rb\n\nKetik nama varian untuk pesan!', is_active: 1 },
-      { keyword: 'harga,berapa,price', response: '💸 *Harga:* Original Rp8.000, Pedas Rp9.000, Balado Rp9.000, BBQ Rp10.000', is_active: 1 },
-      { keyword: 'ongkir,pengiriman,sampai,kirim,delivery', response: '🚚 Dalam kota Makassar Rp5-10rb (1-3 jam). Luar kota via JNE/J&T. Min 5 pcs.', is_active: 1 },
-      { keyword: 'bayar,pembayaran,transfer,bank,rekening', response: '💳 Pembayaran bisa via *QRIS* (scan QR setelah pesanan dibuat) atau *COD* (bayar tunai ke kurir saat tiba). Ketik *pesan* untuk mulai order!', is_active: 1 },
-      { keyword: 'batal,cancel,refund', response: '❌ Hubungi admin untuk pembatalan. Kami proses secepatnya! 🙏', is_active: 1 },
+      { keyword: 'halo,hai,hi,hey,pagi,siang,malam', response: 'Halo! Ada yang bisa kami bantu?  Ketik *MENU* untuk lihat produk kami.', is_active: 1 },
+      { keyword: 'menu,katalog,produk,mau beli,beli,pesan', response: ' *Menu:* 1. Original Rp8rb 2. Pedas Rp9rb 3. Balado Rp9rb 4. BBQ Rp10rb\n\nKetik nama varian untuk pesan!', is_active: 1 },
+      { keyword: 'harga,berapa,price', response: ' *Harga:* Original Rp8.000, Pedas Rp9.000, Balado Rp9.000, BBQ Rp10.000', is_active: 1 },
+      { keyword: 'ongkir,pengiriman,sampai,kirim,delivery', response: ' Dalam kota Makassar Rp5-10rb (1-3 jam). Luar kota via JNE/J&T. Min 5 pcs.', is_active: 1 },
+      { keyword: 'bayar,pembayaran,transfer,bank,rekening', response: ' Pembayaran bisa via *QRIS* (scan QR setelah pesanan dibuat) atau *COD* (bayar tunai ke kurir saat tiba). Ketik *pesan* untuk mulai order!', is_active: 1 },
+      { keyword: 'batal,cancel,refund', response: ' Hubungi admin untuk pembatalan. Kami proses secepatnya! ', is_active: 1 },
       { keyword: 'jam,operasional,buka,tutup', response: '⏰ Senin-Sabtu: 08.00-17.00 WITA. Minggu/libur tutup.', is_active: 1 },
-      { keyword: 'terima kasih,makasih,thanks,thx', response: 'Sama-sama kak! 😊 Senang bisa membantu! 🍟', is_active: 1 },
+      { keyword: 'terima kasih,makasih,thanks,thx', response: 'Sama-sama kak!  Senang bisa membantu! ', is_active: 1 },
     ]).onConflictDoNothing();
-    console.log('✓ Auto-reply rules di-seed (8 rules)');
+    console.log(' Auto-reply rules di-seed (8 rules)');
 
-    console.log('💳 Menambah data metode pembayaran...');
+    console.log(' Menambah data metode pembayaran...');
     await db.insert(paymentMethod).values([
       {
         id_payment_method: 'PM-QRIS-MIDTRANS',
@@ -197,12 +197,12 @@ async function seed() {
         is_active: 1,
       },
     ]).onConflictDoNothing();
-    console.log('✓ Metode pembayaran berhasil di-seed');
+    console.log(' Metode pembayaran berhasil di-seed');
 
-    console.log('🎉 Seed selesai!');
+    console.log(' Seed selesai!');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error saat seed:', error);
+    console.error(' Error saat seed:', error);
     process.exit(1);
   }
 }

@@ -75,7 +75,7 @@ export default function TeachAgentPage() {
 
           {drafts.length === 0 ? (
             <div className="text-center py-10 text-amber-700 text-sm">
-              Belum ada usulan skill baru. Semua interaksi berjalan lancar! 🎉
+              Belum ada usulan skill baru. Semua interaksi berjalan lancar!
             </div>
           ) : (
             drafts.map((draft) => (

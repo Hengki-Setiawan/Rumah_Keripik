@@ -201,7 +201,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
 
   if (PRODUCT_AND_CART_STAGES.includes(stage)) {
     if (/^(saya\s+)?(pernah\s+pesan|masuk|login|pelanggan\s+lama|ya\s+pernah|ya,\s+pernah)/.test(lower) && !customerContext.customer) {
-      return { reply: 'Silakan masuk lewat menu Akun atau buka halaman Pesanan Saya ya kak.', intent: 'small_talk', components: [{ type: 'quick_replies', options: [{ id: 'go-pesanan-saya', label: '🔑 Pesanan Saya', value: '/login', action: 'tool_action' }] }], confidence: 1.0 };
+      return { reply: 'Silakan masuk lewat menu Akun atau buka halaman Pesanan Saya ya kak.', intent: 'small_talk', components: [{ type: 'quick_replies', options: [{ id: 'go-pesanan-saya', label: 'Pesanan Saya', value: '/login', action: 'tool_action' }] }], confidence: 1.0 };
     }
 
     if (complexOrder.wantsReOrder && customerContext.lastOrder) {

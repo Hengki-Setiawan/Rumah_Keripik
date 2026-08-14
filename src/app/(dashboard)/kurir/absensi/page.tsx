@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarCheck, Clock } from 'lucide-react';
+import { CalendarCheck, Check, Clock, X } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { CardSkeleton } from '@/components/ui/skeleton';
@@ -137,9 +137,9 @@ export default function AbsensiPage() {
                       {r.clockInWithinGeofence == null ? (
                         <span className="text-gray-300">–</span>
                       ) : r.clockInWithinGeofence === 1 ? (
-                        <span className="text-green-600">✓</span>
+                        <span className="inline-flex text-green-600"><Check size={14} /></span>
                       ) : (
-                        <span className="text-red-500">✗</span>
+                        <span className="inline-flex text-red-500"><X size={14} /></span>
                       )}
                     </td>
                     <td className="p-3 text-center font-mono text-xs">{fmtTime(r.clockOutAt)}</td>

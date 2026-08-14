@@ -59,7 +59,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     await db.insert(notifications).values({
-      title: '🔄 Permintaan Jadwal Ulang',
+      title: 'Permintaan Jadwal Ulang',
       body: `Kurir ${courier.name || '-'} minta jadwal ulang #${delivery.id_transaksi} ke ${parsed.data.requestedDate}. Alasan: ${parsed.data.reason}`,
       type: 'system',
     });

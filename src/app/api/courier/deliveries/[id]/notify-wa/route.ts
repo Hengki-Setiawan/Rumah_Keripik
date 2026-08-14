@@ -48,8 +48,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const kode = tx.kodePesanan || assignment.id_transaksi;
     const message =
       type === 'arriving'
-        ? `🚚 *Kurir Segera Tiba*\n\nHalo kak! Pesanan *${kode}* sedang dalam perjalanan dan akan segera sampai di lokasi. Mohon bersiap ya 🙏`
-        : `✅ *Pesanan Sudah Sampai*\n\nHalo kak! Pesanan *${kode}* sudah sampai di lokasi tujuan. Terima kasih 🙏`;
+        ? `*Kurir Segera Tiba*\n\nHalo kak! Pesanan *${kode}* sedang dalam perjalanan dan akan segera sampai di lokasi. Mohon bersiap ya`
+        : `*Pesanan Sudah Sampai*\n\nHalo kak! Pesanan *${kode}* sudah sampai di lokasi tujuan. Terima kasih`;
 
     const result = await sendTextMessage(noWa, message);
     if (!result.success) {

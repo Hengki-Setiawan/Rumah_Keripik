@@ -132,10 +132,10 @@ export async function buildPersonalizedGreeting(no_wa: string): Promise<string |
       .then((r) => r);
 
     if (favProduct) {
-      return `Senang bertemu lagi! Biasanya Kakak pesan *${favProduct.nama}* — mau pesan yang sama lagi? 😊`;
+      return `Senang bertemu lagi! Biasanya Kakak pesan *${favProduct.nama}* — mau pesan yang sama lagi?`;
     }
 
-    return `Senang bertemu lagi kak! Ada yang bisa kami bantu hari ini? 😊`;
+    return `Senang bertemu lagi kak! Ada yang bisa kami bantu hari ini?`;
   } catch {
     return null;
   }

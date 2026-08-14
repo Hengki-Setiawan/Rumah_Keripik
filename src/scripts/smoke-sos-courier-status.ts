@@ -9,7 +9,7 @@ async function main() {
   const bodyText = await res.text();
   const ok = status === 401 || status === 307;
 
-  console.log(`  ${ok ? '✓' : '✗'} GET /api/courier/sos (status=${status})`);
+  console.log(`  ${ok ? '' : ''} GET /api/courier/sos (status=${status})`);
   if (!ok) console.log(`    Expected 401, got ${status}: ${bodyText.slice(0, 100)}`);
   console.log(`\n${ok ? 'All passed' : 'FAILED'}`);
   process.exit(ok ? 0 : 1);

@@ -27,20 +27,20 @@ async function migrate() {
   const token = process.env.TURSO_AUTH_TOKEN;
 
   if (!url || !token) {
-    console.error('❌ Error: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN is missing in .env.local');
+    console.error(' Error: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN is missing in .env.local');
     process.exit(1);
   }
 
   // Convert http/https or libsql url
   const httpUrl = url.replace(/^libsql:\/\//, 'https://');
 
-  console.log('🔌 Connecting to Turso database:', httpUrl);
+  console.log(' Connecting to Turso database:', httpUrl);
   const client = createClient({
     url: httpUrl,
     authToken: token,
   });
 
-  console.log('⚡ Starting v2 migrations...');
+  console.log(' Starting v2 migrations...');
 
   // 1. Create memory_pelanggan
   console.log('Creating memory_pelanggan table...');
@@ -155,21 +155,21 @@ async function migrate() {
   for (const cmd of alterCommands) {
     try {
       await client.execute(cmd);
-      console.log(`  ✓ Executed: ${cmd}`);
+      console.log(`   Executed: ${cmd}`);
     } catch (err: any) {
       if (err.message && err.message.includes('duplicate column name')) {
-        console.log(`  ⚠ Column already exists (skipped): ${cmd.split('ADD COLUMN ')[1]}`);
+        console.log(`   Column already exists (skipped): ${cmd.split('ADD COLUMN ')[1]}`);
       } else {
-        console.warn(`  ⚠ Command skipped: ${err.message}`);
+        console.warn(`   Command skipped: ${err.message}`);
       }
     }
   }
 
-  console.log('🎉 Migrations successfully completed!');
+  console.log(' Migrations successfully completed!');
   process.exit(0);
 }
 
 migrate().catch((error) => {
-  console.error('❌ Migration failed:', error);
+  console.error(' Migration failed:', error);
   process.exit(1);
 });

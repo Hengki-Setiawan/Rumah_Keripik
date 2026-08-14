@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const kode = tx?.kode_pesanan || 'pesanan';
     await sendCourierPushNotification(
       parsed.data.kurir_id,
-      '📦 Pengiriman Baru',
+      'Pengiriman Baru',
       `Ada kiriman ${kode} untuk Anda. Segera ambil di gudang.`,
       { type: 'new_delivery', id_transaksi: parsed.data.id_transaksi }
     );

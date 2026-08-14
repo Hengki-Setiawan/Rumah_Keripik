@@ -47,8 +47,8 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
         return { reply: 'Tentu kak! Senang kenalan. Boleh tahu nama panggilan kakak?', intent: 'identity_verification', confidence: 1.0 };
       }
       return priorOrderReply('Sebelum lanjut checkout — apakah kakak sudah pernah memesan di Rumah Keripik sebelumnya?', [
-        { id: 'idp-pernah', label: '✅ Sudah pernah', value: 'Sudah pernah' },
-        { id: 'idp-baru', label: '🆕 Belum pernah', value: 'Belum pernah' },
+        { id: 'idp-pernah', label: 'Sudah pernah', value: 'Sudah pernah' },
+        { id: 'idp-baru', label: 'Belum pernah', value: 'Belum pernah' },
       ]);
     }
 
@@ -63,8 +63,8 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
       if (!result.sent && result.reason === 'phone_not_found') {
         await updateIdentityFlow(chatSessionId, { step: 'ask_phone_mismatch', phoneNumber: phone });
         return priorOrderReply(`Hmm, nomor ${result.phoneMasked} ternyata belum terdaftar di sistem kami. Mungkin ada salah ketik? Atau kakak mau buat akun baru?`, [
-          { id: 'idp-koreksi', label: '✏️ Koreksi nomor', value: 'Koreksi nomor' },
-          { id: 'idp-buat-baru', label: '🆕 Buat akun baru', value: 'Buat akun baru' },
+          { id: 'idp-koreksi', label: 'Koreksi nomor', value: 'Koreksi nomor' },
+          { id: 'idp-buat-baru', label: 'Buat akun baru', value: 'Buat akun baru' },
         ]);
       }
       if (!result.sent) {
@@ -91,8 +91,8 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
         return { reply: 'Siap kak, kita buat akun baru. Boleh tahu nama panggilan kakak?', intent: 'identity_verification', confidence: 1.0 };
       }
       return priorOrderReply('Mau dikoreksi nomornya, atau buat akun baru?', [
-        { id: 'idp-koreksi2', label: '✏️ Koreksi nomor', value: 'Koreksi nomor' },
-        { id: 'idp-buat-baru2', label: '🆕 Buat akun baru', value: 'Buat akun baru' },
+        { id: 'idp-koreksi2', label: 'Koreksi nomor', value: 'Koreksi nomor' },
+        { id: 'idp-buat-baru2', label: 'Buat akun baru', value: 'Buat akun baru' },
       ]);
     }
 
@@ -100,7 +100,7 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
       const name = extractName(message);
       if (!name) return { reply: 'Boleh tulis nama panggilan kakak aja ya (tanpa angka)?', intent: 'identity_verification', confidence: 1.0 };
       await updateIdentityFlow(chatSessionId, { displayName: name, step: 'ask_address' });
-      return { reply: `Senang berkenalan, ${name}! 🎉 Sekarang alamat pengiriman kakak di mana? Bisa kirim titik lokasi atau tulis alamatnya.`, intent: 'identity_verification', components: [{ type: 'location_picker', mode: 'both' }], confidence: 1.0 };
+      return { reply: `Senang berkenalan, ${name}! Sekarang alamat pengiriman kakak di mana? Bisa kirim titik lokasi atau tulis alamatnya.`, intent: 'identity_verification', components: [{ type: 'location_picker', mode: 'both' }], confidence: 1.0 };
     }
 
     case 'ask_address': {
@@ -123,8 +123,8 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
       if (!result.sent && result.reason === 'already_registered') {
         await updateIdentityFlow(chatSessionId, { step: 'ask_use_existing', phoneNumber: phone });
         return priorOrderReply(`Eh, nomor ${result.phoneMasked} ternyata sudah pernah dipakai pesan sebelumnya. Mau lanjut pakai akun lama?`, [
-          { id: 'idp-akun-lama', label: '🔑 Pakai akun lama', value: 'Ya, pakai akun lama' },
-          { id: 'idp-tetap-baru', label: '🆕 Tetap buat baru', value: 'Tidak, buat baru' },
+          { id: 'idp-akun-lama', label: 'Pakai akun lama', value: 'Ya, pakai akun lama' },
+          { id: 'idp-tetap-baru', label: 'Tetap buat baru', value: 'Tidak, buat baru' },
         ]);
       }
       if (!result.sent) {
@@ -201,8 +201,8 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
 
       return {
         reply: result.isNew
-          ? `Berhasil terdaftar kak! 🎉 Data kakak sudah aman untuk order berikutnya. Lanjut ke pembayaran ya.`
-          : `Berhasil dikonfirmasi kak! 🔑 Data tersimpan sudah dipakai. Lanjut ke pembayaran ya.`,
+          ? `Berhasil terdaftar kak! Data kakak sudah aman untuk order berikutnya. Lanjut ke pembayaran ya.`
+          : `Berhasil dikonfirmasi kak! Data tersimpan sudah dipakai. Lanjut ke pembayaran ya.`,
         intent: 'confirm_customer_data',
         confidence: 1.0,
       };

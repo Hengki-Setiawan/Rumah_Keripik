@@ -75,7 +75,7 @@ async function processIncomingMessageInternal(
   if (isOrderFlowActive) {
     // Gambar masuk saat DRAFT_TERSIMPAN — kirim bukti bayar via channel ini tidak didukung lagi.
     if (isImage && ctx.step === 'DRAFT_TERSIMPAN') {
-      const response = 'Maaf kak, kirim foto bukti bayar lewat chat ini tidak didukung lagi. Silakan kirim foto bukti transfer melalui aplikasi/website pemesanan ya 🙏';
+      const response = 'Maaf kak, kirim foto bukti bayar lewat chat ini tidak didukung lagi. Silakan kirim foto bukti transfer melalui aplikasi/website pemesanan ya';
       await updateContext(no_wa, ctx);
       await logChat(no_wa, `[Gambar: bukti bayar]`, response, 'rule');
       return { response, source: 'order_flow' };
@@ -225,7 +225,7 @@ async function processIncomingMessageInternal(
   } catch (error) {
     console.error('[Router] LLM chain failed, applying graceful rule fallback:', error);
     const menuText = await getMenuText();
-    const fallbackResponse = `Halo Kak! Ada yang bisa kami bantu? 😊\n\nKetik *pesan* untuk memulai order, atau pilih produk dari katalog berikut:\n\n${menuText}`;
+    const fallbackResponse = `Halo Kak! Ada yang bisa kami bantu?\n\nKetik *pesan* untuk memulai order, atau pilih produk dari katalog berikut:\n\n${menuText}`;
     await logChat(no_wa, message, fallbackResponse, 'rule');
     await touchPelanggan(no_wa);
     return { response: fallbackResponse, source: 'rule' };
@@ -299,11 +299,11 @@ async function checkOrderTracking(no_wa: string, lowerMessage: string): Promise<
     const itemList = items.map((i) => `- ${i.nama_produk} x${i.qty_terjual}`).join('\n');
     const total = `Rp ${tx[0].total_bayar.toLocaleString('id-ID')}`;
     const statusIcon =
-      tx[0].status_pembayaran === 'Lunas' ? '✅ Lunas' :
-      tx[0].status_pembayaran === 'Menunggu_Verifikasi' ? '⏳ Menunggu verifikasi admin' :
-      tx[0].status_pembayaran === 'Menunggu_Bayar' ? '💳 Menunggu pembayaran' :
-      tx[0].status_pembayaran === 'Piutang' ? '⏳ Belum dibayar / piutang' :
-      tx[0].status_pembayaran === 'Dibatalkan' ? '❌ Dibatalkan' :
+      tx[0].status_pembayaran === 'Lunas' ? 'Lunas' :
+      tx[0].status_pembayaran === 'Menunggu_Verifikasi' ? 'Menunggu verifikasi admin' :
+      tx[0].status_pembayaran === 'Menunggu_Bayar' ? 'Menunggu pembayaran' :
+      tx[0].status_pembayaran === 'Piutang' ? 'Belum dibayar / piutang' :
+      tx[0].status_pembayaran === 'Dibatalkan' ? 'Dibatalkan' :
       tx[0].status_pembayaran;
 
     return `Status Pesanan Terakhirmu:\n\nKode: ${tx[0].kode_pesanan || tx[0].id_transaksi}\nTanggal: ${dateStr}\nPembayaran: ${statusIcon}\nTotal: ${total}\n\nPesanan:\n${itemList}\n\n${tx[0].catatan ? `Catatan: ${tx[0].catatan}\n\n` : ''}Untuk info lebih lanjut, hubungi admin ya.`;
