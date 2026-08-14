@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const orderId = String(body.order_id || '');
   const transactionStatus = String(body.transaction_status || '');
 
-  const idempotencyKey = `midtrans:${orderId}:${transactionStatus}`;
+  const idempotencyKey = `midtrans:${orderId}:${transactionStatus}:${String(body.fraud_status || '')}`;
   const existing = await getIdempotentResponse(idempotencyKey);
   if (existing) return existing.response;
 
