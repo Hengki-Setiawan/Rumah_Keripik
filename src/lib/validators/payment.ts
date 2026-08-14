@@ -14,13 +14,3 @@ export const PaymentMethodSchema = z.object({
   sort_order: z.number().int().min(0).default(0),
   is_active: z.number().int().min(0).max(1).default(1),
 });
-
-export const PAYMENT_REJECT_REASONS = [
-  'amount_mismatch',
-  'blurry_or_unreadable',
-  'duplicate_proof',
-  'wrong_recipient',
-  'invalid_or_edited_proof',
-  'payment_not_found',
-  'other',
-] as const;

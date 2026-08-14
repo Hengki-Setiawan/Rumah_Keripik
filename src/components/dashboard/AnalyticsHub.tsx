@@ -8,6 +8,7 @@ import { exportTransaksiCSV, getChatLogAnalytics } from '@/actions/export';
 import { RevenueChart } from '@/components/analytics/RevenueChart';
 import { KpiCardSkeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/export-button';
+import { formatRupiah } from '@/lib/utils';
 
 type PublicOpsAnalytics = {
   summary: {
@@ -44,10 +45,6 @@ export function AnalyticsHub() {
     }
     fetchData().catch(console.error);
   }, []);
-
-  function formatRupiah(n: number) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-  }
 
   const kpiCards = [
     { label: 'Total Omzet', value: formatRupiah(kpi.totalOmzet), icon: DollarSign, trend: '+12%', trendUp: true, iconBg: 'bg-primary-fixed text-primary', valueColor: 'text-primary', badgeClass: 'text-green-600 bg-green-50' },

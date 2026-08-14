@@ -6,6 +6,7 @@ import { MapPin, Plus, Edit2, Eye, EyeOff, Globe, Navigation } from 'lucide-reac
 import { getAllZona, tambahZona, updateZona, nonaktifkanZona, aktifkanZona } from '@/actions/zona-pengiriman';
 import { useToast } from '@/components/ui/toast';
 import { CardSkeleton } from '@/components/ui/skeleton';
+import { formatRupiah } from '@/lib/utils';
 
 const MiniMap = dynamic(() => import('@/components/maps/MiniDeliveryMap').then((m) => ({ default: m.MiniDeliveryMap })), { ssr: false });
 
@@ -84,10 +85,6 @@ export function DeliveryZonesManager() {
     const res = z.is_active ? await nonaktifkanZona(z.id) : await aktifkanZona(z.id);
     addToast(res.success ? 'success' : 'error', res.message);
     await loadData();
-  }
-
-  function formatRupiah(n: number) {
-    return 'Rp ' + n.toLocaleString('id-ID');
   }
 
   return (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp } from 'lucide-react';
+import { formatRupiah } from '@/lib/utils';
 
 interface ChartData {
   hari: string;
@@ -35,10 +36,6 @@ export function RevenueChart() {
     }
     fetchData();
   }, []);
-
-  function formatRupiah(n: number) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-  }
 
   if (loading) {
     return <div className="animate-pulse h-72 bg-surface-container rounded-xl" />;
