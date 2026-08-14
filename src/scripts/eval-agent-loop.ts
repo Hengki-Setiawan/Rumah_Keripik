@@ -1,4 +1,4 @@
-import { generateTextWithRouter } from '@/lib/ai/model-router';
+;
 
 const API_BASE = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 

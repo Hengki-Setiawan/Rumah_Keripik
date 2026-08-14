@@ -42,7 +42,6 @@ export default function SosDashboardPage() {
   }
 
   const activeEvents = events.filter((e) => e.status === 'active');
-  const resolvedEvents = events.filter((e) => e.status === 'resolved');
 
   return (
     <div className="space-y-6 p-6">

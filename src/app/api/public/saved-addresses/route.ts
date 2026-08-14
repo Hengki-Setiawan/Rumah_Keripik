@@ -1,11 +1,11 @@
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
-import { desc, eq, and, sql } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { customerAddress, webOrderSession } from '@/lib/schema';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { z } from 'zod';
-import { normalizePhoneNumber } from '@/lib/utils';
+import {cookies} from 'next/headers';
+import {NextResponse} from 'next/server';
+import {desc, eq, sql} from 'drizzle-orm';
+import {db} from '@/lib/db';
+import {customerAddress, webOrderSession} from '@/lib/schema';
+import {checkRateLimit, getClientIp} from '@/lib/rate-limit';
+import {z} from 'zod';
+import {normalizePhoneNumber} from '@/lib/utils';
 
 const SESSION_COOKIE = 'rk_order_session';
 

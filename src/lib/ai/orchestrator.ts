@@ -168,7 +168,6 @@ async function responseFromToolOutput(chatSessionId: string, response: AIChatRes
 
 const PRODUCT_AND_CART_STAGES: ChatV3Stage[] = ['idle', 'product_discovery', 'cart_building'];
 const CHECKOUT_STAGES: ChatV3Stage[] = ['customer_data_required', 'address_required', 'payment_selection'];
-const ORDER_STAGES: ChatV3Stage[] = ['waiting_payment', 'payment_review', 'processing', 'shipping', 'completed', 'cancelled'];
 
 export async function buildDeterministicResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
   const lower = message.toLowerCase().trim();

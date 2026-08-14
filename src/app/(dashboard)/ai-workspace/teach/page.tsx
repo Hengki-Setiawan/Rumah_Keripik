@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { BookOpen, CheckCircle, XCircle, Sparkles, MessageSquare, ThumbsDown, Edit3, ArrowRight } from 'lucide-react';
+import {useEffect, useState} from 'react';
+import {BookOpen, CheckCircle, XCircle, Sparkles} from 'lucide-react';
 
 interface SkillDraftItem {
   id: string;

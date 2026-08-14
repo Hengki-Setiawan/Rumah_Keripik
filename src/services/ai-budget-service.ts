@@ -1,6 +1,6 @@
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { aiRuns, botSetting } from '@/lib/schema';
+import { aiRuns } from '@/lib/schema';
 
 const BUDGET_PERIOD_DAYS = 30;
 
@@ -58,19 +58,4 @@ export async function getTaskDistribution() {
     errorCount: Number(r.errorCount),
     errorRate: Number(r.totalCalls) > 0 ? Number(r.errorCount) / Number(r.totalCalls) : 0,
   }));
-}
-
-export async function getOrSetDailyBudgetCap(capUsd?: number) {
-  const key = 'ai.budget.daily_cap';
-  const existing = await db.select().from(botSetting).where(eq(botSetting.key, key)).limit(1);
-
-  if (capUsd != null) {
-    await db.insert(botSetting).values({ key, value_json: String(capUsd), updated_at: new Date().toISOString() }).onConflictDoUpdate({
-      target: botSetting.key,
-      set: { value_json: String(capUsd), updated_at: new Date().toISOString() },
-    });
-    return { dailyCapUsd: capUsd };
-  }
-
-  return { dailyCapUsd: existing.length > 0 ? Number(existing[0].value_json) : null };
 }

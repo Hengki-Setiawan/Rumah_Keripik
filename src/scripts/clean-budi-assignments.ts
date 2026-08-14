@@ -46,8 +46,6 @@ async function main() {
 
   console.table(demoOrders);
 
-  const today = new Date().toISOString().slice(0, 10);
-
   for (const o of demoOrders as any[]) {
     await execute(
       `INSERT INTO delivery_assignment 

@@ -1,8 +1,8 @@
-'use server';
+﻿'use server';
 
 import { db } from '@/lib/db';
-import { transaksi, detailTransaksi, produk, pelangganChatbot, warungRetail, chatLog } from '@/lib/schema';
-import { eq, desc, inArray, and, sql } from 'drizzle-orm';
+import { transaksi, produk, pelangganChatbot, chatLog } from '@/lib/schema';
+import { desc, sql } from 'drizzle-orm';
 
 function csvEscape(val: string | number | null | undefined): string {
   if (val == null) return '';
@@ -36,7 +36,7 @@ export async function exportTransaksiCSV() {
     );
 
     return { success: true, data: [header, ...lines].join('\n'), filename: `transaksi_${new Date().toISOString().slice(0, 10)}.csv` };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal export transaksi' };
   }
 }
@@ -54,7 +54,7 @@ export async function exportProdukCSV() {
     );
 
     return { success: true, data: [header, ...lines].join('\n'), filename: `produk_${new Date().toISOString().slice(0, 10)}.csv` };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal export produk' };
   }
 }
@@ -72,30 +72,12 @@ export async function exportPelangganCSV() {
     );
 
     return { success: true, data: [header, ...lines].join('\n'), filename: `pelanggan_${new Date().toISOString().slice(0, 10)}.csv` };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal export pelanggan' };
   }
 }
 
-export async function exportWarungCSV() {
-  try {
-    const rows = await db
-      .select()
-      .from(warungRetail)
-      .orderBy(desc(warungRetail.waktu_daftar));
-
-    const header = 'ID Warung,Nama,Pemilik,No WA,Alamat,Tipe,Min Order,Status';
-    const lines = rows.map(r =>
-      [r.id_warung, csvEscape(r.nama_warung), csvEscape(r.pemilik || ''), csvEscape(r.no_wa_warung || ''), csvEscape(r.alamat), r.tipe_kemitraan, r.min_order_grosir, r.is_active ? 'Aktif' : 'Nonaktif'].join(',')
-    );
-
-    return { success: true, data: [header, ...lines].join('\n'), filename: `warung_${new Date().toISOString().slice(0, 10)}.csv` };
-  } catch (error) {
-    return { success: false, message: 'Gagal export warung' };
-  }
-}
-
-// ─── ANALITIK CHAT LOG ────────────────────────────────────────────────────────
+// â”€â”€â”€ ANALITIK CHAT LOG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getChatLogAnalytics() {
   try {
@@ -122,55 +104,7 @@ export async function getChatLogAnalytics() {
       .limit(10);
 
     return { success: true, data: { ...totals[0], topQuestions } };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal ambil analitik chat' };
-  }
-}
-
-// ─── REKOMENDASI PRODUK ───────────────────────────────────────────────────────
-
-export async function getProductRecommendations(idProduk: string) {
-  try {
-    // Cari transaksi yang mengandung produk ini
-    const txIds = await db
-      .select({ id_transaksi: detailTransaksi.id_transaksi })
-      .from(detailTransaksi)
-      .where(eq(detailTransaksi.id_produk, idProduk))
-      .limit(50);
-
-    if (txIds.length === 0) return [];
-
-    const txIdList = txIds.map(t => t.id_transaksi);
-
-    const recoms = await db
-      .select({
-        id_produk: detailTransaksi.id_produk,
-        qty: sql<number>`SUM(${detailTransaksi.qty_terjual})`,
-      })
-      .from(detailTransaksi)
-      .where(
-        and(
-          inArray(detailTransaksi.id_transaksi, txIdList),
-          sql`${detailTransaksi.id_produk} != ${idProduk}`,
-        )
-      )
-      .groupBy(detailTransaksi.id_produk)
-      .orderBy(desc(sql`SUM(${detailTransaksi.qty_terjual})`))
-      .limit(5);
-
-    if (recoms.length === 0) return [];
-
-    const produkList = await db
-      .select()
-      .from(produk)
-      .where(inArray(produk.id_produk, recoms.map(r => r.id_produk)));
-
-    return recoms.map(r => {
-      const p = produkList.find(pr => pr.id_produk === r.id_produk);
-      return p ? { ...p, co_occurrence: r.qty } : null;
-    }).filter(Boolean);
-  } catch (error) {
-    console.error('getProductRecommendations error:', error);
-    return [];
   }
 }

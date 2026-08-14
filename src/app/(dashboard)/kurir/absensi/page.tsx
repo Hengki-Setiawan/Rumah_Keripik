@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { CalendarCheck, Check, Clock, X } from 'lucide-react';
-import { useToast } from '@/components/ui/toast';
-import { Button } from '@/components/ui/button';
-import { CardSkeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import {useState, useEffect, useCallback} from 'react';
+import {CalendarCheck, Check, Clock, X} from 'lucide-react';
+import {useToast} from '@/components/ui/toast';
+;
+import {CardSkeleton} from '@/components/ui/skeleton';
+import {Badge} from '@/components/ui/badge';
 
 interface AttendanceRow {
   id: number;

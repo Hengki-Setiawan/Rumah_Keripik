@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
 import { notificationLog } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
 
 /**
  * Catat setiap push notification yang dikirim ke notification_log (blueprint v28).
@@ -30,10 +29,4 @@ export async function logPushNotification(params: {
   } catch {
     // Log best-effort; jangan menggagalkan alur notifikasi utama.
   }
-}
-
-export async function markNotificationDeviceConfirmed(recipientId: string): Promise<void> {
-  await db.update(notificationLog)
-    .set({ deliveryStatus: 'device_confirmed', deviceReceivedAt: new Date().toISOString() })
-    .where(eq(notificationLog.recipientId, recipientId));
 }

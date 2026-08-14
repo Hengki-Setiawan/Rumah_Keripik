@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { BarChart3, DollarSign, CreditCard, TrendingDown, TrendingUp, Download } from 'lucide-react';
+import {useEffect, useState} from 'react';
+import {BarChart3, DollarSign, CreditCard, TrendingDown, TrendingUp} from 'lucide-react';
 
 interface CategoryInfo { id: string; name: string; type: string }
 interface ReportData {

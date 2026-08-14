@@ -5,7 +5,6 @@ async function main() {
 
   const res = await fetch(`${BASE_URL}/api/courier/sos`);
   const status = res.status;
-  const contentType = res.headers.get('content-type') || '';
   const bodyText = await res.text();
   const ok = status === 401 || status === 307;
 

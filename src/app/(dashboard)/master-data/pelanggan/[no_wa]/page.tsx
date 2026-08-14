@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import {useState, useEffect} from 'react';
+import {useParams, useRouter} from 'next/navigation';
 import Link from 'next/link';
-import {
-  ArrowLeft, Phone, User, MapPin, Tag, Bot, MessageSquare,
-  ShoppingCart, ChevronRight, Clock, Plus, X, Package,
-  AlertCircle, TrendingUp,
-} from 'lucide-react';
-import { getPelangganByNoWa, updatePelanggan, updateTags, getTagOptions, getTransaksiByPelanggan, getChatHistoryByPelanggan } from '@/actions/pelanggan';
-import { useToast } from '@/components/ui/toast';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatRupiah } from '@/lib/utils';
+import {ArrowLeft, Phone, User, MapPin, Tag, Bot, MessageSquare, ShoppingCart, Clock, Plus, X, TrendingUp} from 'lucide-react';
+import {getPelangganByNoWa, updatePelanggan, updateTags, getTagOptions, getTransaksiByPelanggan, getChatHistoryByPelanggan} from '@/actions/pelanggan';
+import {useToast} from '@/components/ui/toast';
+import {Skeleton} from '@/components/ui/skeleton';
+import {formatRupiah} from '@/lib/utils';
 
 type Tab = 'info' | 'transaksi' | 'chat';
 
@@ -355,7 +351,6 @@ export default function CustomerDetailPage() {
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {chatHistory.map((msg: any, i: number) => {
                 const isBot = msg.sumber === 'bot';
-                const isAdmin = msg.sumber === 'admin';
                 const isSystem = msg.sumber === 'sistem';
                 return (
                   <div key={i} className={`flex ${isSystem ? 'justify-center' : isBot ? 'justify-start' : 'justify-end'}`}>

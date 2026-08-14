@@ -51,7 +51,6 @@ export async function updateMemoryAfterOrder(
     const memory = await getOrCreateMemory(no_wa);
     const cart = ctx.cart || [];
     const produkFavorit: string[] = JSON.parse(memory.produk_favorit || '[]') || [];
-    const waitlist: string[] = JSON.parse(memory.waitlist_produk || '[]') || [];
 
     for (const item of cart) {
       if (!produkFavorit.includes(item.id_produk)) {
@@ -151,7 +150,7 @@ export async function learnFromInteraction(
   triggerPattern: string,
   responseTemplate: string,
   rating?: number,
-  chatSessionId?: string,
+  _chatSessionId?: string,
 ) {
   try {
     const existing = await db

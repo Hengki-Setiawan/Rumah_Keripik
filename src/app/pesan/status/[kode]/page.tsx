@@ -95,7 +95,7 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
           <p className="mt-2 text-[#6b7280]">
             {order.payment_method === 'cod'
               ? 'Pesanan COD akan dikonfirmasi admin sebelum masuk proses pengiriman.'
-              : 'Pembayaran online memakai Duitku dan status akan diperbarui otomatis setelah transaksi sukses.'}
+              : 'Pembayaran online memakai Midtrans dan status akan diperbarui otomatis setelah transaksi sukses.'}
           </p>
           {!isPaymentVerified(order) && (
             <PaymentInstructionCard amount={order.total_bayar} instruction={parseInstruction(intent?.instruction_json)} />

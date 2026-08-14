@@ -29,24 +29,3 @@ export async function verifyCourierAuth(request: Request): Promise<AuthResult | 
     return null;
   }
 }
-
-export async function requireCourierAuth(request: Request): Promise<AuthResult> {
-  const result = await verifyCourierAuth(request);
-  if (!result) {
-    throw new Error('UNAUTHORIZED');
-  }
-  return result;
-}
-
-export function unauthorized() {
-  return Response.json(
-    { ok: false, error: 'Unauthorized' },
-    { status: 401 }
-  );
-}
-
-export function apiError(error: unknown, defaultMsg: string = 'Terjadi kesalahan') {
-  const message = error instanceof Error ? error.message : defaultMsg;
-  const status = message === 'UNAUTHORIZED' ? 401 : message === 'NOT_FOUND' ? 404 : message === 'VALIDATION_ERROR' ? 400 : 500;
-  return Response.json({ ok: false, error: message }, { status });
-}

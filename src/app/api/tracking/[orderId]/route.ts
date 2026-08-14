@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { trackingEvents, deliveryAssignment, couriers, transaksi } from '@/lib/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';
+;
+import {db} from '@/lib/db';
+import {trackingEvents, deliveryAssignment, couriers, transaksi} from '@/lib/schema';
+import {eq, desc, and} from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

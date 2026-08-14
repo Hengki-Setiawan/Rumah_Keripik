@@ -37,7 +37,7 @@ export function buildGatewayInstructionPayload(input: {
   paymentUrl?: string | null;
   qrCodeUrl?: string | null;
   reference?: string | null;
-  provider?: 'duitku' | 'midtrans';
+  provider?: 'midtrans';
   note?: string | null;
   unavailable?: boolean;
 }) {
@@ -68,7 +68,7 @@ export function buildPublicPaymentMethodOptions(methods: PaymentMethod[]) {
     note?: string;
     minOrderTotal?: number | null;
     maxOrderTotal?: number | null;
-    provider?: 'midtrans' | 'duitku';
+    provider?: 'midtrans';
   }> = [];
 
   if (onlineBase) {

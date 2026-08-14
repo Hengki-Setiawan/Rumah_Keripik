@@ -1,31 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { getAllPelanggan, updatePelanggan, getStatsPelanggan } from '@/actions/pelanggan';
-import { getAllWarung, tambahWarung, updateWarung, nonaktifkanWarung, aktifkanWarung } from '@/actions/warung';
-import { exportPelangganCSV } from '@/actions/export';
-import { ExportButton } from '@/components/ui/export-button';
-import { useToast } from '@/components/ui/toast';
-import { KpiCardSkeleton } from '@/components/ui/skeleton';
-import {
-  Users,
-  Search,
-  Edit2,
-  X,
-  Phone,
-  Bot,
-  UserCog,
-  ArrowRight,
-  Tag,
-  Store,
-  Plus,
-  AlertCircle,
-  Map,
-  MapPin,
-  CheckCircle,
-  AlertTriangle
-} from 'lucide-react';
+import {useState, useEffect} from 'react';
+import {useRouter, useSearchParams} from 'next/navigation';
+import {getAllPelanggan, updatePelanggan, getStatsPelanggan} from '@/actions/pelanggan';
+import {getAllWarung, tambahWarung, updateWarung, nonaktifkanWarung, aktifkanWarung} from '@/actions/warung';
+import {exportPelangganCSV} from '@/actions/export';
+import {ExportButton} from '@/components/ui/export-button';
+import {useToast} from '@/components/ui/toast';
+import {Users, Search, Edit2, X, Phone, Bot, UserCog, ArrowRight, Tag, Store, Plus, AlertCircle, Map} from 'lucide-react';
 import DistributionMap from '@/components/DistributionMap';
 
 interface Pelanggan {
@@ -214,10 +196,6 @@ export default function MasterDataPelangganPage() {
   }
 
   // Helpers
-  function formatRupiahLocal(n: number) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-  }
-
   function formatDate(ts: string) {
     const d = new Date(ts + 'Z');
     const now = new Date();

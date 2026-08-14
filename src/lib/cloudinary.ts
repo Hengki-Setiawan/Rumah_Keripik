@@ -1,6 +1,6 @@
 /**
  * cloudinary.ts — Utility untuk upload file ke Cloudinary
- * Digunakan untuk bukti bayar (gambar) dan invoice (PDF)
+ * Digunakan untuk invoice (PDF)
  */
 
 import { v2 as cloudinary } from 'cloudinary';
@@ -19,38 +19,6 @@ export interface UploadResult {
   secure_url: string;
   bytes: number;
   format: string;
-}
-
-/**
- * Upload gambar bukti bayar (base64) ke Cloudinary
- */
-export async function uploadBuktiBayar(
-  base64: string,
-  id_transaksi: string,
-  mimetype: string = 'image/jpeg',
-): Promise<UploadResult> {
-  const ext = mimetype.includes('png') ? 'png' : 'jpg';
-  const dataUri = `data:${mimetype};base64,${base64}`;
-
-  const result = await cloudinary.uploader.upload(dataUri, {
-    folder: 'rumah-keripik/bukti-bayar',
-    public_id: `${id_transaksi}_${Date.now()}`,
-    resource_type: 'image',
-    format: ext,
-    // Kompresi otomatis untuk hemat storage
-    transformation: [
-      { quality: 'auto:good', fetch_format: 'auto' },
-    ],
-    tags: ['bukti-bayar', id_transaksi],
-  });
-
-  return {
-    url: result.url,
-    public_id: result.public_id,
-    secure_url: result.secure_url,
-    bytes: result.bytes,
-    format: result.format,
-  };
 }
 
 /**
@@ -85,14 +53,4 @@ export async function uploadInvoicePDF(
     );
     uploadStream.end(pdfBuffer);
   });
-}
-
-/**
- * Hapus file dari Cloudinary (opsional, untuk cleanup)
- */
-export async function deleteFromCloudinary(
-  public_id: string,
-  resource_type: 'image' | 'raw' = 'image',
-): Promise<void> {
-  await cloudinary.uploader.destroy(public_id, { resource_type });
 }

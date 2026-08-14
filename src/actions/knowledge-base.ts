@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { db } from '@/lib/db';
 import { aiKnowledgeBase } from '@/lib/schema';
@@ -104,7 +104,7 @@ export async function hapusKnowledgeBase(id: number) {
     revalidatePath('/ai-workspace');
     revalidatePath('/knowledge-base');
     return { success: true, message: 'Entri berhasil dihapus' };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal menghapus entri' };
   }
 }
@@ -129,7 +129,7 @@ export async function toggleActiveKnowledgeBase(id: number) {
     revalidatePath('/ai-workspace');
     revalidatePath('/knowledge-base');
     return { success: true, message: 'Status berhasil diubah' };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal mengubah status' };
   }
 }
@@ -145,7 +145,7 @@ export async function getStatsKnowledgeBase() {
       .from(aiKnowledgeBase);
 
     return { total: result?.total ?? 0, aktif: result?.aktif ?? 0, withEmbedding: result?.withEmbedding ?? 0 };
-  } catch (error) {
+  } catch {
     return { total: 0, aktif: 0, withEmbedding: 0 };
   }
 }

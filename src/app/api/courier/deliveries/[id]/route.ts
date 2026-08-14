@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { deliveryAssignment, transaksi, couriers, deliveryRoutePoint, detailTransaksi } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
-import { requireCourierAuth } from '@/lib/courier-auth';
+import {NextResponse} from 'next/server';
+import {db} from '@/lib/db';
+import {deliveryAssignment, transaksi, deliveryRoutePoint, detailTransaksi} from '@/lib/schema';
+import {eq, and} from 'drizzle-orm';
+import {requireCourierAuth} from '@/lib/courier-auth';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

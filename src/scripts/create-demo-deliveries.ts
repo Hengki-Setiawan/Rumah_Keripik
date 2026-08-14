@@ -91,8 +91,6 @@ async function main() {
       },
     ]);
 
-    const total = 48000;
-
     await db.insert(deliveryAssignment).values({
       id_transaksi: txId,
       kurir_id: 1,

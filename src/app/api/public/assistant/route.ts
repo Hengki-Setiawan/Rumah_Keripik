@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     ], 220, 0.2, [
       'Kamu adalah asisten public ordering Rumah Keripik.',
       'Jawab singkat dalam Bahasa Indonesia.',
-      'Boleh bantu rekomendasi umum, cara order, cara bayar online via Duitku, QRIS, transfer, e-wallet, dan COD.',
+      'Boleh bantu rekomendasi umum, cara order, cara bayar online via QRIS, transfer, e-wallet, dan COD.',
       'Jangan membuat order, jangan mengubah stok/harga, jangan klaim pembayaran valid, jangan meminta data sensitif.',
       'Arahkan user memakai tombol/form di halaman untuk tindakan transaksi.',
     ].join(' '));
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
 function answerDeterministic(text: string) {
   const lower = text.toLowerCase();
-  if (/bayar|transfer|qris|duitku|e-wallet|virtual account|va/.test(lower)) return 'Pembayaran Rumah Keripik dilakukan lewat checkout online Duitku. Setelah transaksi sukses, status pesanan akan diperbarui otomatis.';
+  if (/bayar|transfer|qris|e-wallet|virtual account|va/.test(lower)) return 'Pembayaran Rumah Keripik dilakukan lewat checkout online (QRIS/transfer). Setelah transaksi sukses, status pesanan akan diperbarui otomatis.';
   if (/cod|bayar di tempat/.test(lower)) return 'COD bisa dipilih jika aktif. Order COD akan menunggu persetujuan admin sebelum diproses.';
   if (/stok|harga|produk|varian|rasa/.test(lower)) return 'Stok dan harga yang tampil di kartu produk berasal dari dashboard. Pilih varian di kartu produk untuk melihat harga dan stoknya.';
   if (/alamat|kirim|ongkir|lokasi/.test(lower)) return 'Isi alamat lengkap dan patokan. Kamu juga bisa pakai tombol ambil titik lokasi jika browser mengizinkan.';
