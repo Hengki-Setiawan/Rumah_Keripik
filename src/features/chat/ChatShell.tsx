@@ -287,7 +287,19 @@ export function ChatShell() {
   }
 
   const displayMessages = useMemo(() => {
-    return messages.filter((msg) => !isGreetingMessage(msg));
+    const filtered = messages.filter((msg) => !isGreetingMessage(msg));
+    const result: ChatMessageDto[] = [];
+    for (let i = 0; i < filtered.length; i++) {
+      const msg = filtered[i];
+      const isCartMsg = msg.components?.some((c) => c.type === 'cart_summary');
+      const isLast = i === filtered.length - 1;
+      // Filter out old redundant generic cart notification text bubbles if not the latest message
+      if (isCartMsg && !isLast && (msg.content === 'Sudah aku tambahkan ke keranjang kak.' || msg.content === 'Keranjang sudah aku update.')) {
+        continue;
+      }
+      result.push(msg);
+    }
+    return result;
   }, [messages]);
 
   const isIdle = !started && displayMessages.length === 0 && !loading && !sending;

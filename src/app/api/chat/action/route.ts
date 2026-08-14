@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chatSessions } from '@/lib/schema';
+import { chatSessions, produk } from '@/lib/schema';
 import { ChatActionSchema, CreateChatOrderSchema } from '@/lib/chat-v3/schemas';
 import { createChatMessage, getChatMessages } from '@/lib/chat-v3/messages';
 import { addToChatCart, getChatCart, updateChatCartItem } from '@/lib/ai/tools/cart';
@@ -101,11 +101,15 @@ export async function POST(req: Request) {
       const variantId = payload.variantId ? String(payload.variantId) : undefined;
       const quantity = Number(payload.quantity || 1);
       const cart = await addToChatCart(chatSessionId, productId, variantId, quantity);
+      const [productRow] = await db.select({ name: produk.nama_produk }).from(produk).where(eq(produk.id_produk, productId)).limit(1);
+      const productName = productRow?.name || 'Produk';
+      const itemText = quantity > 1 ? `${productName} (${quantity}x)` : productName;
       await logRecommendationEvent({ eventType: 'added_to_cart', chatSessionId, productIds: [productId], selectedProductId: productId, metadata: { variantId, quantity } });
-      await createChatMessage({ chatSessionId, role: 'assistant', content: 'Sudah aku tambahkan ke keranjang kak.', components: [{ type: 'cart_summary', cartId: cart.id }] });
+      await createChatMessage({ chatSessionId, role: 'assistant', content: `🛒 ${itemText} berhasil ditambahkan ke keranjang kak!`, components: [{ type: 'cart_summary', cartId: cart.id }] });
     } else if (action === 'update_cart_item') {
       const cart = await updateChatCartItem(chatSessionId, String(payload.itemId || ''), Number(payload.quantity || 0));
-      await createChatMessage({ chatSessionId, role: 'assistant', content: cart.itemCount > 0 ? 'Keranjang sudah aku update.' : 'Keranjang sudah kosong kak.', components: cart.itemCount > 0 ? [{ type: 'cart_summary', cartId: cart.id }] : [] });
+      const text = payload.quantity === 0 ? 'Item berhasil dihapus dari keranjang kak.' : 'Keranjang sudah aku update kak.';
+      await createChatMessage({ chatSessionId, role: 'assistant', content: cart.itemCount > 0 ? text : 'Keranjang sudah kosong kak.', components: cart.itemCount > 0 ? [{ type: 'cart_summary', cartId: cart.id }] : [] });
     } else if (action === 'show_payment_methods') {
       const methods = await getActivePaymentMethods();
       await createChatMessage({ chatSessionId, role: 'assistant', content: 'Pilih metode pembayaran yang tersedia ya kak.', components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }] });
