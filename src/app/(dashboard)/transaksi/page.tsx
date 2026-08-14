@@ -61,7 +61,7 @@ export default function TransaksiHubPage() {
     catatan: '',
   });
 
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Delivery Tracking
   const [trackingTx, setTrackingTx] = useState<string | null>(null);

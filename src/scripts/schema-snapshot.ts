@@ -3,7 +3,7 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 
 function main() {
-  const result = spawnSync('npx', ['drizzle-kit', 'studio', '--port', '4999'], {
+  spawnSync('npx', ['drizzle-kit', 'studio', '--port', '4999'], {
     shell: true,
     encoding: 'utf8',
     timeout: 5000,

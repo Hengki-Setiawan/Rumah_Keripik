@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { recordExpense, ensureDefaultCategories } from '@/services/ledger-service';
-import { requireAdminRole, isUnauthorizedAdminError, isForbiddenAdminPermissionError } from '@/lib/admin-actor';
-import { logAdminAudit } from '@/lib/admin-audit';
+import {NextResponse} from 'next/server';
+import {z} from 'zod';
+import {recordExpense} from '@/services/ledger-service';
+import {requireAdminRole, isUnauthorizedAdminError, isForbiddenAdminPermissionError} from '@/lib/admin-actor';
+import {logAdminAudit} from '@/lib/admin-audit';
 
 const Schema = z.object({
   categoryId: z.string().min(1),

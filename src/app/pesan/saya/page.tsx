@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, useTransition, useCallback } from 'react';
-import { AlertTriangle, ArrowRight, MapPin, PencilLine, Save, ShoppingBag, Trash2, UserRound } from 'lucide-react';
-import { formatRupiah } from '@/lib/utils';
+import {useEffect, useMemo, useState, useTransition} from 'react';
+import {AlertTriangle, ArrowRight, MapPin, PencilLine, Save, ShoppingBag, Trash2, UserRound} from 'lucide-react';
+import {formatRupiah} from '@/lib/utils';
 
 type PortalData = {
   anonymousLabel?: string | null;

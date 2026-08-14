@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
-import { z } from 'zod';
-import { db } from '@/lib/db';
-import { expoPushTokens } from '@/lib/schema';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import {NextResponse} from 'next/server';
+import {sql} from 'drizzle-orm';
+import {z} from 'zod';
+import {db} from '@/lib/db';
+import {expoPushTokens} from '@/lib/schema';
+import {checkRateLimit, getClientIp} from '@/lib/rate-limit';
 
 const RegisterSchema = z.object({
   token: z.string().min(10).max(256),

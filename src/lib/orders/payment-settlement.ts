@@ -53,7 +53,7 @@ export async function markOrderPaidFromGateway(orderId: string, note?: string | 
         status_pembayaran: 'Lunas',
         payment_status: 'verified',
         order_status: 'processing',
-        verified_by: 'duitku_webhook',
+        verified_by: 'midtrans_webhook',
         verified_at: sql`(datetime('now', 'utc'))`,
         updated_at: sql`(datetime('now', 'utc'))`,
         admin_note: note || order.admin_note,
@@ -73,7 +73,7 @@ export async function markOrderPaidFromGateway(orderId: string, note?: string | 
       order_status: 'processing',
       payment_status: 'verified',
       event_type: 'PAYMENT_GATEWAY_VERIFIED',
-      actor: 'duitku',
+      actor: 'midtrans',
       note: note || undefined,
     });
   });

@@ -52,8 +52,8 @@ export async function POST(req: Request) {
           {
             type: 'quick_replies' as const,
             options: [
-              { id: 'fb-produk', label: '🛍️ Lihat Katalog', value: 'lihat produk', action: 'send_message' as const },
-              { id: 'fb-cart', label: '🛒 Lihat Keranjang', value: 'lihat keranjang', action: 'send_message' as const },
+              { id: 'fb-produk', label: 'Lihat Katalog', value: 'lihat produk', action: 'send_message' as const },
+              { id: 'fb-cart', label: 'Lihat Keranjang', value: 'lihat keranjang', action: 'send_message' as const },
             ]
           }
         ],

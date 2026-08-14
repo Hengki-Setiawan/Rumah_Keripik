@@ -21,7 +21,3 @@ export function getCloudinaryImageUrl(
 export function getProductImageUrl(publicId: string | null | undefined) {
   return getCloudinaryImageUrl(publicId, 'card');
 }
-
-export function getPaymentProofImageUrl(publicId: string | null | undefined) {
-  return getCloudinaryImageUrl(publicId, 'proof');
-}

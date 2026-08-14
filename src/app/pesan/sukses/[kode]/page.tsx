@@ -45,7 +45,7 @@ export default async function OrderSuccessPage({ params, searchParams }: PagePro
               Admin Rumah Keripik akan cek pesananmu.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-[#6b7280]">
-              Simpan halaman ini untuk melihat status pesanan. Jika memilih pembayaran online, lanjutkan checkout lewat Duitku agar status pesanan terupdate otomatis.
+              Simpan halaman ini untuk melihat status pesanan. Jika memilih pembayaran online, lanjutkan checkout lewat Midtrans agar status pesanan terupdate otomatis.
             </p>
           </div>
 

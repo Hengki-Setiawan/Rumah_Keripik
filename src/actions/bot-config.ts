@@ -1,10 +1,10 @@
-'use server';
+﻿'use server';
 
-import { db } from '@/lib/db';
-import { botAutoReply, chatLog } from '@/lib/schema';
-import { eq, desc, and, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
+import {db} from '@/lib/db';
+import {botAutoReply, chatLog} from '@/lib/schema';
+import {eq, desc, sql} from 'drizzle-orm';
+import {revalidatePath} from 'next/cache';
+import {z} from 'zod';
 
 const RuleSchema = z.object({
   keyword: z.string().min(1, 'Keyword wajib diisi'),
@@ -32,7 +32,7 @@ export async function addAutoReplyRule(data: z.infer<typeof RuleSchema>) {
     });
     revalidatePath('/bot-config');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal menambah rule' };
   }
 }
@@ -49,7 +49,7 @@ export async function updateAutoReplyRule(id: number, data: { keyword?: string; 
       .where(eq(botAutoReply.id, id));
     revalidatePath('/bot-config');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal update rule' };
   }
 }
@@ -61,7 +61,7 @@ export async function deleteAutoReplyRule(id: number) {
       .where(eq(botAutoReply.id, id));
     revalidatePath('/bot-config');
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, message: 'Gagal hapus rule' };
   }
 }
@@ -91,7 +91,7 @@ export async function getChatStats() {
       })
       .from(chatLog);
     return total;
-  } catch (error) {
+  } catch {
     return { total: 0, rules: 0, groq: 0, notFound: 0, total_tokens: 0 };
   }
 }

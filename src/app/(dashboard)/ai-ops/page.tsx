@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Cpu, DollarSign, Activity, AlertTriangle, BarChart3, Heart, Shield, Clock, TrendingUp } from 'lucide-react';
+import {useEffect, useState} from 'react';
+import {Cpu, DollarSign, Activity, AlertTriangle, BarChart3, Heart} from 'lucide-react';
 
 interface ProviderUsage { provider: string; totalTokens: number; totalCalls: number; errorCount: number; avgLatencyMs: number }
 interface DailyUsage { date: string; provider: string; totalTokens: number; totalCalls: number }
@@ -10,7 +10,7 @@ interface ProviderHealth { provider: string; status: 'healthy' | 'degraded' | 'd
 
 export default function AiOpsPage() {
   const [providerUsage, setProviderUsage] = useState<ProviderUsage[]>([]);
-  const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
+  const [, setDailyUsage] = useState<DailyUsage[]>([]);
   const [taskDist, setTaskDist] = useState<TaskDist[]>([]);
   const [healthData, setHealthData] = useState<ProviderHealth[]>([]);
   const [loading, setLoading] = useState(true);

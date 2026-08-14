@@ -101,12 +101,3 @@ export async function linkChatSessionToCustomer(chatSessionId: string, customerI
     db.update(customerSessions).set({ customerId, lastSeenAt: sql`(datetime('now', 'utc'))` }).where(eq(customerSessions.id, chatSession.customerSessionId)),
   ]);
 }
-
-export async function buildReturningCustomerComponents(chatSessionId: string) {
-  const context = await getCustomerContextForChat(chatSessionId);
-  if (!context.customer) return [];
-  return [
-    { type: 'customer_confirm' as const, customerId: context.customer.id, maskedFields: true as const, customer: context.customer, actions: ['use_saved_data', 'edit_data', 'send_new_location'] },
-    ...(context.defaultAddress ? [{ type: 'address_confirm' as const, addressId: context.defaultAddress.id, address: context.defaultAddress, actions: ['use_saved_address', 'edit_address', 'send_new_location'] }] : []),
-  ];
-}

@@ -51,7 +51,6 @@ export async function updateMemoryAfterOrder(
     const memory = await getOrCreateMemory(no_wa);
     const cart = ctx.cart || [];
     const produkFavorit: string[] = JSON.parse(memory.produk_favorit || '[]') || [];
-    const waitlist: string[] = JSON.parse(memory.waitlist_produk || '[]') || [];
 
     for (const item of cart) {
       if (!produkFavorit.includes(item.id_produk)) {
@@ -132,10 +131,10 @@ export async function buildPersonalizedGreeting(no_wa: string): Promise<string |
       .then((r) => r);
 
     if (favProduct) {
-      return `Senang bertemu lagi! Biasanya Kakak pesan *${favProduct.nama}* — mau pesan yang sama lagi? 😊`;
+      return `Senang bertemu lagi! Biasanya Kakak pesan *${favProduct.nama}* — mau pesan yang sama lagi?`;
     }
 
-    return `Senang bertemu lagi kak! Ada yang bisa kami bantu hari ini? 😊`;
+    return `Senang bertemu lagi kak! Ada yang bisa kami bantu hari ini?`;
   } catch {
     return null;
   }
@@ -151,7 +150,7 @@ export async function learnFromInteraction(
   triggerPattern: string,
   responseTemplate: string,
   rating?: number,
-  chatSessionId?: string,
+  _chatSessionId?: string,
 ) {
   try {
     const existing = await db

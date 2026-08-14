@@ -5,6 +5,7 @@ import { orderStatusHistory, paymentIntent, transaksi } from '@/lib/schema';
 import { markOrderPaidFromGateway } from '@/lib/orders/payment-settlement';
 import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 import { verifyMidtransNotificationSignature } from '@/lib/payments/midtrans';
+import { getIdempotentResponse, saveIdempotentResponse } from '@/lib/idempotency';
 
 export const runtime = 'nodejs';
 
@@ -13,9 +14,14 @@ export async function POST(req: Request) {
   if (!body) return NextResponse.json({ ok: false, error: 'Invalid callback payload' }, { status: 400 });
 
   const orderId = String(body.order_id || '');
+  const transactionStatus = String(body.transaction_status || '');
+
+  const idempotencyKey = `midtrans:${orderId}:${transactionStatus}:${String(body.fraud_status || '')}`;
+  const existing = await getIdempotentResponse(idempotencyKey);
+  if (existing) return existing.response;
+
   const statusCode = String(body.status_code || '');
   const grossAmount = String(body.gross_amount || '');
-  const transactionStatus = String(body.transaction_status || '');
   const fraudStatus = String(body.fraud_status || '');
   const paymentType = String(body.payment_type || '');
   const signatureKey = String(body.signature_key || '');
@@ -44,7 +50,11 @@ export async function POST(req: Request) {
     ))
     .limit(1);
 
-  if (!order) return NextResponse.json({ ok: true, ignored: true });
+  if (!order) {
+    const ignored = NextResponse.json({ ok: true, ignored: true });
+    await saveIdempotentResponse(idempotencyKey, ignored);
+    return ignored;
+  }
 
   const note = `Midtrans webhook: status=${transactionStatus}, type=${paymentType}, fraud=${fraudStatus}`;
 
@@ -57,7 +67,9 @@ export async function POST(req: Request) {
       await markOrderPaidFromGateway(order.id_transaksi, note);
       await notifyChatForOrderEvent(order.id_transaksi, 'payment_verified');
     }
-    return NextResponse.json({ ok: true });
+    const response = NextResponse.json({ ok: true });
+    await saveIdempotentResponse(idempotencyKey, response);
+    return response;
   }
 
   const isFailed =
@@ -97,5 +109,7 @@ export async function POST(req: Request) {
     });
   }
 
-  return NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true });
+  await saveIdempotentResponse(idempotencyKey, response);
+  return response;
 }

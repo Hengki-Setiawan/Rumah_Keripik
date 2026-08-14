@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { BookOpen, CheckCircle, XCircle, Sparkles, MessageSquare, ThumbsDown, Edit3, ArrowRight } from 'lucide-react';
+import {useEffect, useState} from 'react';
+import {BookOpen, CheckCircle, XCircle, Sparkles} from 'lucide-react';
 
 interface SkillDraftItem {
   id: string;
@@ -75,7 +75,7 @@ export default function TeachAgentPage() {
 
           {drafts.length === 0 ? (
             <div className="text-center py-10 text-amber-700 text-sm">
-              Belum ada usulan skill baru. Semua interaksi berjalan lancar! 🎉
+              Belum ada usulan skill baru. Semua interaksi berjalan lancar!
             </div>
           ) : (
             drafts.map((draft) => (

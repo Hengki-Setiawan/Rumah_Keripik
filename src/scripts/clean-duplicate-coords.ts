@@ -48,7 +48,7 @@ async function main() {
   console.log(`\nTotal akan dihapus: ${totalToDelete} pesanan`);
   
   if (toDeleteIds.length === 0) {
-    console.log('✅ Tidak ada duplikat koordinat.');
+    console.log(' Tidak ada duplikat koordinat.');
     return;
   }
   
@@ -56,13 +56,13 @@ async function main() {
   for (const id of toDeleteIds) {
     await execute(`DELETE FROM delivery_assignment WHERE id_transaksi = '${id}'`);
   }
-  console.log('✅ delivery_assignment duplikat dihapus.');
+  console.log(' delivery_assignment duplikat dihapus.');
   
   // Step 3: hapus transaksi duplikat
   for (const id of toDeleteIds) {
     await execute(`DELETE FROM transaksi WHERE id_transaksi = '${id}'`);
   }
-  console.log(`✅ ${toDeleteIds.length} pesanan duplikat koordinat berhasil dihapus!`);
+  console.log(` ${toDeleteIds.length} pesanan duplikat koordinat berhasil dihapus!`);
   
   // Step 4: report sisa
   const remaining = await execute(`SELECT COUNT(*) as n FROM transaksi WHERE order_status IN ('ready','confirmed','shipping','awaiting_admin_confirmation','Menunggu_Verifikasi')`);

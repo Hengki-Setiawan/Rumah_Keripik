@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { db } from '@/lib/db';
 import { warungRetail } from '@/lib/schema';
@@ -65,7 +65,7 @@ export async function updateWarung(id_warung: string, data: Partial<WarungInput>
       success: true,
       message: 'Warung berhasil diupdate',
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       message: 'Gagal update warung',
@@ -89,7 +89,7 @@ export async function nonaktifkanWarung(id_warung: string) {
       success: true,
       message: 'Warung berhasil dinonaktifkan',
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       message: 'Gagal nonaktifkan warung',
@@ -113,7 +113,7 @@ export async function aktifkanWarung(id_warung: string) {
       success: true,
       message: 'Warung berhasil diaktifkan',
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       message: 'Gagal aktifkan warung',
@@ -153,22 +153,5 @@ export async function getAllWarung(page: number = 1, limit: number = 50) {
   } catch (error) {
     console.error('Error fetch all warung:', error);
     return [];
-  }
-}
-
-/**
- * Ambil satu warung berdasarkan ID
- */
-export async function getWarungById(id_warung: string) {
-  try {
-    const result = await db
-      .select()
-      .from(warungRetail)
-      .where(eq(warungRetail.id_warung, id_warung));
-
-    return result[0] || null;
-  } catch (error) {
-    console.error('Error fetch warung by id:', error);
-    return null;
   }
 }

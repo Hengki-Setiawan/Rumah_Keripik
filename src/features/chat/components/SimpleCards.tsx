@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, CreditCard, Edit3, MapPinned, Navigation, PackageCheck, ShieldCheck, UserRound } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CreditCard, Edit3, KeyRound, MapPinPlus, MapPinned, Navigation, PackageCheck, Rocket, ShieldCheck, UserRound } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
 import type { AddressConfirmComponent, AdminHandoffComponent, CustomerConfirmComponent, OrderStatusComponent, OrderSummaryComponent, PaymentUploadComponent, PhoneOtpComponent } from '@/lib/chat-v3/types';
 
@@ -103,7 +103,7 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
       <div className={cardClass}>
         <div className="flex items-center gap-2">
           <CheckCircle2 size={20} className="text-[#16a34a]" />
-          <h3 className="font-semibold text-[#16a34a]">Pembayaran Diterima! 🎉</h3>
+          <h3 className="font-semibold text-[#16a34a]">Pembayaran Diterima!</h3>
         </div>
         <p className="mt-2 text-sm leading-6 text-[#4b5563]">Terima kasih kak! Pesanan kamu sudah masuk dan sedang diproses oleh tim kami.</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -235,7 +235,7 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
       {/* Banner login interaktif jika belum terdaftar */}
       {!component.savedCustomerId && (
         <div className="mt-3 rounded-[1.35rem] border border-[#ecd8bf] bg-[#fffaf3] p-3 text-center shadow-[0_8px_20px_rgba(47,36,28,0.03)]">
-          <p className="text-xs font-semibold text-[#8b4c31] mb-1">🔑 Sudah Pernah Memesan Sebelumnya?</p>
+          <p className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#8b4c31] mb-1"><KeyRound size={14} className="shrink-0" /> Sudah Pernah Memesan Sebelumnya?</p>
           <p className="text-[11px] text-[#6f5d4f] mb-2.5">Kakak bisa masuk lewat chat untuk memuat data alamat secara otomatis.</p>
           <button
             type="button"
@@ -250,7 +250,7 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
       {/* Tombol Data Tersimpan — paling menonjol jika tersedia */}
       {(component.savedCustomerId && component.savedAddressId) && (
         <div className="mt-4 rounded-[1.5rem] border-2 border-[#7f9f3e] bg-[#eef6dd] p-4">
-          <p className="text-sm font-semibold text-[#3d5a13] mb-1">✅ Data tersimpan tersedia</p>
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-[#3d5a13] mb-1"><CheckCircle2 size={16} className="shrink-0" /> Data tersimpan tersedia</p>
           <p className="text-xs text-[#56721f] mb-3">Kakak sudah pernah order sebelumnya. Bisa langsung pakai data yang tersimpan tanpa isi ulang!</p>
           <div className="grid gap-2">
             <select
@@ -269,7 +269,7 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
               onClick={() => onAction('create_order_saved', { addressId: component.savedAddressId, paymentMethodId, notes })}
               className={`${primaryButtonClass} w-full rounded-2xl py-3 bg-[#7f9f3e] hover:bg-[#6a8932] text-base font-semibold`}
             >
-              🚀 Pakai Data Tersimpan &amp; Buat Order
+              <Rocket size={16} className="shrink-0" /> Pakai Data Tersimpan &amp; Buat Order
             </button>
           </div>
 
@@ -281,18 +281,18 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
                 setAddress({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
                 setStep('address');
               }}
-              className="font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
+              className="inline-flex items-center gap-1.5 font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
             >
-              🆕 Kirim ke Alamat Baru
+              <MapPinPlus size={13} className="shrink-0" /> Kirim ke Alamat Baru
             </button>
             <button
               type="button"
               onClick={() => {
                 setStep('customer');
               }}
-              className="font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
+              className="inline-flex items-center gap-1.5 font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
             >
-              👤 Ubah Profil Penerima
+              <UserRound size={13} className="shrink-0" /> Ubah Profil Penerima
             </button>
           </div>
         </div>
@@ -471,7 +471,7 @@ export function PhoneOtpCard({ component, onSend }: { component: PhoneOtpCompone
           <p>Kode OTP akan dikirim ke WhatsApp kakak untuk memastikan nomor ini milik kakak.</p>
         )}
         {component.phoneFound && component.purpose === 'login' && (
-          <p className="mt-2 text-xs text-[#16a34a]">✅ Nomor terdaftar — data tersimpan akan dipakai otomatis.</p>
+          <p className="mt-2 flex items-center gap-1 text-xs text-[#16a34a]"><CheckCircle2 size={13} className="shrink-0" /> Nomor terdaftar — data tersimpan akan dipakai otomatis.</p>
         )}
         {component.displayName && (
           <p className="mt-1 text-xs text-[#6b7280]">Terhubung sebagai <span className="font-medium text-[#111827]">{component.displayName}</span></p>
@@ -498,7 +498,7 @@ export function PhoneOtpCard({ component, onSend }: { component: PhoneOtpCompone
         </div>
       )}
       {error && <p className="mt-2 text-xs text-[#dc2626]" data-testid="otp-error">{error}</p>}
-      <p className="mt-3 text-[11px] text-[#9ca3af]">Tidak menerima kode? Balas "kirim ulang" di chat. Kode berlaku 5 menit.</p>
+      <p className="mt-3 text-[11px] text-[#9ca3af]">Tidak menerima kode? Balas &quot;kirim ulang&quot; di chat. Kode berlaku 5 menit.</p>
     </div>
   );
 }

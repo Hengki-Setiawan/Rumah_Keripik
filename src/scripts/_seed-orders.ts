@@ -60,7 +60,6 @@ async function q(sql: string, args: unknown[] = []) {
 const today = new Date();
 const ymd = today.toISOString().slice(0, 10).replace(/-/g, '');
 const witaToday = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
-const nowIso = () => new Date().toISOString();
 
 const hex = () => randomUUID().replace(/-/g, '');
 const pad3 = (n: number) => String(n).padStart(3, '0');
@@ -194,11 +193,9 @@ async function createWebOrder(o: SeedOrder) {
   const kodePesanan = `PESANAN-SEED-${String(600000 + seq * 17).slice(-6)}`;
   const idCustomer = `CUS-${ymd}-${hex().slice(0, 8).toUpperCase()}`;
   const idSession = `WOS-${randomUUID()}`;
-  const anon = hex() + hex();
   const token = hex();
   const total = o.items.reduce((s, i) => s + i.harga * i.qty, 0);
   const km = kmFromGudang(o.lat, o.lng);
-  const nota = o.note ? `Patokan: ${o.note}` : '';
 
   await insertRow('pelanggan_chatbot', {
     no_wa_pelanggan: o.phone,

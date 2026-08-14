@@ -5,7 +5,6 @@
  */
 
 const EMBEDDING_MODEL = 'models/gemini-embedding-001';
-const EMBEDDING_DIMENSIONS = 3072; // F32, dari Gemini embedding-001
 const DEFAULT_TEXT_MODEL = 'gemini-2.5-flash-lite';
 
 interface EmbeddingResult {
@@ -111,7 +110,7 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ Gemini Embedding Error:', error);
+      console.error('Gemini Embedding Error:', error);
       throw new Error(`Gemini API Error: ${error.error?.message || 'Unknown error'}`);
     }
 
@@ -127,7 +126,7 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
       tokensUsed: data.usageMetadata?.totalTokenCount,
     };
   } catch (error) {
-    console.error('❌ Error generating embedding:', error);
+    console.error('Error generating embedding:', error);
     throw error;
   }
 }
@@ -167,7 +166,7 @@ export async function generateQueryEmbedding(text: string): Promise<EmbeddingRes
 
     return { embedding, tokensUsed: data.usageMetadata?.totalTokenCount };
   } catch (error) {
-    console.error('❌ Error generating query embedding:', error);
+    console.error('Error generating query embedding:', error);
     throw error;
   }
 }

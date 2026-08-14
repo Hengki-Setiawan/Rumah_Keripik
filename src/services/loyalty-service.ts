@@ -1,11 +1,7 @@
-import { eq, and, sql, desc, lte } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import {
-  customerProfile, loyaltyAccounts, loyaltyLedger, referrals, transaksi,
-} from '@/lib/schema';
-import {
-  generateIdLoyaltyAccount, generateIdLoyaltyLedger, generateIdReferral, generateReferralCode,
-} from '@/lib/id-generator';
+import {eq, and, sql, desc} from 'drizzle-orm';
+import {db} from '@/lib/db';
+import {loyaltyAccounts, loyaltyLedger, referrals} from '@/lib/schema';
+import {generateIdLoyaltyAccount, generateIdLoyaltyLedger, generateIdReferral, generateReferralCode} from '@/lib/id-generator';
 
 const POINTS_PER_REFERRAL_REFERRER = 5000;
 const POINTS_PER_REFERRAL_REFEREE = 2500;

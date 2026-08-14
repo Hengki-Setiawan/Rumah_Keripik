@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { eq, and, gte, sql } from 'drizzle-orm';
-import { db } from '@/lib/db';
-import { aiBudgetConfig, aiRuns, botSetting } from '@/lib/schema';
-import { requireAdminRole, isUnauthorizedAdminError, isForbiddenAdminPermissionError } from '@/lib/admin-actor';
+import {NextResponse} from 'next/server';
+import {eq, and, gte, sql} from 'drizzle-orm';
+import {db} from '@/lib/db';
+import {aiBudgetConfig, aiRuns} from '@/lib/schema';
+import {requireAdminRole, isUnauthorizedAdminError, isForbiddenAdminPermissionError} from '@/lib/admin-actor';
 
 export async function GET() {
   try {
@@ -21,10 +21,6 @@ export async function GET() {
   const healthData = await Promise.all(providers.map(async (provider) => {
     const configs = await db.select().from(aiBudgetConfig).where(eq(aiBudgetConfig.provider, provider)).limit(1);
     const config = configs[0];
-
-    const todayCalls = await db.select({ count: sql<number>`COUNT(*)` }).from(aiRuns)
-      .where(and(eq(aiRuns.provider, provider), gte(aiRuns.createdAt, todayStart.toISOString())))
-      .then((r) => Number(r[0]?.count || 0));
 
     const recentErrors = await db.select({ count: sql<number>`COUNT(*)` }).from(aiRuns)
       .where(and(eq(aiRuns.provider, provider), eq(aiRuns.status, 'error'), gte(aiRuns.createdAt, sevenDaysAgo)))

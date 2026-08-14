@@ -46,7 +46,7 @@ export async function PATCH(req: Request) {
 
     await sendCourierPushNotification(
       event.courierId,
-      '✅ SOS Terselesaikan',
+      'SOS Terselesaikan',
       body.data.note || 'Admin telah menandai sinyal darurat Anda sebagai selesai. Terima kasih.',
       { type: 'sos_resolved' }
     ).catch(() => {});

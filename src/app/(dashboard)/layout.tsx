@@ -1,32 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { signOut } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import {useEffect, useState} from 'react';
+import {signOut} from 'next-auth/react';
+import {usePathname} from 'next/navigation';
 import Link from 'next/link';
-import { BrandLogo } from '@/components/brand/BrandLogo';
-import {
-  BarChart3,
-  Bell,
-  Bot,
-  ChevronLeft,
-  ChevronRight,
-  Cpu,
-  Gift,
-  Home,
-  LogOut,
-  Menu,
-  MessageSquare,
-  Package,
-  Plus,
-  ShieldAlert,
-  ShoppingCart,
-  Truck,
-  Users,
-  X,
-} from 'lucide-react';
-import { ToastProvider, useToast } from '@/components/ui/toast';
-import { ConfirmModal } from '@/components/ui/modal';
+import {BrandLogo} from '@/components/brand/BrandLogo';
+import {BarChart3, Bell, Bot, ChevronLeft, ChevronRight, Gift, Home, LogOut, Menu, MessageSquare, Package, Plus, ShieldAlert, ShoppingCart, Truck, Users, X} from 'lucide-react';
+import {ToastProvider, useToast} from '@/components/ui/toast';
+import {ConfirmModal} from '@/components/ui/modal';
 
 interface NotifCounts {
   pending_verifikasi: number;

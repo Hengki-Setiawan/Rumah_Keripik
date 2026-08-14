@@ -82,14 +82,14 @@ export async function PATCH(req: Request) {
     if (body.data.status === 'resolved' || body.data.status === 'false_alarm') {
       await sendCourierPushNotification(
         existing.courierId,
-        body.data.status === 'resolved' ? '✅ SOS Terselesaikan' : 'ℹ️ SOS Ditandai Tidak Valid',
+        body.data.status === 'resolved' ? 'SOS Terselesaikan' : 'SOS Ditandai Tidak Valid',
         body.data.resolutionNote || 'Admin telah menutup laporan SOS Anda.',
         { type: 'sos_resolved' }
       ).catch(() => {});
     } else if (body.data.status === 'acknowledged') {
       await sendCourierPushNotification(
         existing.courierId,
-        '📢 SOS Direspon Admin',
+        'SOS Direspon Admin',
         'Admin telah melihat laporan Anda dan segera bertindak. Tetap aman.',
         { type: 'sos_acknowledged' }
       ).catch(() => {});

@@ -1,14 +1,14 @@
-import { generateTextWithRouter } from '@/lib/ai/model-router';
-import { runChatTool } from '@/lib/ai/tool-registry';
-import { toolSchemaRegistry } from '@/lib/ai/tool-schemas';
-import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
-import { getChatCart } from '@/lib/ai/tools/cart';
-import { recommendProducts } from '@/lib/ai/tools/products';
-import { searchKnowledgeBase } from '@/lib/knowledge/retrieval';
-import { loadAllSkillMetadata, loadFullSkill } from '@/lib/ai/skill-loader';
-import type { CustomerContextDto, ChatComponent } from '@/lib/chat-v3/types';
-import { AGENT_LOOP_SYSTEM_PROMPT } from '@/lib/ai/prompts/agent-loop';
-import type { AIChatIntent } from '@/lib/chat-v3/types';
+import {generateTextWithRouter} from '@/lib/ai/model-router';
+import {runChatTool} from '@/lib/ai/tool-registry';
+import {toolSchemaRegistry} from '@/lib/ai/tool-schemas';
+import {getCustomerContextForChat} from '@/lib/chat-v3/customer-context';
+import {getChatCart} from '@/lib/ai/tools/cart';
+;
+import {searchKnowledgeBase} from '@/lib/knowledge/retrieval';
+import {loadAllSkillMetadata, loadFullSkill} from '@/lib/ai/skill-loader';
+import type {ChatComponent} from '@/lib/chat-v3/types';
+import {AGENT_LOOP_SYSTEM_PROMPT} from '@/lib/ai/prompts/agent-loop';
+import type {AIChatIntent} from '@/lib/chat-v3/types';
 
 type ScratchpadEntry =
   | { type: 'observation'; tool: string; result: string }
@@ -162,8 +162,8 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
             ? [{ type: 'address_confirm' as const, addressId: customerContext.defaultAddress.id, address: customerContext.defaultAddress, actions: ['use_saved_address', 'edit_address', 'send_new_location'] }]
             : []),
           { type: 'quick_replies', options: [
-            { id: 'confirm-yes', label: '✅ Konfirmasi Pesanan', value: 'konfirmasi', action: 'send_message' },
-            { id: 'confirm-edit', label: '✏️ Edit Pesanan', value: 'edit pesanan', action: 'send_message' },
+            { id: 'confirm-yes', label: 'Konfirmasi Pesanan', value: 'konfirmasi', action: 'send_message' },
+            { id: 'confirm-edit', label: 'Edit Pesanan', value: 'edit pesanan', action: 'send_message' },
           ]},
         ],
         scratchpad,
@@ -189,7 +189,6 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
         continue;
       }
 
-      const currentCall = JSON.stringify({ tool: toolName, args: toolArgs });
       const isDuplicate = previousToolCalls.some(
         (prev) => prev.tool === toolName && prev.args === JSON.stringify(toolArgs)
       );
@@ -256,7 +255,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
   };
 }
 
-function inferIntent(reply: string, scratchpad: ScratchpadEntry[]): AIChatIntent {
+function inferIntent(reply: string, _scratchpad: ScratchpadEntry[]): AIChatIntent {
   const lower = reply.toLowerCase();
   if (/pesan|order|checkout|konfirmasi/i.test(lower)) return 'confirm_order';
   if (/rekomendasi|produk|keripik|pilih/i.test(lower)) return 'recommend_products';

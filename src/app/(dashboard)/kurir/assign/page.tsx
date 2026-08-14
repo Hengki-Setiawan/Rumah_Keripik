@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Truck, Search, Check, X, MapPin, ArrowLeft } from 'lucide-react';
-import { useToast } from '@/components/ui/toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { CardSkeleton } from '@/components/ui/skeleton';
+import {useState, useEffect} from 'react';
+import {Truck, Search, MapPin, ArrowLeft} from 'lucide-react';
+import {useToast} from '@/components/ui/toast';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {CardSkeleton} from '@/components/ui/skeleton';
 import Link from 'next/link';
 
 interface PendingDelivery {

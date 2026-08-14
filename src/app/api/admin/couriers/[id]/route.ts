@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { couriers, deliveryAssignment } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
-import { requireAdminRole } from '@/lib/admin-actor';
+import {NextResponse} from 'next/server';
+import {db} from '@/lib/db';
+import {couriers} from '@/lib/schema';
+import {eq} from 'drizzle-orm';
+import {requireAdminRole} from '@/lib/admin-actor';
 import crypto from 'crypto';
 
 function hashPin(pin: string): string {

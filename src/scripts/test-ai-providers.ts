@@ -10,13 +10,13 @@ async function testProvider(name: string, testFn: () => Promise<{ text: string; 
   try {
     const res = await testFn();
     const duration = Date.now() - start;
-    console.log(`✅ [${name}] Succeeded in ${duration}ms!`);
+    console.log(` [${name}] Succeeded in ${duration}ms!`);
     console.log(`   - Model: ${res.model}`);
     console.log(`   - Output: "${res.text.trim().replace(/\n/g, ' ')}"`);
     return { ok: true, name, latency: duration };
   } catch (error: any) {
     const duration = Date.now() - start;
-    console.log(`❌ [${name}] Failed after ${duration}ms!`);
+    console.log(` [${name}] Failed after ${duration}ms!`);
     console.log(`   - Error: ${error.message || String(error)}`);
     return { ok: false, name, error: error.message || String(error) };
   }
@@ -45,7 +45,7 @@ async function main() {
       );
     }));
   } else {
-    console.log('\n⚠️ [Gemini] Skipped: GEMINI_API_KEY is not configured in .env.local');
+    console.log('\n️ [Gemini] Skipped: GEMINI_API_KEY is not configured in .env.local');
   }
 
   // 2. Cerebras
@@ -73,7 +73,7 @@ async function main() {
       return callOpenAICompatibleProvider(cerebrasConfig, input, 15, 0);
     }));
   } else {
-    console.log('\n⚠️ [Cerebras] Skipped: CEREBRAS_API_KEY is not configured in .env.local');
+    console.log('\n️ [Cerebras] Skipped: CEREBRAS_API_KEY is not configured in .env.local');
   }
 
   // 3. Groq
@@ -88,16 +88,16 @@ async function main() {
       return { text: res.text, provider: res.provider, model: res.model || 'groq-default' };
     }));
   } else {
-    console.log('\n⚠️ [Groq] Skipped: GROQ_API_KEY is not configured in .env.local');
+    console.log('\n️ [Groq] Skipped: GROQ_API_KEY is not configured in .env.local');
   }
 
   console.log("\n====================================");
   const failed = results.filter(r => !r.ok);
   if (failed.length > 0) {
-    console.log(`❌ Diagnostic failed: ${failed.length} AI providers returned errors.`);
+    console.log(` Diagnostic failed: ${failed.length} AI providers returned errors.`);
     process.exit(1);
   } else {
-    console.log("✅ All configured AI providers are working perfectly!");
+    console.log(" All configured AI providers are working perfectly!");
   }
 }
 

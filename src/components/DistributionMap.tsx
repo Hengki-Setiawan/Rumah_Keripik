@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { MapPin, Info, Navigation, Truck } from 'lucide-react';
-import { formatRupiah } from '@/lib/utils';
+import {useEffect, useRef, useState} from 'react';
+import {Info, Navigation, Truck} from 'lucide-react';
+import {formatRupiah} from '@/lib/utils';
 
 // Coordinates for Makassar (Rumah Kripik base)
 const WAREHOUSE_COORDS = { lat: -5.147665, lng: 119.432731, name: 'Gudang Pusat Rumah Kripik' };

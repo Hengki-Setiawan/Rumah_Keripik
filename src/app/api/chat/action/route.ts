@@ -37,55 +37,6 @@ export async function POST(req: Request) {
   try {
     if (action === 'refresh_chat') {
       // Client-side refresh after external actions such as payment proof upload.
-    } else if (action === 'auto_greet_new') {
-      await createChatMessage({
-        chatSessionId,
-        role: 'assistant',
-        content: 'Selamat datang di Rumah Keripik! 👋 Mau pesan keripik apa hari ini?',
-        components: [{
-          type: 'quick_replies',
-          options: [
-            { id: 'greet-lihat', label: '🌶️ Lihat Produk', value: 'Lihat produk', action: 'send_message' },
-            { id: 'greet-rekomendasi', label: '🔥 Rekomendasi Pedas', value: 'Rekomendasi keripik pedas', action: 'send_message' },
-            { id: 'greet-cart', label: '🛒 Lihat Keranjang', value: 'lihat keranjang', action: 'send_message' },
-            { id: 'greet-bantuan', label: '❓ Bantuan', value: '/pesan/saya', action: 'tool_action' },
-          ],
-        }],
-        metadata: { intent: 'small_talk', greeting: true },
-      });
-    } else if (action === 'auto_greet_returning') {
-      const context = await getCustomerContextForChat(chatSessionId);
-      const name = context.customer?.name;
-      const greetingText = name
-        ? `Halo kak ${name}! 👋 Mau pesan lagi hari ini?`
-        : 'Halo kak! 👋 Mau pesan lagi hari ini?';
-
-      const components: Array<{ type: string; [key: string]: unknown }> = [{
-        type: 'quick_replies',
-        options: [
-          { id: 'ret-lihat', label: '🌶️ Lihat Produk', value: 'Lihat produk', action: 'send_message' },
-          { id: 'ret-rekomendasi', label: '🔥 Rekomendasi', value: 'Rekomendasi produk', action: 'send_message' },
-          { id: 'ret-cart', label: '🛒 Keranjang', value: 'lihat keranjang', action: 'send_message' },
-          { id: 'ret-status', label: '📦 Pesanan Saya', value: '/pesan/saya', action: 'tool_action' },
-        ],
-      }];
-      if (context.lastOrder) {
-        components.push({
-          type: 'order_status_card',
-          orderId: context.lastOrder!.id,
-          orderCode: context.lastOrder!.code,
-          status: context.lastOrder!.status,
-          paymentStatus: context.lastOrder!.paymentStatus,
-          totalAmount: context.lastOrder!.totalAmount,
-        });
-      }
-      await createChatMessage({
-        chatSessionId,
-        role: 'assistant',
-        content: greetingText,
-        components: components as Parameters<typeof createChatMessage>[0]['components'],
-        metadata: { intent: 'small_talk', greeting: true },
-      });
     } else if (action === 'cart_carryover_notice') {
       // Deteksi cart dari sesi sebelumnya
       const cart = await getChatCart(chatSessionId);
@@ -97,8 +48,8 @@ export async function POST(req: Request) {
         components: [
           { type: 'cart_summary', cartId: cart.id },
           { type: 'quick_replies', options: [
-            { id: 'carryover-lanjut', label: '✅ Lanjutkan', value: 'lanjut checkout', action: 'send_message' },
-            { id: 'carryover-baru', label: '🔄 Mulai baru', value: 'kosongkan keranjang', action: 'send_message' },
+            { id: 'carryover-lanjut', label: 'Lanjutkan', value: 'lanjut checkout', action: 'send_message' },
+            { id: 'carryover-baru', label: 'Mulai baru', value: 'kosongkan keranjang', action: 'send_message' },
           ] },
         ],
         metadata: { intent: 'show_cart', carryover: true },
@@ -185,9 +136,9 @@ export async function POST(req: Request) {
         chatSessionId,
         role: 'system',
         content: result.paymentMethod === 'cod'
-          ? 'Order COD berhasil dibuat! 📦 Admin akan mengecek dan mengonfirmasi pesanan kakak. Biasanya direspons dalam 1\u20132 jam kerja ya kak.'
+          ? 'Order COD berhasil dibuat! Admin akan mengecek dan mengonfirmasi pesanan kakak. Biasanya direspons dalam 1\u20132 jam kerja ya kak.'
           : result.checkoutUrl
-            ? 'Order berhasil dibuat! 🎉 Silakan scan QRIS di bawah ini untuk membayar. Pembayaran akan dikonfirmasi otomatis setelah berhasil.'
+            ? 'Order berhasil dibuat! Silakan scan QRIS di bawah ini untuk membayar. Pembayaran akan dikonfirmasi otomatis setelah berhasil.'
             : 'Order berhasil dibuat, tetapi QRIS belum siap. Coba buka status pesanan dulu ya kak, atau refresh chat sebentar.',
         components: [
           { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },

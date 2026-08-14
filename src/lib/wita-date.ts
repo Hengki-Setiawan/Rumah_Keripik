@@ -8,13 +8,6 @@ export function witaToday(): string {
   return witaNow().toISOString().slice(0, 10);
 }
 
-export function witaDateOf(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return null;
-  return new Date(t + WITA_OFFSET_MS).toISOString().slice(0, 10);
-}
-
 export function witaTodayStartIso(): string {
   const now = witaNow();
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - WITA_OFFSET_MS);

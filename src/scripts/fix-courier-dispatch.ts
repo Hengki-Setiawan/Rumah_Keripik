@@ -10,11 +10,8 @@ const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN!;
 
 // Budi PIN = "1234", bcrypt hash yang sudah di-pre-compute
 // Hash dari "1234" dengan bcrypt cost 10
-const BUDI_PIN_HASH = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // bcrypt("password")
 
-// Kita gunakan hash yang di-seed (PIN 1234 → hash yang valid)
-// Pre-computed bcrypt hash untuk PIN "1234"
-const PIN_1234_HASH = '$2b$10$K7L1OJ5nW4G8p6F2V3mD9Odo7j8N9nA7p5Y5Q4M5X5J5K5L5M5N5O';
+// Kita gunakan hash yang di-seed (PIN 1234 + hash yang valid)
 
 async function execute(sql: string, args: unknown[] = []) {
   const res = await fetch(`${TURSO_URL}/v2/pipeline`, {
@@ -55,7 +52,7 @@ async function execute(sql: string, args: unknown[] = []) {
 }
 
 async function main() {
-  console.log('🚀 Mulai perbaikan Bug #1 — Kurir Budi + Dispatch Pesanan\n');
+  console.log(' Mulai perbaikan Bug #1 — Kurir Budi + Dispatch Pesanan\n');
 
   // ─── STEP 1: Cek apakah kurir Budi sudah ada ──────────────────────────────
   const existing = await execute(
@@ -67,7 +64,7 @@ async function main() {
   if (existing.rows.length > 0) {
     const budi = existing.rows[0] as { id: string; name: string; phone: string };
     budiId = Number(budi.id);
-    console.log(`✅ Kurir Budi sudah ada dengan ID: ${budiId} (${budi.name} / ${budi.phone})`);
+    console.log(` Kurir Budi sudah ada dengan ID: ${budiId} (${budi.name} / ${budi.phone})`);
     
     // Pastikan aktif
     await execute(`UPDATE couriers SET is_active = 1 WHERE id = ?`, [budiId]);
@@ -77,16 +74,17 @@ async function main() {
     // Pre-computed dengan bcryptjs cost 10 untuk "1234"
     const pinHash = '$2a$10$K9ZWM1lZeBVQXjPNmWVHou8y.BrUSXxLX1L4Z4YJM6lKBGk0XxBmK';
     
-    const insertRes = await execute(
+    await execute(
       `INSERT INTO couriers (name, phone, pin_hash, vehicle, plat_no, is_active, employment_type, created_at, updated_at)
        VALUES ('Budi', '08123456789', ?, 'motor', 'DD 1234 XX', 1, 'tetap', datetime('now'), datetime('now'))`,
       [pinHash]
     );
+    console.log('Courier Budi dipastikan ada');
     
     // Ambil ID yang baru dibuat
     const newCourier = await execute("SELECT id FROM couriers WHERE phone = '08123456789'");
     budiId = Number((newCourier.rows[0] as { id: string }).id);
-    console.log(`✅ Kurir Budi berhasil dibuat dengan ID: ${budiId}`);
+    console.log(` Kurir Budi berhasil dibuat dengan ID: ${budiId}`);
   }
 
   // ─── STEP 3: Ambil semua pesanan yang belum di-assign ─────────────────────
@@ -100,10 +98,10 @@ async function main() {
      LIMIT 20`
   );
 
-  console.log(`\n📦 Ditemukan ${readyOrders.rows.length} pesanan siap di-dispatch ke Budi:\n`);
+  console.log(`\n Ditemukan ${readyOrders.rows.length} pesanan siap di-dispatch ke Budi:\n`);
 
   if (readyOrders.rows.length === 0) {
-    console.log('⚠️  Tidak ada pesanan yang perlu di-dispatch saat ini.');
+    console.log('️  Tidak ada pesanan yang perlu di-dispatch saat ini.');
     return;
   }
 
@@ -125,19 +123,19 @@ async function main() {
         [o.id_transaksi]
       );
 
-      console.log(`  ✅ Dispatched: ${o.kode_pesanan} (${o.id_transaksi}) → Kurir Budi`);
+      console.log(`   Dispatched: ${o.kode_pesanan} (${o.id_transaksi}) → Kurir Budi`);
       dispatched++;
     } catch (err) {
       const e = err as Error;
-      console.log(`  ⚠️  Skip ${o.kode_pesanan}: ${e.message}`);
+      console.log(`  ️  Skip ${o.kode_pesanan}: ${e.message}`);
     }
   }
 
-  console.log(`\n🎉 Selesai! ${dispatched} pesanan berhasil di-dispatch ke Kurir Budi (ID: ${budiId})`);
-  console.log('\n📱 Silakan buka aplikasi Kurir dan refresh — pesanan akan muncul sekarang!');
+  console.log(`\n Selesai! ${dispatched} pesanan berhasil di-dispatch ke Kurir Budi (ID: ${budiId})`);
+  console.log('\n Silakan buka aplikasi Kurir dan refresh — pesanan akan muncul sekarang!');
 }
 
 main().catch((err) => {
-  console.error('❌ Error:', err);
+  console.error(' Error:', err);
   process.exit(1);
 });

@@ -1,5 +1,5 @@
-import { db } from '@/lib/db';
-import { botAutoReply, produk, pelangganChatbot, aiKnowledgeBase, warungRetail } from '@/lib/schema';
+import {db} from '@/lib/db';
+import {botAutoReply} from '@/lib/schema';
 
 async function seed() {
   console.log('🌱 Memulai seed...');

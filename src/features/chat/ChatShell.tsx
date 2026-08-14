@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/brand/BrandLogo';
-import { LayoutDashboard, Menu, MessageSquare, PackageSearch, Sparkles, X } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, Menu, MessageSquare, PackageSearch, Rocket, Sparkles, XCircle, X } from 'lucide-react';
 import type { ChatCartDto, ChatMessageDto } from '@/lib/chat-v3/types';
 import { ChatComposer } from './ChatComposer';
 import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
@@ -483,10 +483,10 @@ export function ChatShell() {
                 <div className="pointer-events-auto">
                   {['completed', 'cancelled'].includes(stage) ? (
                     <div className="mb-3 rounded-[1.5rem] border border-[#f0dfca] bg-[#fffaf3] p-4 text-center shadow-[0_12px_28px_rgba(47,36,28,0.06)]">
-                      <p className="text-sm font-semibold text-[#2f241c] mb-2">
+                      <p className="mb-2 flex items-center justify-center gap-1.5 text-sm font-semibold text-[#2f241c]">
                         {stage === 'completed' 
-                          ? '🎉 Pesanan kakak sudah selesai diproses!' 
-                          : '❌ Pesanan kakak telah dibatalkan.'}
+                          ? <><CheckCircle2 size={16} className="text-[#7f9f3e]" /> Pesanan kakak sudah selesai diproses!</> 
+                          : <><XCircle size={16} className="text-[#c55a2b]" /> Pesanan kakak telah dibatalkan.</>}
                       </p>
                       <p className="text-xs text-[#6f5d4f] mb-3">
                         Mau memesan keripik lezat lainnya? Mulai sesi baru sekarang.
@@ -496,7 +496,7 @@ export function ChatShell() {
                         onClick={startNewOrder}
                         className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#7f9f3e] px-6 py-2 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(127,159,62,0.18)] transition hover:bg-[#6a8932]"
                       >
-                        🚀 Buat Pesanan Baru
+                        <Rocket size={15} /> Buat Pesanan Baru
                       </button>
                     </div>
                   ) : (

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, lt, sql } from 'drizzle-orm';
+import { eq, lt } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { idempotencyKeys } from '@/lib/schema';
 
@@ -33,22 +33,6 @@ export async function saveIdempotentResponse(key: string, response: NextResponse
     target: idempotencyKeys.key,
     set: { responseJson: JSON.stringify({ body, status: response.status }), status: response.status, expiresAt },
   });
-}
-
-export function extractIdempotencyKey(request: Request): string | null {
-  return request.headers.get('Idempotency-Key') || request.headers.get('idempotency-key');
-}
-
-export async function withIdempotency(request: Request, handler: () => Promise<NextResponse>): Promise<NextResponse> {
-  const key = extractIdempotencyKey(request);
-  if (!key) return handler();
-
-  const existing = await getIdempotentResponse(key);
-  if (existing) return existing.response;
-
-  const response = await handler();
-  if (response.status < 500) await saveIdempotentResponse(key, response);
-  return response;
 }
 
 export async function cleanupExpiredIdempotencyKeys() {

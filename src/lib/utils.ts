@@ -30,7 +30,3 @@ export function detectChannel(id: string): 'wa' | 'telegram' {
 export function formatTelegramChatId(chatId: number | string): string {
   return `tg_${String(chatId)}`
 }
-
-export function parseTelegramChatId(externalId: string): string {
-  return externalId.replace(/^tg_/, '')
-}

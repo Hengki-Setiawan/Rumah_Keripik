@@ -40,7 +40,7 @@ export async function getMenuText(): Promise<string> {
   });
 
   return (
-    `📋 *KATALOG PRODUK RUMAH KERIPIK* 📋\n\n` +
+    `*KATALOG PRODUK RUMAH KERIPIK*\n\n` +
     lines.join('\n') +
     `\n\nKetik nama produk yang ingin Kakak pesan ya (contoh: *Kripik Pedas*).`
   );
@@ -61,7 +61,7 @@ export async function handleGreeting(
 
   const greeting = personalized
     ? `Halo${nama ? ` Kak ${nama}` : ''}! ${personalized}\n\n${menuText}`
-    : `Halo${nama ? ` Kak ${nama}` : ''}! Selamat datang di *Rumah Keripik* 👋\n\n${menuText}`;
+    : `Halo${nama ? ` Kak ${nama}` : ''}! Selamat datang di *Rumah Keripik*\n\n${menuText}`;
 
   const newContext: OrderContext = {
     step: 'PILIH_PRODUK',
@@ -143,7 +143,7 @@ async function handlePilihProduk(no_wa: string, message: string, ctx: OrderConte
 
   if (matched.stok_gudang_utama <= 0) {
     return {
-      response: `Maaf kak, stok untuk *${matched.nama_produk}* saat ini sedang habis 😢 Silakan pilih varian keripik lainnya.`,
+      response: `Maaf kak, stok untuk *${matched.nama_produk}* saat ini sedang habis. Silakan pilih varian keripik lainnya.`,
       source: 'rule',
       newContext: ctx,
     };
@@ -242,7 +242,7 @@ async function handleInputQty(no_wa: string, message: string, ctx: OrderContext)
 
   return {
     response:
-      `🛒 *Isi Keranjang Belanja Anda:* 🛒\n\n` +
+      `*Isi Keranjang Belanja Anda:*\n\n` +
       cartLines.join('\n') +
       `\n\n*Total Belanja:* Rp ${cartTotal.toLocaleString('id-ID')}\n\n` +
       `Apakah Kakak ingin menambah produk lain?\n` +
@@ -321,7 +321,7 @@ async function handleFormNama(no_wa: string, message: string, ctx: OrderContext)
 
   return {
     response:
-      `Terima kasih Kak ${name}! 😊\n\n` +
+      `Terima kasih Kak ${name}!\n\n` +
       `Di mana alamat pengiriman pesanan Kakak?\n` +
       `Kakak bisa:\n` +
       `1. Ketik alamat lengkap\n` +
@@ -367,7 +367,7 @@ async function handleFormAlamat(no_wa: string, message: string, ctx: OrderContex
   };
 
   return {
-    response: `Terima kasih, alamat sudah kami catat kak 😊\n\nNomor HP yang bisa dihubungi? (Ketik *lewat* jika mau pakai nomor WA ini)`,
+    response: `Terima kasih, alamat sudah kami catat kak\n\nNomor HP yang bisa dihubungi? (Ketik *lewat* jika mau pakai nomor WA ini)`,
     source: 'rule',
     newContext: newCtx,
   };
@@ -478,11 +478,11 @@ async function handleRekapOrder(no_wa: string, message: string, ctx: OrderContex
 
       return {
         response:
-          `✅ *Pesanan Kakak telah berhasil dicatat!* ✅\n\n` +
-          `🔖 *Kode Pesanan:* ${kode_pesanan}\n` +
-          `💰 *Total Pembayaran:* Rp ${totalBayar.toLocaleString('id-ID')}\n\n` +
-          `💳 *Metode pembayaran tersedia:* QRIS (scan QR setelah pesanan dibuat) atau COD (bayar tunai ke kurir).\n\n` +
-          `Silakan lanjutkan ke checkout online untuk melihat instruksi QRIS, atau pilih COD saat pesanan. Terima kasih! 🙏`,
+          `*Pesanan Kakak telah berhasil dicatat!*\n\n` +
+          `*Kode Pesanan:* ${kode_pesanan}\n` +
+          `*Total Pembayaran:* Rp ${totalBayar.toLocaleString('id-ID')}\n\n` +
+          `*Metode pembayaran tersedia:* QRIS (scan QR setelah pesanan dibuat) atau COD (bayar tunai ke kurir).\n\n` +
+          `Silakan lanjutkan ke checkout online untuk melihat instruksi QRIS, atau pilih COD saat pesanan. Terima kasih!`,
         source: 'rule',
         newContext: newCtx,
       };
@@ -505,7 +505,7 @@ async function handleRekapOrder(no_wa: string, message: string, ctx: OrderContex
 
 async function handleDraftTersimpan(no_wa: string, message: string, ctx: OrderContext): Promise<StepResult> {
   return {
-    response: `Pesanan dengan Kode *${ctx.kode_pesanan || ctx.id_transaksi}* masih menunggu pembayaran 💳\n\nTotal: *Rp ${(ctx.total_bayar || 0).toLocaleString('id-ID')}*\nMetode: *QRIS* (scan QR di checkout online) atau *COD* (bayar tunai ke kurir saat tiba) 📲`,
+    response: `Pesanan dengan Kode *${ctx.kode_pesanan || ctx.id_transaksi}* masih menunggu pembayaran\n\nTotal: *Rp ${(ctx.total_bayar || 0).toLocaleString('id-ID')}*\nMetode: *QRIS* (scan QR di checkout online) atau *COD* (bayar tunai ke kurir saat tiba)`,
     source: 'rule',
     newContext: ctx,
   };
@@ -513,7 +513,7 @@ async function handleDraftTersimpan(no_wa: string, message: string, ctx: OrderCo
 
 async function handleBuktiDiterima(no_wa: string, message: string, ctx: OrderContext): Promise<StepResult> {
   return {
-    response: `✅ *Pembayaran diverifikasi!*\n\nKode: ${ctx.kode_pesanan || ctx.id_transaksi}\nStatus: *Menunggu Proses*\n\nPesanan sudah terkonfirmasi dan akan segera diproses ya kak 🙏`,
+    response: `*Pembayaran diverifikasi!*\n\nKode: ${ctx.kode_pesanan || ctx.id_transaksi}\nStatus: *Menunggu Proses*\n\nPesanan sudah terkonfirmasi dan akan segera diproses ya kak`,
     source: 'rule',
     newContext: ctx,
   };
@@ -522,11 +522,11 @@ async function handleBuktiDiterima(no_wa: string, message: string, ctx: OrderCon
 async function handleTerverifikasi(no_wa: string, message: string, ctx: OrderContext): Promise<StepResult> {
   return {
     response:
-      `🎉 *Pembayaran Terverifikasi!* 🎉\n\n` +
-      `Pesanan *${ctx.kode_pesanan || ctx.id_transaksi}* sudah dikonfirmasi ✅\n\n` +
+      `*Pembayaran Terverifikasi!*\n\n` +
+      `Pesanan *${ctx.kode_pesanan || ctx.id_transaksi}* sudah dikonfirmasi\n\n` +
       `Pesanan Kakak akan segera kami proses dan kirim.\n` +
-      `Estimasi pengiriman: 1-2 hari kerja 📦\n\n` +
-      `Terima kasih sudah berbelanja di *Rumah Keripik* 😊🙏`,
+      `Estimasi pengiriman: 1-2 hari kerja\n\n` +
+      `Terima kasih sudah berbelanja di *Rumah Keripik*`,
     source: 'rule',
     newContext: ctx,
   };
@@ -548,11 +548,11 @@ async function handleSelesai(no_wa: string, message: string, ctx: OrderContext):
     }
 
     const thanks = rating >= 4
-      ? `Terima kasih Kak! Rating *⭐${rating}* sangat kami apresiasi 🙏😊`
-      : `Terima kasih atas masukannya Kak. Rating *${rating}* akan kami jadikan evaluasi 🙏`;
+      ? `Terima kasih Kak! Rating *${rating}* sangat kami apresiasi`
+      : `Terima kasih atas masukannya Kak. Rating *${rating}* akan kami jadikan evaluasi`;
 
     return {
-      response: `${thanks}\n\nJangan sungkan hubungi kami lagi ya kak! Ada yang bisa kami bantu? 😊`,
+      response: `${thanks}\n\nJangan sungkan hubungi kami lagi ya kak! Ada yang bisa kami bantu?`,
       source: 'rule',
       newContext: { step: 'IDLE' },
     };
@@ -560,8 +560,8 @@ async function handleSelesai(no_wa: string, message: string, ctx: OrderContext):
 
   return {
     response:
-      `Terima kasih sudah berbelanja di *Rumah Keripik* 😊\n\n` +
-      `Ketik angka *1-5* untuk rating (1=Kurang puas, 5=Sangat puas) ⭐`,
+      `Terima kasih sudah berbelanja di *Rumah Keripik*\n\n` +
+      `Ketik angka *1-5* untuk rating (1=Kurang puas, 5=Sangat puas)`,
     source: 'rule',
     newContext: ctx,
   };
@@ -625,20 +625,20 @@ function showOrderSummary(ctx: OrderContext): StepResult {
   });
 
   const mapsLine = ctx.maps_link_pengiriman
-    ? `\n📍 *Peta Lokasi:* ${ctx.maps_link_pengiriman}`
+    ? `\n*Peta Lokasi:* ${ctx.maps_link_pengiriman}`
     : '';
-  const noHpLine = ctx.no_hp ? `\n📞 *No HP:* ${ctx.no_hp}` : '';
+  const noHpLine = ctx.no_hp ? `\n*No HP:* ${ctx.no_hp}` : '';
 
   const response =
-    `📋 *RINGKASAN PESANAN KAKAK:* 📋\n\n` +
-    `👤 *Penerima:* ${ctx.nama_penerima}\n` +
-    `🏠 *Alamat Kirim:* ${ctx.alamat_pengiriman}${mapsLine}${noHpLine}\n\n` +
-    `🛒 *Daftar Keripik:* \n` +
+    `*RINGKASAN PESANAN KAKAK:*\n\n` +
+    `*Penerima:* ${ctx.nama_penerima}\n` +
+    `*Alamat Kirim:* ${ctx.alamat_pengiriman}${mapsLine}${noHpLine}\n\n` +
+    `*Daftar Keripik:* \n` +
     cartLines.join('\n') +
     `\n\n` +
-    `💵 *Total Belanja:* Rp ${belanjaTotal.toLocaleString('id-ID')}\n` +
-    `📦 *Ongkos Kirim:* Rp ${(ctx.shipping_cost || 0).toLocaleString('id-ID')}\n` +
-    `💰 *TOTAL BAYAR:* *Rp ${total.toLocaleString('id-ID')}*\n\n` +
+    `*Total Belanja:* Rp ${belanjaTotal.toLocaleString('id-ID')}\n` +
+    `*Ongkos Kirim:* Rp ${(ctx.shipping_cost || 0).toLocaleString('id-ID')}\n` +
+    `*TOTAL BAYAR:* *Rp ${total.toLocaleString('id-ID')}*\n\n` +
     `Apakah pesanan di atas sudah benar kak? Ketik *ya* untuk konfirmasi dan mendapatkan info rekening transfer.`;
 
   return {

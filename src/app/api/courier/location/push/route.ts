@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { trackingEvents, couriers } from '@/lib/schema';
-import { eq, and } from 'drizzle-orm';
-import { requireCourierAuth } from '@/lib/courier-auth';
-import { z } from 'zod';
+import {NextResponse} from 'next/server';
+import {db} from '@/lib/db';
+import {trackingEvents, couriers} from '@/lib/schema';
+import {eq} from 'drizzle-orm';
+import {requireCourierAuth} from '@/lib/courier-auth';
+import {z} from 'zod';
 
 const LocationPushSchema = z.object({
   orderId: z.string(),

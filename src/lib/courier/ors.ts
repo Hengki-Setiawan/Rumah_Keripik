@@ -74,30 +74,6 @@ export async function optimizeMultiVehicle(
 }
 
 /**
- * Directions: geometri + jarak + durasi jalan asli antara dua titik.
- * `service` optional digunakan untuk tambahan waktu stop pada durasi rute.
- */
-export async function fetchDirections(
-  from: LatLng,
-  to: LatLng,
-  profile: 'driving-car' = 'driving-car',
-  options: { service?: number } = {},
-): Promise<{ distanceM: number; durationS: number }> {
-  if (!orsEnabled()) throw new Error('ORS_API_KEY tidak tersedia');
-  const data = await orsPost<{ routes: Array<{ summary: { distance: number; duration: number } }> }>(
-    `/v2/directions/${profile}`,
-    {
-      coordinates: [[from.lng, from.lat], [to.lng, to.lat]],
-      instructions: false,
-      options: options.service ? { round_trip: false } : undefined,
-    },
-  );
-  const route = data.routes[0];
-  const durationS = route.summary.duration + (options.service ?? 0);
-  return { distanceM: route.summary.distance, durationS };
-}
-
-/**
  * Isochrones: polygon area yang bisa dicapai dalam `rangeSec` detik dari
  * titik pusat. Dipakai untuk zona layanan berbasis jaringan jalan.
  * Endpoint `/geojson` mengembalikan FeatureCollection; tiap feature adalah

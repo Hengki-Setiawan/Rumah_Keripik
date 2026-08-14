@@ -27,17 +27,17 @@ async function main() {
   }
 
   if (countRows.length === 0) {
-    console.log('✅ Tidak ada pesanan korup.');
+    console.log(' Tidak ada pesanan korup.');
     return;
   }
 
   // Delete them
   const deleteResult = await execute(`DELETE FROM transaksi WHERE lat_pengiriman LIKE '%object%' OR lng_pengiriman LIKE '%object%'`);
-  console.log('✅ Berhasil menghapus pesanan korup. Result:', JSON.stringify(deleteResult));
+  console.log(' Berhasil menghapus pesanan korup. Result:', JSON.stringify(deleteResult));
   
   // Also delete orphaned delivery_assignments
   await execute(`DELETE FROM delivery_assignment WHERE id_transaksi NOT IN (SELECT id_transaksi FROM transaksi)`);
-  console.log('✅ Delivery assignments yatim piatu juga dibersihkan.');
+  console.log(' Delivery assignments yatim piatu juga dibersihkan.');
 }
 
 main().catch(console.error);

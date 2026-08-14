@@ -1,11 +1,10 @@
-'use server';
+﻿'use server';
 
 import { db } from '@/lib/db';
 import { transaksi, detailTransaksi, produk, pelangganChatbot, warungRetail, orderDraft } from '@/lib/schema';
-import { eq, and, desc, gte, lte, sql, count, sum } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { generateIdTransaksi, generateKodePesanan } from '@/lib/id-generator';
-import { normalizePhoneNumber } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 
 const DetailTransaksiSchema = z.object({
@@ -192,7 +191,7 @@ export async function tandaiPiutangLunas(id_transaksi: string) {
       success: true,
       message: 'Piutang berhasil ditandai lunas',
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       message: 'Gagal tandai piutang lunas',
@@ -201,36 +200,8 @@ export async function tandaiPiutangLunas(id_transaksi: string) {
 }
 
 /**
- * Ambil omzet harian 7 hari terakhir
- */
-export async function getOmzetHarian() {
-  try {
-    const result = await db
-      .select({
-        tanggal: sql<string>`DATE(${transaksi.waktu_simpan})`,
-        omzet: sql<number>`CAST(SUM(${transaksi.total_bayar}) AS INTEGER)`,
-        jumlah_transaksi: sql<number>`COUNT(*)`,
-      })
-      .from(transaksi)
-      .where(
-        gte(
-          transaksi.waktu_simpan,
-          sql`DATE('now', '-6 days', 'utc')`
-        )
-      )
-      .groupBy(sql`DATE(${transaksi.waktu_simpan})`)
-      .orderBy(sql`DATE(${transaksi.waktu_simpan})`);
-
-    return result;
-  } catch (error) {
-    console.error('Error fetch omzet harian:', error);
-    return [];
-  }
-}
-
-/**
  * Ambil analytics: total omzet, transaksi, stok, pelanggan aktif
- * Dengan SQL aggregation — grouping by tipe_penjualan jika ada date range
+ * Dengan SQL aggregation â€” grouping by tipe_penjualan jika ada date range
  */
 export async function getAnalitikKPI(startDate?: string, endDate?: string) {
   try {

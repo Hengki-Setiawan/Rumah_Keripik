@@ -28,10 +28,10 @@ async function execute(sql: string, args: unknown[] = []) {
 }
 
 async function main() {
-  console.log('🧹 Membersihkan assignment lama Kurir Budi...');
+  console.log(' Membersihkan assignment lama Kurir Budi...');
   await execute('DELETE FROM delivery_assignment WHERE kurir_id = 1');
 
-  console.log('📦 Memilih 5 pesanan demo Makassar yang memiliki koordinat LAT/LNG presisi...');
+  console.log(' Memilih 5 pesanan demo Makassar yang memiliki koordinat LAT/LNG presisi...');
   
   // Ambil transaksi demo yang punya lat & lng presisi di Makassar
   const demoOrders = await execute(`
@@ -46,8 +46,6 @@ async function main() {
 
   console.table(demoOrders);
 
-  const today = new Date().toISOString().slice(0, 10);
-
   for (const o of demoOrders as any[]) {
     await execute(
       `INSERT INTO delivery_assignment 
@@ -61,10 +59,10 @@ async function main() {
       [o.id_transaksi]
     );
 
-    console.log(`✅ Assigned to Budi: ${o.kode_pesanan} (${o.nama_penerima}) — Lat: ${o.lat_pengiriman}, Lng: ${o.lng_pengiriman}`);
+    console.log(` Assigned to Budi: ${o.kode_pesanan} (${o.nama_penerima}) — Lat: ${o.lat_pengiriman}, Lng: ${o.lng_pengiriman}`);
   }
 
-  console.log('\n🎉 Data pesanan Kurir Budi berhasil diperbarui!');
+  console.log('\n Data pesanan Kurir Budi berhasil diperbarui!');
 }
 
 main().catch(console.error);

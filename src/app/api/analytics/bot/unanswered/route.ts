@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { chatLog } from '@/lib/schema';
-import { sql, like, and, gte } from 'drizzle-orm';
+import {NextResponse} from 'next/server';
+import {db} from '@/lib/db';
+import {chatLog} from '@/lib/schema';
+import {sql, and, gte} from 'drizzle-orm';
 
 export async function GET() {
   try {

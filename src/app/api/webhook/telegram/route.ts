@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { pelangganChatbot, pesanChat, chatLog } from '@/lib/schema'
-import { eq, sql } from 'drizzle-orm'
-import { sendTelegramMessage, sendTelegramTyping, parseTelegramPayload, setTelegramWebhook, getTelegramWebhookInfo } from '@/lib/telegram-bot'
-import { formatTelegramChatId } from '@/lib/utils'
-import { callGroqLLM } from '@/lib/groq'
-import { generateQueryEmbedding, toTursoVectorString } from '@/lib/gemini'
-import { createClient } from '@libsql/client'
-import { getSystemPrompt } from '@/lib/chatbot-prompts'
-import { resolvePublicBaseUrl } from '@/lib/public-url'
+import {NextRequest, NextResponse} from 'next/server'
+import {db} from '@/lib/db'
+import {pelangganChatbot, pesanChat} from '@/lib/schema'
+import {eq, sql} from 'drizzle-orm'
+import {sendTelegramMessage, parseTelegramPayload, setTelegramWebhook, getTelegramWebhookInfo} from '@/lib/telegram-bot'
+import {formatTelegramChatId} from '@/lib/utils'
+
+
+
+
+import {resolvePublicBaseUrl} from '@/lib/public-url'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
