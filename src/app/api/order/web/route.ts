@@ -70,6 +70,9 @@ export async function POST(req: Request) {
     if (!rate.ok) return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan order. Coba lagi sebentar.' }, { status: 429 });
     const payload = WebOrderSchema.parse(await req.json());
     const normalizedPhone = normalizePhoneNumber(payload.customer.phone);
+    if (!normalizedPhone || normalizedPhone.length < 8) {
+      return NextResponse.json({ ok: false, error: 'Nomor WA pelanggan tidak valid. Gunakan nomor Indonesia yang benar.' }, { status: 400 });
+    }
     const customerId = buildCustomerId(payload.source, payload.chatId, normalizedPhone);
     const channel = customerId.startsWith('tg_') ? 'telegram' : 'wa';
     // Koordinat: pin maps/GPS jika ada; jika tidak, otomatis geocode dari teks
