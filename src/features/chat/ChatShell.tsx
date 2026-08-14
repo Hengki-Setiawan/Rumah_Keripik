@@ -187,11 +187,14 @@ export function ChatShell() {
   }, [chatSessionId, started]);
 
   async function sendMessage(text: string) {
+    if (sending || loading) return;
     setSending(true);
     setError('');
 
     try {
-      const sessionId = pendingSessionIdRef.current || await ensureSession(false);
+      // Jika baru mulai dari Hero screen, buat sesi baru yang bersih (jangan pakai sesi lama)
+      const isHeroStart = !started;
+      const sessionId = isHeroStart ? await bootstrap(true) : (pendingSessionIdRef.current || await ensureSession(false));
       setStarted(true);
       setResumableSession(null);
 
@@ -218,12 +221,15 @@ export function ChatShell() {
   async function runAction(action: string, payload: Record<string, unknown> = {}) {
     if (action.startsWith('/')) { window.location.href = action; return; }
     if (/^https?:\/\//i.test(action)) { window.location.href = action; return; }
+    if (sending || loading) return;
 
     setSending(true);
     setError('');
 
     try {
-      const sessionId = pendingSessionIdRef.current || await ensureSession(false);
+      // Jika baru mulai dari Hero screen, buat sesi baru yang bersih (jangan pakai sesi lama)
+      const isHeroStart = !started;
+      const sessionId = isHeroStart ? await bootstrap(true) : (pendingSessionIdRef.current || await ensureSession(false));
       setStarted(true);
       setResumableSession(null);
 
