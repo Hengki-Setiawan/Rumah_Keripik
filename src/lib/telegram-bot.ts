@@ -18,14 +18,6 @@ export async function sendTelegramMessage(chatId: number | string, text: string)
   return res.ok
 }
 
-export async function sendTelegramTyping(chatId: number | string): Promise<void> {
-  await fetch(`${TELEGRAM_API}/sendChatAction`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: Number(chatId), action: 'typing' }),
-  })
-}
-
 export async function setTelegramWebhook(url: string): Promise<boolean> {
   const res = await fetch(`${TELEGRAM_API}/setWebhook`, {
     method: 'POST',

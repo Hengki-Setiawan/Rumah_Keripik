@@ -44,11 +44,6 @@ export async function rotateProviderKey(provider: string, newKey: string) {
   return { provider, version: maxVersion + 1, rotatedAt: new Date().toISOString() }
 }
 
-export async function getKeyRotationHistory(provider?: string) {
-  const vault = await loadVault()
-  return provider ? vault.filter((e) => e.provider === provider) : vault
-}
-
 async function main() {
   const args = process.argv.slice(2)
   if (args.length < 2) {
