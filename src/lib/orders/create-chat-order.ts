@@ -53,6 +53,9 @@ function parseCoordinate(value?: string) {
 export async function createOrderFromChatCart(input: CreateChatOrderInput) {
   const customerType = input.customer.type || 'konsumen';
   const normalizedPhone = normalizePhoneNumber(input.customer.phone);
+  if (!normalizedPhone || normalizedPhone.length < 8) {
+    throw new Error('Nomor WA pelanggan wajib diisi dengan format valid');
+  }
   const customerId = normalizedPhone;
   // Koordinat: pin maps/GPS jika ada; jika tidak, otomatis geocode dari teks
   // alamat (ORS Geocoding primary, Nominatim fallback). Dilakukan sebelum
