@@ -1,9 +1,11 @@
 import type { AIChatResponse } from '@/lib/chat-v3/types';
 import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
 import { getChatCart } from '@/lib/ai/tools/cart';
+import { parseCapturedAddress } from '@/lib/chat-v3/address-capture';
 import { getOrCreateIdentityFlow, updateIdentityFlow, type IdentityPurpose } from '@/lib/identity/flow';
 import { requestOtp, type OtpPurpose } from '@/lib/identity/otp';
 import { completeOtpIdentity } from '@/lib/identity/complete';
+import { logAiLearningEvent } from '@/lib/ai/learning-events';
 import { normalizePhoneNumber } from '@/lib/utils';
 
 const OTP_PATTERN = /^\s*\d{6}\s*$/;
@@ -109,7 +111,8 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
       if (address.length < 8) return { reply: 'Alamatnya masih terlalu singkat kak. Bisa tulis lebih detail, atau kirim titik lokasi ya.', intent: 'identity_verification', confidence: 1.0 };
       const mapsLinkMatch = message.match(/https?:\/\/maps\.app\.goo\.gl\/\S+/i);
       const mapsLink = mapsLinkMatch ? mapsLinkMatch[0] : null;
-      await updateIdentityFlow(chatSessionId, { addressText: address, mapsLink, step: 'ask_phone_register' });
+      const captured = parseCapturedAddress(message);
+      await updateIdentityFlow(chatSessionId, { addressText: address, mapsLink, addressLat: captured?.lat ?? null, addressLng: captured?.lng ?? null, step: 'ask_phone_register' });
       return { reply: 'Alamat dicatat. Terakhir, minta nomor WhatsApp aktif kakak untuk konfirmasi order ya.', intent: 'identity_verification', confidence: 1.0 };
     }
 
@@ -199,6 +202,8 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
         address: flow.addressText ? { text: flow.addressText, mapsLink: flow.mapsLink || undefined, lat: flow.addressLat || undefined, lng: flow.addressLng || undefined } : null,
       });
       if (!result.ok) return { reply: result.error, intent: 'identity_verification', confidence: 1.0 };
+
+      await logAiLearningEvent({ eventType: 'identity_completed', chatSessionId, customerId: result.customerId, intent: 'confirm_customer_data', metadata: { purpose: flow.purpose || purpose, isNew: result.isNew } });
 
       const [cart, freshContext] = await Promise.all([getChatCart(chatSessionId), getCustomerContextForChat(chatSessionId)]);
       const nextAction = cart.itemCount > 0

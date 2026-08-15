@@ -9,6 +9,7 @@ import { buildMemoryPrompt } from '@/lib/chat-v3/memory';
 import { getChatV3Stage } from '@/lib/chat-v3/stage';
 import type { ChatV3Stage } from '@/lib/chat-v3/stage';
 import { buildIdentityFlowResponse } from '@/lib/chat-v3/identity-handler';
+import { parseCapturedAddress, saveCapturedAddress } from '@/lib/chat-v3/address-capture';
 import { getOrCreateIdentityFlow, hasStartedOtpFlow, updateIdentityFlow } from '@/lib/identity/flow';
 import { recommendProducts } from '@/lib/ai/tools/products';
 import { addToChatCart, getChatCart, reorderLastOrderIntoCart } from '@/lib/ai/tools/cart';
@@ -227,6 +228,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
     if (!customerContext.customer && matchesPriorOrderIntent(lower)) {
       await getOrCreateIdentityFlow(chatSessionId);
       await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
+      await logAiLearningEvent({ eventType: 'identity_started', chatSessionId, intent: 'identity_verification', metadata: { source: 'chat_prior_order_intent' } });
       return { reply: 'Siap kak! Kalau pernah pesan sebelumnya, aku bisa ambil data pesananmu. Masukkan nomor WhatsApp yang dulu dipakai ya.', intent: 'identity_verification', confidence: 1.0 };
     }
 
@@ -334,6 +336,17 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
     if (/bayar|pembayaran|qris|transfer|cod/.test(lower)) {
       const methods = await getActivePaymentMethods();
       return { reply: 'Ini metode pembayaran yang sedang aktif ya kak.', intent: 'show_payment', components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }], nextAction: 'select_payment_method', confidence: 0.9 };
+    }
+
+    // ── ALAMAT DITERIMA DARI CHAT: "Lokasi saya: -6.2, 106.8" / "Alamat saya: Jl ..." ──
+    // Customer sudah terverifikasi → simpan alamat sebagai default, lalu lanjut ke pembayaran.
+    if (customerContext.customer) {
+      const captured = parseCapturedAddress(message);
+      if (captured) {
+        await saveCapturedAddress(customerContext.customer.id, captured);
+        const methods = await getActivePaymentMethods();
+        return { reply: 'Alamat kakak sudah tersimpan. Lanjut pilih metode pembayaran ya.', intent: 'confirm_customer_data', components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }], nextAction: 'select_payment_method', confidence: 0.96 };
+      }
     }
 
     if (/lokasi|alamat|kirim|pengiriman/.test(lower)) {

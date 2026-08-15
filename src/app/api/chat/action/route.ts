@@ -118,6 +118,7 @@ export async function POST(req: Request) {
     } else if (action === 'select_payment_method') {
       const paymentMethodId = String(payload.paymentMethodId || payload.methodId || '');
       const context = await getCustomerContextForChat(chatSessionId);
+      await logAiLearningEvent({ eventType: 'payment_method_selected', chatSessionId, customerId: context.customer?.id, intent: 'show_payment', metadata: { paymentMethodId, hasAddress: Boolean(context.defaultAddress), identified: Boolean(context.customer) } });
       if (!context.customer) {
         await getOrCreateIdentityFlow(chatSessionId);
         await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
@@ -150,6 +151,9 @@ export async function POST(req: Request) {
       const statusUrl = `/pesan/sukses/${encodeURIComponent(result.kodePesanan)}?token=${encodeURIComponent(result.statusToken)}`;
       orderCookieToken = result.anonymousToken;
       orderStatusUrl = statusUrl;
+      if (result.paymentMethod !== 'cod' && result.checkoutUrl) {
+        await logAiLearningEvent({ eventType: 'payment_qris_viewed', chatSessionId, customerId: result.customerId, intent: 'show_payment', metadata: { orderId: result.idTransaksi, provider: result.paymentProvider, hasQrString: Boolean(result.qrString) } });
+      }
       const paymentItems = result.paymentMethod === 'cod' ? [] : (await getChatCart(chatSessionId)).items.map((item) => ({
         name: item.productName,
         variantName: item.variantName,
@@ -193,6 +197,9 @@ export async function POST(req: Request) {
       const statusUrl = `/pesan/sukses/${encodeURIComponent(result.kodePesanan)}?token=${encodeURIComponent(result.statusToken)}`;
       orderCookieToken = result.anonymousToken;
       orderStatusUrl = statusUrl;
+      if (result.paymentMethod !== 'cod' && result.checkoutUrl) {
+        await logAiLearningEvent({ eventType: 'payment_qris_viewed', chatSessionId, customerId: result.customerId, intent: 'show_payment', metadata: { orderId: result.idTransaksi, provider: result.paymentProvider, savedCheckout: true, hasQrString: Boolean(result.qrString) } });
+      }
       const savedPaymentItems = result.paymentMethod === 'cod' ? [] : (await getChatCart(chatSessionId)).items.map((item) => ({
         name: item.productName,
         variantName: item.variantName,
@@ -222,6 +229,7 @@ export async function POST(req: Request) {
       await createChatMessage({ chatSessionId, role: 'assistant', content: 'Kakak bisa kirim titik lokasi atau isi alamat manual.', components: [{ type: 'location_picker', mode: 'both' }] });
     } else if (action === 'request_identity') {
       const context = await getCustomerContextForChat(chatSessionId);
+      await logAiLearningEvent({ eventType: 'identity_started', chatSessionId, customerId: context.customer?.id, intent: 'identity_verification', metadata: { source: 'request_identity' } });
       if (context.customer) {
         await createChatMessage({
           chatSessionId,
@@ -245,6 +253,7 @@ export async function POST(req: Request) {
       // bukan mengirim semua kartu sekaligus.
       const context = await getCustomerContextForChat(chatSessionId);
       const cart = await getChatCart(chatSessionId);
+      await logAiLearningEvent({ eventType: 'checkout_started', chatSessionId, customerId: context.customer?.id, intent: 'confirm_order', metadata: { itemCount: cart.itemCount, identified: Boolean(context.customer), hasAddress: Boolean(context.defaultAddress) } });
       let content: string;
       let components: import('@/lib/chat-v3/types').ChatComponent[] = [];
       if (cart.itemCount === 0) {

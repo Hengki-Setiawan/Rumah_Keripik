@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, PackageSearch, ShoppingBag } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, PackageSearch, RefreshCw, ShoppingBag } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
 
 type PortalData = {
@@ -23,6 +23,17 @@ type PortalData = {
   }>;
 };
 
+const AUTO_REFRESH_MS = 30_000;
+
+function paymentTone(order: PortalData['orders'][number]): { label: string; className: string } {
+  const p = (order.paymentStatus || '').toLowerCase();
+  const s = (order.orderStatus || '').toLowerCase();
+  if (s === 'cancelled' || p === 'cancelled') return { label: 'Dibatalkan', className: 'bg-red-50 text-red-700' };
+  if (['verified', 'settlement', 'capture', 'paid', 'cod_approved'].includes(p)) return { label: 'Lunas', className: 'bg-[#eef6dd] text-[#3d5a13]' };
+  if (['proof_uploaded', 'awaiting_admin_verification'].includes(p)) return { label: 'Menunggu verifikasi', className: 'bg-amber-50 text-amber-800' };
+  return { label: 'Menunggu pembayaran', className: 'bg-orange-50 text-[#8b4c31]' };
+}
+
 export default function PesananSayaPage() {
   const [data, setData] = useState<PortalData | null>(null);
   const [error, setError] = useState('');
@@ -30,26 +41,46 @@ export default function PesananSayaPage() {
 
   const hasOrders = (data?.orders.length || 0) > 0;
 
-  async function loadPortal() {
-    setLoading(true);
-    setError('');
+  const loadPortal = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+      setError('');
+    }
     try {
       const response = await fetch('/api/public/me', { cache: 'no-store' });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error || 'Pesanan saya belum bisa dimuat.');
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Pesanan saya belum bisa dimuat.');
+      if (!options?.silent) setError(err instanceof Error ? err.message : 'Pesanan saya belum bisa dimuat.');
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    loadPortal().catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadPortal().catch(() => undefined);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadPortal]);
+
+  // Auto-refresh ringan untuk update status pembayaran tanpa reload manual.
+  useEffect(() => {
+    if (!hasOrders) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') loadPortal({ silent: true }).catch(() => undefined);
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [hasOrders, loadPortal]);
+
   const latestOrder = useMemo(() => data?.orders[0] || null, [data]);
+  const kpi = useMemo(() => {
+    const orders = data?.orders || [];
+    const awaitingPayment = orders.filter((order) => paymentTone(order).label === 'Menunggu pembayaran').length;
+    const totalSpent = orders.reduce((sum, order) => sum + order.totalBayar, 0);
+    return { count: orders.length, awaitingPayment, totalSpent };
+  }, [data]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(240,180,41,0.16),transparent_25%),radial-gradient(circle_at_82%_18%,rgba(127,159,62,0.10),transparent_20%),linear-gradient(180deg,#faf6ef_0%,#fffaf4_100%)] px-5 py-8 text-[#2f241c]">
@@ -67,6 +98,22 @@ export default function PesananSayaPage() {
           <Link href="/pesan" className="inline-flex items-center gap-2 rounded-full bg-[#c55a2b] px-5 py-3 font-medium text-white shadow-[0_14px_30px_rgba(197,90,43,0.16)] transition hover:bg-[#ae4d23]">
             Buka chat pesan <ArrowRight size={16} />
           </Link>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          {hasOrders && (
+            <p className="text-sm text-[#6f5d4f]">
+              {kpi.count} pesanan · {kpi.awaitingPayment > 0 ? <span className="font-semibold text-[#c55a2b]">{kpi.awaitingPayment} menunggu pembayaran</span> : <span className="text-[#3d5a13]">semua lunas</span>}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => loadPortal().catch(() => undefined)}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-xs font-medium text-[#5f4d3f] transition hover:bg-[#f7eddf] disabled:opacity-60"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Segarkan status
+          </button>
         </div>
 
         {error && <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>}
@@ -135,7 +182,8 @@ export default function PesananSayaPage() {
                             <p className="mt-2 text-sm text-[#6f5d4f]">{order.alamatPenerima || 'Alamat pengiriman belum tercatat.'}</p>
                           </div>
                           <div className="text-left md:text-right">
-                            <p className="text-sm font-medium text-[#7a6758]">{humanize(order.orderStatus)}</p>
+                            <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${paymentTone(order).className}`}>{paymentTone(order).label}</span>
+                            <p className="mt-1.5 text-sm font-medium text-[#7a6758]">{humanize(order.orderStatus)}</p>
                             <p className="mt-1 text-sm text-[#7a6758]">{humanize(order.statusPembayaran || order.paymentStatus)}</p>
                             <p className="mt-2 text-lg font-semibold">{formatRupiah(order.totalBayar)}</p>
                           </div>
