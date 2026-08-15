@@ -9,8 +9,10 @@ import { buildMemoryPrompt } from '@/lib/chat-v3/memory';
 import { getChatV3Stage } from '@/lib/chat-v3/stage';
 import type { ChatV3Stage } from '@/lib/chat-v3/stage';
 import { buildIdentityFlowResponse } from '@/lib/chat-v3/identity-handler';
+import { parseCapturedAddress, saveCapturedAddress } from '@/lib/chat-v3/address-capture';
+import { getOrCreateIdentityFlow, hasStartedOtpFlow, updateIdentityFlow } from '@/lib/identity/flow';
 import { recommendProducts } from '@/lib/ai/tools/products';
-import { addToChatCart, getChatCart } from '@/lib/ai/tools/cart';
+import { addToChatCart, getChatCart, reorderLastOrderIntoCart } from '@/lib/ai/tools/cart';
 import { getActivePaymentMethods } from '@/lib/ai/tools/payment';
 import { generateTextWithRouter } from '@/lib/ai/model-router';
 import { ORDER_ASSISTANT_SYSTEM_PROMPT } from '@/lib/ai/prompts/order-assistant';
@@ -169,6 +171,19 @@ async function responseFromToolOutput(chatSessionId: string, response: AIChatRes
 const PRODUCT_AND_CART_STAGES: ChatV3Stage[] = ['idle', 'product_discovery', 'cart_building'];
 const CHECKOUT_STAGES: ChatV3Stage[] = ['customer_data_required', 'address_required', 'payment_selection'];
 
+function matchesPriorOrderIntent(lower: string): boolean {
+  if (/(belum|belom|tidak|nggak|enggak|belon|ga)\s*(pernah|prnah|perna|sudah|udah|psan|pesan|order|ordr|beli)/.test(lower)) return false;
+  if (/(pernah|prnah|perna)\s+(belum|belom|tidak|nggak|enggak|belon|ga)/.test(lower)) return false;
+
+  if (/(pernah|prnah|perna|sudah|udah|dah|sering|langganan|pelanggan)/.test(lower) && /(pesan|psan|pessan|pesen|order|ordr|beli|mbeli|memesan|membeli|belanja)/.test(lower)) return true;
+  if (/\b(pernah|prnah|perna)\s+(pesan|psan|pessan|pesen|order|ordr|beli|mbeli)/.test(lower)) return true;
+  if (/\b(sudah|udah|dah)\s+(pernah|prnah|perna)/.test(lower)) return true;
+  if (/\b(langganan|pelanggan (lama|setia)|member (lama|setia))\b/.test(lower)) return true;
+  if (/\b(login|log ?in|sign ?in|signin)\b/.test(lower)) return true;
+  if (/\bmasuk\b/.test(lower) && !/(masuk (ke|keranjang)|masukkan|masukin|masuk dulu)/.test(lower)) return true;
+  return false;
+}
+
 export async function buildDeterministicResponse(chatSessionId: string, message: string): Promise<AIChatResponse> {
   const lower = message.toLowerCase().trim();
   const [customerContext, stage] = await Promise.all([
@@ -178,33 +193,51 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
 
   const complexOrder = parseComplexOrderIntent(lower);
 
+  // ── IDENTITY: lanjutkan OTP login/register yang sedang berjalan di STAGE MANAPUN ──
+  if (!customerContext.customer && (await hasStartedOtpFlow(chatSessionId))) {
+    const identityResponse = await buildIdentityFlowResponse(chatSessionId, message);
+    if (identityResponse) return identityResponse;
+  }
+
   // ── UNIVERSAL: fire at ANY stage ──
 
-  if (/admin|manusia|komplain|bantuan|marah|kecewa|refund|diskon/.test(lower)) {
+  if (/admin|manusia|komplain|marah|kecewa|refund/.test(lower)) {
     await db.update(chatSessions).set({ status: 'needs_admin', aiMode: 'paused', updatedAt: sql`(datetime('now', 'utc'))` }).where(eq(chatSessions.id, chatSessionId));
     return { reply: 'Sebentar ya kak, aku teruskan ke admin supaya dicek lebih pasti.', intent: 'handoff_to_admin', components: [{ type: 'admin_handoff_card', reason: 'Customer meminta bantuan admin' }], confidence: 0.94 };
   }
 
   if (/status|lacak|cek pesanan|pesanan saya/.test(lower)) {
     if (customerContext.lastOrder) {
-      return { reply: 'Ini status pesanan terakhir kak.', intent: 'track_order', components: [{ type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, deliveryStatus: customerContext.lastOrder.status, totalAmount: customerContext.lastOrder.totalAmount }], confidence: 0.92 };
+      return { reply: 'Ini status pesanan terakhir kak.', intent: 'track_order', components: [{ type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, totalAmount: customerContext.lastOrder.totalAmount }], confidence: 0.92 };
     }
     return { reply: 'Bisa kak. Buka halaman Pesanan Saya untuk melihat order yang tersimpan di browser ini.', intent: 'track_order', components: [{ type: 'quick_replies', options: [{ id: 'pesanan-saya', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }] }], confidence: 0.9 };
   }
 
   if (/stok (habis|kosong|0)|produk (habis|kosong)|tidak (ada|tersedia)/.test(lower)) {
-    return { reply: 'Kalau produk yang kakak cari sedang habis, kakak bisa daftar tunggu biar dikabarin kalau stok udah ada lagi. Atau mau lihat produk lain yang tersedia?', intent: 'recommend_products', components: defaultQuickReplies(), confidence: 0.88 };
+    const products = await recommendProducts('rekomendasi produk pengganti', customerContext.memory);
+    const productIds = products.map((product) => product.id).slice(0, 4);
+    return { reply: 'Kalau produk yang kakak cari sedang habis, ini beberapa pilihan yang masih tersedia sekarang:', intent: 'recommend_products', components: [
+      { type: 'product_cards', productIds, reason: 'Alternatif stok tersedia', actions: ['add_to_cart', 'view_detail'] },
+      { type: 'quick_replies', options: [{ id: 'stok-cart', label: 'Lihat Keranjang', value: 'lihat keranjang', action: 'send_message' }] },
+    ], confidence: 0.88 };
   }
 
   // ── PRODUK & CART STAGES ──
 
   if (PRODUCT_AND_CART_STAGES.includes(stage)) {
-    if (/^(saya\s+)?(pernah\s+pesan|masuk|login|pelanggan\s+lama|ya\s+pernah|ya,\s+pernah)/.test(lower) && !customerContext.customer) {
-      return { reply: 'Silakan masuk lewat menu Akun atau buka halaman Pesanan Saya ya kak.', intent: 'small_talk', components: [{ type: 'quick_replies', options: [{ id: 'go-pesanan-saya', label: 'Pesanan Saya', value: '/login', action: 'tool_action' }] }], confidence: 1.0 };
+    if (!customerContext.customer && matchesPriorOrderIntent(lower)) {
+      await getOrCreateIdentityFlow(chatSessionId);
+      await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
+      await logAiLearningEvent({ eventType: 'identity_started', chatSessionId, intent: 'identity_verification', metadata: { source: 'chat_prior_order_intent' } });
+      return { reply: 'Siap kak! Kalau pernah pesan sebelumnya, aku bisa ambil data pesananmu. Masukkan nomor WhatsApp yang dulu dipakai ya.', intent: 'identity_verification', confidence: 1.0 };
     }
 
     if (complexOrder.wantsReOrder && customerContext.lastOrder) {
-      return { reply: 'Siap kak, aku buatkan pesanan yang sama dengan order sebelumnya ya.', intent: 'confirm_order', components: [{ type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, deliveryStatus: customerContext.lastOrder.status, totalAmount: customerContext.lastOrder.totalAmount }], nextAction: 'reorder', confidence: 0.92 };
+      const { cart, addedCount } = await reorderLastOrderIntoCart(chatSessionId, customerContext.lastOrder.id);
+      if (addedCount > 0) {
+        return { reply: 'Siap kak, keranjang sudah diisi ulang sesuai order sebelumnya. Cek dulu lalu lanjut checkout ya.', intent: 'show_cart', components: [{ type: 'cart_summary', cartId: cart.id }], nextAction: 'confirm_order', confidence: 0.92 };
+      }
+      return { reply: 'Order sebelumnya sudah tidak bisa diulang (stok produk berubah). Mau pilih produk lain kak?', intent: 'recommend_products', components: productComponents((await recommendProducts('rekomendasi produk', customerContext.memory)).map((p) => p.id)), confidence: 0.88 };
     }
 
     if (complexOrder.wantsReduceCart) {
@@ -219,7 +252,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
 
     if (complexOrder.needsProofUploadHelp) {
       return { reply: customerContext.lastOrder ? 'Pembayaran manual sudah dimatikan kak. Kalau order terakhir masih belum lunas, buka status pesanan untuk lanjutkan checkout online lagi ya.' : 'Pembayaran sekarang langsung lewat checkout online kak. Setelah order dibuat, tinggal lanjut bayar dari tautan yang muncul.', intent: 'show_payment', components: [
-        ...(customerContext.lastOrder ? [{ type: 'order_status_card' as const, orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, deliveryStatus: customerContext.lastOrder.status, totalAmount: customerContext.lastOrder.totalAmount }] : []),
+        ...(customerContext.lastOrder ? [{ type: 'order_status_card' as const, orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, totalAmount: customerContext.lastOrder.totalAmount }] : []),
         { type: 'quick_replies', options: [{ id: 'proof-track', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }, { id: 'proof-payment', label: 'Cara bayar', value: 'cara bayar', action: 'send_message' }] },
       ], confidence: 0.96 };
     }
@@ -253,7 +286,7 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
         return { reply, intent: 'confirm_order', components: [
           { type: 'cart_summary', cartId: cart.id },
           ...(preferredMethod ? [{ type: 'payment_methods' as const, methodIds: preferredMethods.map((method) => method.id) }] : []),
-          { type: 'order_summary', orderDraftId: chatSessionId, ...(preferredMethod ? { paymentMethodId: preferredMethod.id } : {}), ...(customerContext.customer ? { savedCustomerId: customerContext.customer.id } : {}), ...(customerContext.defaultAddress && useSavedData ? { savedAddressId: customerContext.defaultAddress.id } : {}), actions: ['confirm_order', 'edit_cart', 'edit_address'] },
+          { type: 'order_summary', orderDraftId: chatSessionId, ...(preferredMethod ? { paymentMethodId: preferredMethod.id } : {}), ...(customerContext.customer ? { savedCustomerId: customerContext.customer.id, customer: customerContext.customer } : {}), ...(customerContext.defaultAddress && useSavedData ? { savedAddressId: customerContext.defaultAddress.id, address: customerContext.defaultAddress, addresses: customerContext.addresses } : {}), actions: ['confirm_order', 'edit_cart', 'edit_address'] },
         ], nextAction: 'confirm_order', confidence: 0.94 };
       }
     }
@@ -305,6 +338,17 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
       return { reply: 'Ini metode pembayaran yang sedang aktif ya kak.', intent: 'show_payment', components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }], nextAction: 'select_payment_method', confidence: 0.9 };
     }
 
+    // ── ALAMAT DITERIMA DARI CHAT: "Lokasi saya: -6.2, 106.8" / "Alamat saya: Jl ..." ──
+    // Customer sudah terverifikasi → simpan alamat sebagai default, lalu lanjut ke pembayaran.
+    if (customerContext.customer) {
+      const captured = parseCapturedAddress(message);
+      if (captured) {
+        await saveCapturedAddress(customerContext.customer.id, captured);
+        const methods = await getActivePaymentMethods();
+        return { reply: 'Alamat kakak sudah tersimpan. Lanjut pilih metode pembayaran ya.', intent: 'confirm_customer_data', components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }], nextAction: 'select_payment_method', confidence: 0.96 };
+      }
+    }
+
     if (/lokasi|alamat|kirim|pengiriman/.test(lower)) {
       if (customerContext.defaultAddress && !/ubah|baru|ganti/.test(lower)) {
         return { reply: 'Aku menemukan alamat tersimpan. Mau pakai alamat ini?', intent: 'request_location', components: [{ type: 'address_confirm', addressId: customerContext.defaultAddress.id, address: customerContext.defaultAddress, actions: ['use_saved_address', 'edit_address', 'send_new_location'] }], confidence: 0.9 };
@@ -322,7 +366,7 @@ export async function buildPausedChatResponse(chatSessionId: string, message: st
   if (/status|lacak|cek pesanan|pesanan saya/.test(lower)) {
     const customerContext = await getCustomerContextForChat(chatSessionId);
     if (customerContext.lastOrder) {
-      return { reply: 'Admin sedang menangani chat ini, tapi status pesanan terakhir tetap bisa kamu cek di sini ya kak.', intent: 'track_order', components: [{ type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, deliveryStatus: customerContext.lastOrder.status, totalAmount: customerContext.lastOrder.totalAmount }], confidence: 0.96 };
+      return { reply: 'Admin sedang menangani chat ini, tapi status pesanan terakhir tetap bisa kamu cek di sini ya kak.', intent: 'track_order', components: [{ type: 'order_status_card', orderId: customerContext.lastOrder.id, orderCode: customerContext.lastOrder.code, status: customerContext.lastOrder.status, paymentStatus: customerContext.lastOrder.paymentStatus, totalAmount: customerContext.lastOrder.totalAmount }], confidence: 0.96 };
     }
     return { reply: 'Admin sedang menangani chat ini. Kalau mau, kakak tetap bisa buka halaman Pesanan Saya ya.', intent: 'track_order', components: [{ type: 'quick_replies', options: [{ id: 'paused-track', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }] }], confidence: 0.94 };
   }
@@ -437,7 +481,7 @@ function parseComplexOrderIntent(lower: string): ComplexOrderIntent {
 
   const shouldPrepareOrder = items.length > 0 &&
     (hasOrderVerb || wantsCod || wantsTransfer || hasOrderContext || wantsOldAddress || wantsReOrder) &&
-    !isHandoff && !isAddressEdit && !isTracking;
+    !isHandoff && !isAddressEdit && !isTracking && !matchesPriorOrderIntent(lower);
 
   return {
     quantity: items.reduce((sum, item) => sum + item.quantity, 0),

@@ -9,6 +9,7 @@ export type MidtransQrisChargeResponse = {
   payment_type?: string;
   transaction_time?: string;
   transaction_status?: string;
+  qr_string?: string;
   actions?: Array<{
     name: string;
     method: string;
@@ -90,6 +91,10 @@ export async function chargeMidtransQris(input: {
     transaction_details: {
       order_id: input.orderId,
       gross_amount: input.amount,
+    },
+    custom_expiry: {
+      expiry_duration: 1440, // 24 jam — default Midtrans QRIS hanya 15 menit
+      unit: 'minute',
     },
     customer_details: {
       first_name: input.customer.name.slice(0, 50),

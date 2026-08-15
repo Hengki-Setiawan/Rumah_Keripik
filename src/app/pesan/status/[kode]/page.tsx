@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { detailTransaksi, orderStatusHistory, paymentIntent, transaksi } from '@/lib/schema';
 import { formatRupiah } from '@/lib/utils';
 import { PaymentInstructionCard } from '@/components/order/PaymentInstructionCard';
-import { canUploadPaymentProof, getCustomerStatusMessage, isPaymentVerified } from '@/lib/order-status-policy';
+import { getCustomerStatusMessage, isPaymentVerified } from '@/lib/order-status-policy';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,8 +29,6 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
     db.select().from(orderStatusHistory).where(eq(orderStatusHistory.id_transaksi, order.id_transaksi)).orderBy(desc(orderStatusHistory.created_at)),
   ]);
   const [intent] = await db.select().from(paymentIntent).where(eq(paymentIntent.id_transaksi, order.id_transaksi)).limit(1);
-
-  const canUploadProof = Boolean(order.status_token && canUploadPaymentProof(order, []));
 
   return (
     <main className="min-h-screen bg-[#fafafa] px-5 py-8 text-[#111827]">
@@ -100,7 +98,7 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
           {!isPaymentVerified(order) && (
             <PaymentInstructionCard amount={order.total_bayar} instruction={parseInstruction(intent?.instruction_json)} />
           )}
-          {!isPaymentVerified(order) && !canUploadProof && (
+          {!isPaymentVerified(order) && (
             <p className="mt-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
               {order.payment_method === 'cod' ? 'Pesanan COD menunggu konfirmasi admin.' : 'Jika checkout belum terbuka atau pembayaran gagal, kamu bisa buka Pesanan Saya lalu coba lagi dari sana.'}
             </p>

@@ -11,16 +11,14 @@ import { ChatSidebar, type ChatSessionSummary } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
 
 function isGreetingMessage(msg: ChatMessageDto): boolean {
-  if (msg.metadata?.greeting) return true;
-  if (msg.metadata?.intent === 'small_talk') return true;
+  if (msg.metadata?.greeting === true) return true;
   const c = msg.content || '';
   if (c.includes('Selamat datang di Rumah Keripik!')) return true;
-  if (c.includes('Mau pesan keripik apa hari ini?')) return true;
   if (c.includes('Mau pesan lagi hari ini?')) return true;
   return false;
 }
 
-export function ChatShell() {
+export function ChatShell({ verify }: { verify?: string }) {
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [cart, setCart] = useState<ChatCartDto | null>(null);
   const [chatSessionId, setChatSessionId] = useState<string>('');
@@ -40,6 +38,19 @@ export function ChatShell() {
   const [resumableSession, setResumableSession] = useState<{ id: string; preview: string } | null>(null);
   // Session ID yang sudah siap dipakai (diinisialisasi) tapi belum "started"
   const pendingSessionIdRef = useRef<string>('');
+  // Guard supaya trigger identifikasi dari ?verify=wa hanya jalan sekali
+  const verifyTriggeredRef = useRef(false);
+
+  // Dari /pesan/saya: auto-buka chat lalu kirim trigger identifikasi (minta nomor WA + OTP)
+  useEffect(() => {
+    if (verify !== 'wa' || verifyTriggeredRef.current || loading || sending) return;
+    verifyTriggeredRef.current = true;
+    const t = window.setTimeout(() => {
+      sendMessage('saya pernah pesan');
+    }, 400);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verify, loading, sending]);
 
   const loadSessions = useCallback(async () => {
     const response = await fetch('/api/chat/sessions');
@@ -302,6 +313,14 @@ export function ChatShell() {
       // Filter out old redundant generic cart notification text bubbles if not the latest message
       if (isCartMsg && !isLast && (msg.content === 'Sudah aku tambahkan ke keranjang kak.' || msg.content === 'Keranjang sudah aku update.')) {
         continue;
+      }
+      // Collapse consecutive identical assistant bubbles (e.g. repeated help_overview / show_cart)
+      if (msg.role === 'assistant' && msg.content) {
+        const prev = result[result.length - 1];
+        if (prev && prev.role === 'assistant' && prev.content === msg.content && !isLast) {
+          result[result.length - 1] = msg;
+          continue;
+        }
       }
       result.push(msg);
     }

@@ -14,6 +14,7 @@ import { rememberOrderFacts, upsertCustomerMemory } from '@/lib/chat-v3/memory';
 import { logAiLearningEvent, logRecommendationEvent } from '@/lib/ai/learning-events';
 import { getSavedCheckoutData } from '@/lib/chat-v3/saved-checkout';
 import { getChatV3Stage } from '@/lib/chat-v3/stage';
+import { getOrCreateIdentityFlow, updateIdentityFlow } from '@/lib/identity/flow';
 import { chatOwnershipErrorResponse, requireOwnedChatSession } from '@/lib/chat-v3/ownership';
 
 export async function POST(req: Request) {
@@ -107,24 +108,38 @@ export async function POST(req: Request) {
       await logRecommendationEvent({ eventType: 'added_to_cart', chatSessionId, productIds: [productId], selectedProductId: productId, metadata: { variantId, quantity } });
       await createChatMessage({ chatSessionId, role: 'assistant', content: `🛒 ${itemText} berhasil ditambahkan ke keranjang kak!`, components: [{ type: 'cart_summary', cartId: cart.id }] });
     } else if (action === 'update_cart_item') {
-      const cart = await updateChatCartItem(chatSessionId, String(payload.itemId || ''), Number(payload.quantity || 0));
-      const text = payload.quantity === 0 ? 'Item berhasil dihapus dari keranjang kak.' : 'Keranjang sudah aku update kak.';
-      await createChatMessage({ chatSessionId, role: 'assistant', content: cart.itemCount > 0 ? text : 'Keranjang sudah kosong kak.', components: cart.itemCount > 0 ? [{ type: 'cart_summary', cartId: cart.id }] : [] });
+      // Update kuantitas/hapus item TANPA menyisipkan pesan baru.
+      // Kartu keranjang sudah live dari state cart (ChatShell.setCart) — klik +/− cukup
+      // meng-update kartu yang sedang tampil, tidak menumpuk kartu baru di bawah.
+      await updateChatCartItem(chatSessionId, String(payload.itemId || ''), Number(payload.quantity || 0));
     } else if (action === 'show_payment_methods') {
       const methods = await getActivePaymentMethods();
       await createChatMessage({ chatSessionId, role: 'assistant', content: 'Pilih metode pembayaran yang tersedia ya kak.', components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }] });
     } else if (action === 'select_payment_method') {
       const paymentMethodId = String(payload.paymentMethodId || payload.methodId || '');
       const context = await getCustomerContextForChat(chatSessionId);
-      await createChatMessage({
-        chatSessionId,
-        role: 'assistant',
-        content: context.customer && context.defaultAddress
-          ? 'Metode pembayaran sudah dipilih. Kakak bisa langsung buat order memakai data tersimpan.'
-          : 'Metode pembayaran sudah dipilih. Lengkapi data penerima dan alamat untuk membuat order ya kak.',
-        components: [{ type: 'order_summary', orderDraftId: chatSessionId, paymentMethodId, savedCustomerId: context.customer?.id, savedAddressId: context.defaultAddress?.id }],
-        metadata: { paymentMethodId },
-      });
+      await logAiLearningEvent({ eventType: 'payment_method_selected', chatSessionId, customerId: context.customer?.id, intent: 'show_payment', metadata: { paymentMethodId, hasAddress: Boolean(context.defaultAddress), identified: Boolean(context.customer) } });
+      if (!context.customer) {
+        await getOrCreateIdentityFlow(chatSessionId);
+        await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: 'Sebentar kak, verifikasi WhatsApp dulu supaya data kakak tersimpan otomatis. Masukkan nomor WhatsApp yang dipakai sebelumnya ya.',
+        });
+      } else {
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: context.customer && context.defaultAddress
+            ? 'Metode pembayaran sudah dipilih. Kakak bisa langsung buat order memakai data tersimpan.'
+            : 'Metode pembayaran sudah dipilih. Lengkapi alamat pengiriman dulu untuk membuat order ya kak.',
+          components: context.customer && context.defaultAddress
+            ? [{ type: 'order_summary', orderDraftId: chatSessionId, paymentMethodId, savedCustomerId: context.customer.id, savedAddressId: context.defaultAddress.id, customer: context.customer, address: context.defaultAddress, addresses: context.addresses, actions: ['confirm_order', 'edit_cart', 'edit_address'] }]
+            : [{ type: 'location_picker', mode: 'both' }],
+          metadata: { paymentMethodId },
+        });
+      }
     } else if (action === 'create_order') {
       const stage = await getChatV3Stage(chatSessionId);
       if (!['payment_selection', 'cart_building', 'customer_data_required', 'address_required'].includes(stage)) throw new Error(`Order belum bisa dibuat dari stage ${stage}`);
@@ -136,6 +151,16 @@ export async function POST(req: Request) {
       const statusUrl = `/pesan/sukses/${encodeURIComponent(result.kodePesanan)}?token=${encodeURIComponent(result.statusToken)}`;
       orderCookieToken = result.anonymousToken;
       orderStatusUrl = statusUrl;
+      if (result.paymentMethod !== 'cod' && result.checkoutUrl) {
+        await logAiLearningEvent({ eventType: 'payment_qris_viewed', chatSessionId, customerId: result.customerId, intent: 'show_payment', metadata: { orderId: result.idTransaksi, provider: result.paymentProvider, hasQrString: Boolean(result.qrString) } });
+      }
+      const paymentItems = result.paymentMethod === 'cod' ? [] : (await getChatCart(chatSessionId)).items.map((item) => ({
+        name: item.productName,
+        variantName: item.variantName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: item.subtotal,
+      }));
       await createChatMessage({
         chatSessionId,
         role: 'system',
@@ -146,7 +171,7 @@ export async function POST(req: Request) {
             : 'Order berhasil dibuat, tetapi QRIS belum siap. Coba buka status pesanan dulu ya kak, atau refresh chat sebentar.',
         components: [
           { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },
-          ...(result.paymentMethod !== 'cod' && result.checkoutUrl ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, amount: result.totalBayar }] : []),
+          ...(result.paymentMethod !== 'cod' && result.checkoutUrl ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, qrString: result.qrString || null, amount: result.totalBayar, items: paymentItems }] : []),
           { type: 'quick_replies', options: [
             { id: 'lihat-status', label: 'Lihat status', value: statusUrl, action: 'tool_action' as const },
             { id: 'pesanan-saya', label: 'Pesanan saya', value: '/pesan/saya', action: 'tool_action' as const },
@@ -172,6 +197,16 @@ export async function POST(req: Request) {
       const statusUrl = `/pesan/sukses/${encodeURIComponent(result.kodePesanan)}?token=${encodeURIComponent(result.statusToken)}`;
       orderCookieToken = result.anonymousToken;
       orderStatusUrl = statusUrl;
+      if (result.paymentMethod !== 'cod' && result.checkoutUrl) {
+        await logAiLearningEvent({ eventType: 'payment_qris_viewed', chatSessionId, customerId: result.customerId, intent: 'show_payment', metadata: { orderId: result.idTransaksi, provider: result.paymentProvider, savedCheckout: true, hasQrString: Boolean(result.qrString) } });
+      }
+      const savedPaymentItems = result.paymentMethod === 'cod' ? [] : (await getChatCart(chatSessionId)).items.map((item) => ({
+        name: item.productName,
+        variantName: item.variantName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: item.subtotal,
+      }));
       await createChatMessage({
         chatSessionId,
         role: 'system',
@@ -182,7 +217,7 @@ export async function POST(req: Request) {
             : 'Order berhasil dibuat memakai data tersimpan, tetapi QRIS belum siap. Coba buka status pesanan dulu ya kak.',
         components: [
           { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },
-          ...(result.paymentMethod !== 'cod' && result.checkoutUrl ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, amount: result.totalBayar }] : []),
+          ...(result.paymentMethod !== 'cod' && result.checkoutUrl ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, qrString: result.qrString || null, amount: result.totalBayar, items: savedPaymentItems }] : []),
           { type: 'quick_replies', options: [
             { id: 'lihat-status', label: 'Lihat status', value: statusUrl, action: 'tool_action' as const },
             { id: 'pesanan-saya', label: 'Pesanan saya', value: '/pesan/saya', action: 'tool_action' as const },
@@ -190,24 +225,89 @@ export async function POST(req: Request) {
         ],
         metadata: { order: result, savedCheckout: true },
       });
-    } else if (action === 'request_location') {
+    } else if (action === 'request_location' || action === 'send_new_location') {
       await createChatMessage({ chatSessionId, role: 'assistant', content: 'Kakak bisa kirim titik lokasi atau isi alamat manual.', components: [{ type: 'location_picker', mode: 'both' }] });
+    } else if (action === 'request_identity') {
+      const context = await getCustomerContextForChat(chatSessionId);
+      await logAiLearningEvent({ eventType: 'identity_started', chatSessionId, customerId: context.customer?.id, intent: 'identity_verification', metadata: { source: 'request_identity' } });
+      if (context.customer) {
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: context.defaultAddress ? 'Kakak sudah terverifikasi. Lanjut pilih pembayaran atau buat order ya.' : 'Kakak sudah terverifikasi. Tinggal lengkapi alamat pengiriman ya.',
+          components: context.defaultAddress ? [{ type: 'cart_summary', cartId: (await getChatCart(chatSessionId)).id }] : [{ type: 'location_picker', mode: 'both' }],
+        });
+      } else {
+        await getOrCreateIdentityFlow(chatSessionId);
+        await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: 'Siap kak, verifikasi WhatsApp dulu supaya nama & alamat terisi otomatis. Masukkan nomor WhatsApp yang dipakai sebelumnya ya.',
+          components: [{ type: 'quick_replies', options: [{ id: 'idp-nomor', label: 'Pakai nomor ini', value: 'Ketik nomor WA', action: 'send_message' }] }],
+        });
+      }
+    } else if (action === 'checkout_proceed' || action === 'continue_checkout') {
+      // Wizard checkout PROGRESIF: hanya tampilkan SATU kartu per langkah.
+      // Langkah ditentukan dari state yang sudah ada (cart → identity → alamat → pembayaran),
+      // bukan mengirim semua kartu sekaligus.
+      const context = await getCustomerContextForChat(chatSessionId);
+      const cart = await getChatCart(chatSessionId);
+      await logAiLearningEvent({ eventType: 'checkout_started', chatSessionId, customerId: context.customer?.id, intent: 'confirm_order', metadata: { itemCount: cart.itemCount, identified: Boolean(context.customer), hasAddress: Boolean(context.defaultAddress) } });
+      let content: string;
+      let components: import('@/lib/chat-v3/types').ChatComponent[] = [];
+      if (cart.itemCount === 0) {
+        content = 'Keranjang kakak masih kosong. Pilih produk dulu ya.';
+        components = [{ type: 'quick_replies', options: [{ id: 'lihat-produk2', label: 'Lihat produk', value: 'Lihat produk', action: 'send_message' }, { id: 'rekomendasi2', label: 'Rekomendasi pedas', value: 'Rekomendasi keripik pedas', action: 'send_message' }] }];
+      } else if (!context.customer) {
+        await getOrCreateIdentityFlow(chatSessionId);
+        await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
+        content = 'Siap kak, verifikasi WhatsApp dulu supaya nama & alamat terisi otomatis. Masukkan nomor WhatsApp yang dipakai sebelumnya ya.';
+      } else if (!context.defaultAddress) {
+        content = 'Kakak sudah terverifikasi. Sekarang lengkapi alamat pengiriman ya.';
+        components = [{ type: 'location_picker', mode: 'both' }];
+      } else {
+        const methods = await getActivePaymentMethods();
+        content = 'Data kakak sudah siap. Pilih metode pembayaran dulu ya.';
+        components = [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }];
+      }
+      await createChatMessage({ chatSessionId, role: 'assistant', content, components });
     } else if (action === 'use_saved_customer' || action === 'use_saved_address') {
       const context = await getCustomerContextForChat(chatSessionId);
       if (context.customer) await linkChatSessionToCustomer(chatSessionId, context.customer.id);
-      await createChatMessage({
-        chatSessionId,
-        role: 'assistant',
-        content: context.defaultAddress ? 'Siap kak, data tersimpan dipakai. Kakak bisa lanjut pilih pembayaran atau buat order.' : 'Siap kak, data customer dipakai. Tinggal lengkapi alamat pengiriman ya.',
-        components: context.defaultAddress ? [{ type: 'cart_summary', cartId: (await getChatCart(chatSessionId)).id }] : [{ type: 'location_picker', mode: 'both' }],
-      });
+      if (context.customer && context.defaultAddress) {
+        const methods = await getActivePaymentMethods();
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: 'Siap kak, data tersimpan dipakai. Pilih metode pembayaran lalu konfirmasi order ya.',
+          components: [{ type: 'payment_methods', methodIds: methods.map((method) => method.id) }],
+        });
+      } else {
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: context.customer ? 'Siap kak, data customer dipakai. Tinggal lengkapi alamat pengiriman ya.' : 'Kakak perlu verifikasi WhatsApp dulu untuk memuat data tersimpan.',
+          components: context.customer ? [{ type: 'location_picker', mode: 'both' }] : [{ type: 'quick_replies', options: [{ id: 'idp-verify2', label: 'Verifikasi WhatsApp', value: 'saya pernah pesan', action: 'send_message' }] }],
+        });
+      }
     } else if (action === 'edit_customer_data') {
-      await createChatMessage({
-        chatSessionId,
-        role: 'assistant',
-        content: 'Baik kak, kita isi ulang data penerima dan alamatnya dari sini ya.',
-        components: [{ type: 'order_summary', orderDraftId: chatSessionId }],
-      });
+      const context = await getCustomerContextForChat(chatSessionId);
+      if (!context.customer) {
+        await getOrCreateIdentityFlow(chatSessionId);
+        await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: 'Baik kak, kita verifikasi dulu ya. Masukkan nomor WhatsApp yang dipakai sebelumnya.',
+        });
+      } else {
+        await createChatMessage({
+          chatSessionId,
+          role: 'assistant',
+          content: 'Kakak bisa ubah nama atau nomor WA langsung lewat chat. Tulis data baru yang mau dipakai ya.',
+        });
+      }
     } else if (action === 'edit_address') {
       await createChatMessage({
         chatSessionId,

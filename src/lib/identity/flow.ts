@@ -27,3 +27,14 @@ export async function updateIdentityFlow(chatSessionId: string, patch: Partial<O
     .set({ ...patch, updatedAt: new Date().toISOString() })
     .where(eq(chatIdentityFlows.chatSessionId, chatSessionId));
 }
+
+export async function getIdentityFlowStep(chatSessionId: string): Promise<string | null> {
+  const [row] = await db.select({ step: chatIdentityFlows.step }).from(chatIdentityFlows).where(eq(chatIdentityFlows.chatSessionId, chatSessionId)).limit(1);
+  return row?.step ?? null;
+}
+
+export async function hasStartedOtpFlow(chatSessionId: string): Promise<boolean> {
+  const step = await getIdentityFlowStep(chatSessionId);
+  if (!step) return false;
+  return step !== 'complete' && step !== 'cancelled' && step !== 'ask_prior_order';
+}

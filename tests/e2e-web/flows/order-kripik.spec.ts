@@ -6,9 +6,11 @@ test.describe('Order flow', () => {
     mockAllApi(page);
     await page.goto('/pesan');
 
-    const input = page.getByTestId('chat-input');
-    await input.waitFor({ state: 'visible', timeout: 20000 });
-    await input.fill('1 kripik original');
+    const idleComposer = page.getByTestId('chat-composer-idle');
+    await idleComposer.waitFor({ state: 'visible', timeout: 20000 });
+    const input = idleComposer.getByTestId('chat-input');
+    await input.click();
+    await input.pressSequentially('1 kripik original', { delay: 20 });
     await page.getByTestId('chat-send-button').click();
     await expect(page.getByTestId('chat-cart-summary')).toBeVisible({ timeout: 15000 });
   });

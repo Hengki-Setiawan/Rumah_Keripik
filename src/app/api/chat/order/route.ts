@@ -30,7 +30,9 @@ export async function POST(req: Request) {
         { type: 'order_status_card', orderId: result.idTransaksi, status: 'awaiting_payment', paymentStatus: result.statusPembayaran },
         ...(result.paymentMethod === 'cod'
           ? []
-          : [{ type: 'payment_upload' as const, orderId: result.idTransaksi, statusToken: result.statusToken }]),
+          : result.checkoutUrl
+            ? [{ type: 'payment_upload' as const, orderId: result.idTransaksi, qrCodeUrl: result.checkoutUrl, qrString: result.qrString || null, amount: result.totalBayar, items: (await getChatCart(parsed.data.chatSessionId)).items.map((item) => ({ name: item.productName, variantName: item.variantName, quantity: item.quantity, unitPrice: item.unitPrice, subtotal: item.subtotal })) }]
+            : [{ type: 'payment_upload' as const, orderId: result.idTransaksi, statusToken: result.statusToken }]),
         {
           type: 'quick_replies',
           options: [

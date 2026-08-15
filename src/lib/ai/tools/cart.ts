@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chatCartItems, chatCarts, produk, produkVarian } from '@/lib/schema';
+import { chatCartItems, chatCarts, detailTransaksi, produk, produkVarian } from '@/lib/schema';
 import { generateIdChatCartItem } from '@/lib/id-generator';
 import { getProductImageUrl } from '@/lib/cloudinary-url';
 import { ensureActiveCart } from '@/lib/chat-v3/session';
@@ -130,4 +130,30 @@ export async function removeChatCartItem(chatSessionId: string, itemId: string) 
   const cart = await ensureActiveCart(chatSessionId, null);
   await db.delete(chatCartItems).where(and(eq(chatCartItems.id, itemId), eq(chatCartItems.cartId, cart.id)));
   return getChatCart(chatSessionId);
+}
+
+/**
+ * Reorder: salin item dari order terakhir (detailTransaksi) ke keranjang aktif.
+ * Item yang stoknya habis / tidak aktif dilewati agar tidak gagal.
+ */
+export async function reorderLastOrderIntoCart(chatSessionId: string, orderId: string) {
+  const rows = await db
+    .select({
+      productId: detailTransaksi.id_produk,
+      variantId: detailTransaksi.id_varian,
+      quantity: detailTransaksi.qty_terjual,
+    })
+    .from(detailTransaksi)
+    .where(eq(detailTransaksi.id_transaksi, orderId));
+
+  let addedCount = 0;
+  for (const row of rows) {
+    try {
+      await addToChatCart(chatSessionId, row.productId, row.variantId || undefined, row.quantity);
+      addedCount += row.quantity;
+    } catch {
+      // Item tidak tersedia/stok habis — lewati, jangan gagalkan seluruh reorder.
+    }
+  }
+  return { cart: await getChatCart(chatSessionId), addedCount };
 }

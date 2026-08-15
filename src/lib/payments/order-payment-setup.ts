@@ -33,6 +33,7 @@ export async function setupOrderPaymentAfterCreate(input: {
   if (input.method.type === 'cod') {
     return {
       checkoutUrl: null,
+      qrString: null,
       instruction: buildPaymentInstructionPayload(input.method),
       provider: null,
     };
@@ -90,14 +91,18 @@ export async function setupOrderPaymentAfterCreate(input: {
 
     return {
       checkoutUrl: null,
+      qrString: null,
       instruction,
       provider: 'midtrans' as const,
     };
   }
 
-  // Extract QRIS code image url from Midtrans actions
-  const qrCodeAction = chargeResult.charge.actions?.find((action) => action.name === 'generate-qr-code');
+  // Extract QRIS code image url dari Midtrans actions.
+  // generate-qr-code-v2 = PNG dengan bingkai ASPI (lebih jelas discan); fallback ke v1.
+  const actions = chargeResult.charge.actions || [];
+  const qrCodeAction = actions.find((action) => action.name === 'generate-qr-code-v2') || actions.find((action) => action.name === 'generate-qr-code');
   const qrCodeUrl = qrCodeAction?.url || null;
+  const qrString = chargeResult.charge.qr_string || null;
 
   const instruction = buildGatewayInstructionPayload({
     methodType: input.method.type,
@@ -127,12 +132,14 @@ export async function setupOrderPaymentAfterCreate(input: {
         provider: 'midtrans',
         reference: chargeResult.charge.transaction_id || null,
         qrCodeUrl,
+        hasQrString: Boolean(qrString),
       }),
     });
   });
 
   return {
     checkoutUrl: qrCodeUrl, // We return qrCodeUrl as checkoutUrl for instant view
+    qrString,
     instruction,
     provider: 'midtrans' as const,
   };

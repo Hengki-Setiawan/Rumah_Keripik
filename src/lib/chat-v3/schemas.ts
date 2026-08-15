@@ -75,7 +75,15 @@ export const PaymentUploadComponentSchema = z.object({
   allowedTypes: z.array(z.enum(['image/jpeg', 'image/png', 'application/pdf'])).max(6).optional(),
   maxSizeMb: z.number().int().min(1).max(20).optional(),
   qrCodeUrl: z.string().nullable().optional(),
+  qrString: z.string().nullable().optional(),
   amount: z.number().optional(),
+  items: z.array(z.object({
+    name: z.string().min(1),
+    variantName: z.string().nullable().optional(),
+    quantity: z.number().int().positive(),
+    unitPrice: z.number().nonnegative(),
+    subtotal: z.number().nonnegative(),
+  })).max(20).optional(),
 });
 
 export const OrderSummaryComponentSchema = z.object({
@@ -84,6 +92,10 @@ export const OrderSummaryComponentSchema = z.object({
   paymentMethodId: z.string().min(1).optional(),
   savedCustomerId: z.string().min(1).optional(),
   savedAddressId: z.number().int().optional(),
+  customer: MaskedCustomerSummarySchema.optional().nullable(),
+  address: AddressSummarySchema.optional().nullable(),
+  addresses: z.array(AddressSummarySchema).max(6).optional(),
+  paymentMethodLabel: z.string().max(80).optional().nullable(),
   actions: z.array(z.enum(['confirm_order', 'edit_cart', 'edit_address'])).max(4).optional(),
 });
 

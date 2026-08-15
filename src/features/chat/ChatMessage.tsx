@@ -14,7 +14,7 @@ export function ChatMessage({
   onAction,
   isFirstAssistant = false,
   hideQuickReplies,
-  hideCartSummary,
+  hiddenCardTypes = [],
 }: {
   message: ChatMessageDto;
   cart?: ChatCartDto | null;
@@ -22,7 +22,7 @@ export function ChatMessage({
   onAction: (action: string, payload?: Record<string, unknown>) => void;
   isFirstAssistant?: boolean;
   hideQuickReplies?: boolean;
-  hideCartSummary?: boolean;
+  hiddenCardTypes?: string[];
 }) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
@@ -145,10 +145,10 @@ export function ChatMessage({
           </div>
         )}
 
-        {(message.components ?? []).filter((c) => (!hideQuickReplies || c.type !== 'quick_replies') && (!hideCartSummary || c.type !== 'cart_summary')).length > 0 && (
+        {(message.components ?? []).filter((c) => (!hideQuickReplies || c.type !== 'quick_replies') && !hiddenCardTypes.includes(c.type)).length > 0 && (
           <div className={`${!isUser ? 'w-full' : 'max-w-full'}`}>
             <ChatComponentRenderer
-              components={(message.components ?? []).filter((c) => (!hideQuickReplies || c.type !== 'quick_replies') && (!hideCartSummary || c.type !== 'cart_summary'))}
+              components={(message.components ?? []).filter((c) => (!hideQuickReplies || c.type !== 'quick_replies') && !hiddenCardTypes.includes(c.type))}
               cart={cart}
               onSend={onSend}
               onAction={onAction}
