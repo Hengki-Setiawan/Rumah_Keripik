@@ -332,6 +332,7 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
     productIds: result.productIds,
     chatSessionId: result.chatSessionId,
     checkoutUrl: paymentSetup.checkoutUrl,
+    qrString: paymentSetup.qrString || null,
     paymentInstruction: paymentSetup.instruction,
     paymentProvider: paymentSetup.provider,
   };

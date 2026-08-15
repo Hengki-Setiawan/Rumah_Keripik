@@ -12,4 +12,14 @@ test.describe('Katalog', () => {
     await expect(page.getByTestId('header-my-orders')).toBeVisible();
     await expect(page.getByTestId('header-new-order')).toBeVisible();
   });
+
+  test('pesan saya shows WhatsApp verification CTA when not linked', async ({ page }) => {
+    mockAllApi(page);
+    await page.goto('/pesan/saya');
+
+    await expect(page.getByText('Pesananmu belum terhubung.')).toBeVisible();
+    const cta = page.getByRole('link', { name: 'Verifikasi WhatsApp' });
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveAttribute('href', '/pesan?verify=wa');
+  });
 });

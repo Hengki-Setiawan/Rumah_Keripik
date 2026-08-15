@@ -166,11 +166,25 @@ async function selectPaymentMethodTool(chatSessionId: string, args: Record<strin
   const methodId = String(args.paymentMethodId || args.methodId || '').trim();
   const [method] = await db.select().from(paymentMethod).where(eq(paymentMethod.id_payment_method, methodId)).limit(1);
   if (!method || method.is_active !== 1) throw new Error('Metode pembayaran tidak tersedia');
+  const context = await getCustomerContextForChat(chatSessionId);
+  if (!context.customer) {
+    await createChatMessage({
+      chatSessionId,
+      role: 'assistant',
+      content: 'Sebentar kak, verifikasi WhatsApp dulu supaya data kakak tersimpan otomatis.',
+      components: [{ type: 'quick_replies', options: [{ id: 'idp-verify-tool', label: 'Verifikasi WhatsApp', value: 'saya pernah pesan', action: 'send_message' }] }],
+    });
+    return { id: method.id_payment_method, ...buildPaymentInstructionPayload(method), needsIdentity: true };
+  }
   await createChatMessage({
     chatSessionId,
     role: 'assistant',
-    content: 'Metode pembayaran sudah dipilih. Aku siapkan ringkasan order ya kak.',
-    components: [{ type: 'order_summary', orderDraftId: chatSessionId, paymentMethodId: method.id_payment_method }],
+    content: context.defaultAddress
+      ? 'Metode pembayaran sudah dipilih. Konfirmasi order di bawah ya kak.'
+      : 'Metode pembayaran sudah dipilih. Kakak masih perlu melengkapi alamat pengiriman.',
+    components: context.defaultAddress
+      ? [{ type: 'order_summary', orderDraftId: chatSessionId, paymentMethodId: method.id_payment_method, savedCustomerId: context.customer.id, savedAddressId: context.defaultAddress.id, customer: context.customer, address: context.defaultAddress, addresses: context.addresses, paymentMethodLabel: method.label || undefined, actions: ['confirm_order', 'edit_cart', 'edit_address'] }]
+      : [{ type: 'location_picker', mode: 'both' }],
     metadata: { paymentMethodId: method.id_payment_method },
   });
   return { id: method.id_payment_method, ...buildPaymentInstructionPayload(method) };

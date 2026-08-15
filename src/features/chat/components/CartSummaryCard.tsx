@@ -1,6 +1,6 @@
 'use client';
 
-import { Minus, Plus, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, Rocket, ShoppingBag } from 'lucide-react';
 import type { ChatCartDto, CartSummaryComponent } from '@/lib/chat-v3/types';
 import { formatRupiah } from '@/lib/utils';
 
@@ -36,8 +36,7 @@ export function CartSummaryCard({ cart, onAction }: { component: CartSummaryComp
         <div className="mt-1 flex items-end justify-between"><span className="font-medium text-white/80">Total produk</span><span className="text-2xl font-semibold tracking-[-0.03em]">{formatRupiah(cart.total)}</span></div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button data-testid="cart-fill-address" type="button" onClick={() => onAction('request_location')} className="rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-sm font-medium text-[#2f241c] transition hover:bg-[#f7eddf]">Isi alamat</button>
-        <button data-testid="cart-choose-payment" type="button" onClick={() => onAction('show_payment_methods')} className="rounded-full bg-[#c55a2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ae4d23]">Pilih pembayaran</button>
+        <button data-testid="cart-checkout-next" type="button" onClick={() => onAction('checkout_proceed')} className="rounded-full bg-[#c55a2b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#ae4d23]"><Rocket size={15} className="inline" /> Lanjutkan checkout</button>
       </div>
     </div>
   );

@@ -163,10 +163,21 @@ export function ChatWindow({
         ) : (
           <div ref={listRef} className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-6 pt-4">
             {(() => {
-              const lastCartMsgId = [...messages].reverse().find((m) => m.components?.some((c) => c.type === 'cart_summary'))?.id;
+              // Hanya tampilkan kartu wizard PALING BARU per tipe, supaya alur checkout
+              // terasa progresif (1 kartu per langkah) dan kartu lama tidak menumpuk.
+              const WIZARD_CARD_TYPES = ['cart_summary', 'payment_methods', 'order_summary', 'phone_otp', 'customer_confirm', 'address_confirm', 'location_picker'];
+              const lastWizardMsgId = new Map<string, string>();
+              for (const m of messages) {
+                for (const c of m.components ?? []) {
+                  if (WIZARD_CARD_TYPES.includes(c.type)) lastWizardMsgId.set(c.type, m.id);
+                }
+              }
               return messages.map((message, index) => {
                 const isFirstAssistant = message.role === 'assistant' && messages.slice(0, index).every((item) => item.role !== 'assistant');
-                const hideCartSummary = Boolean(lastCartMsgId && message.id !== lastCartMsgId);
+                const hiddenCardTypes = WIZARD_CARD_TYPES.filter((type) => {
+                  const lastId = lastWizardMsgId.get(type);
+                  return Boolean(lastId && message.id !== lastId && message.components?.some((c) => c.type === type));
+                });
                 return (
                   <ChatMessage
                     key={message.id}
@@ -176,7 +187,7 @@ export function ChatWindow({
                     onAction={onAction}
                     isFirstAssistant={isFirstAssistant}
                     hideQuickReplies
-                    hideCartSummary={hideCartSummary}
+                    hiddenCardTypes={hiddenCardTypes}
                   />
                 );
               });

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, CreditCard, Edit3, KeyRound, MapPinPlus, MapPinned, Navigation, PackageCheck, Rocket, ShieldCheck, UserRound } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ClipboardCheck, CreditCard, ExternalLink, KeyRound, MapPinPlus, MapPinned, Navigation, PackageCheck, RefreshCcw, Rocket, ShieldCheck, UserRound } from 'lucide-react';
 import { formatRupiah } from '@/lib/utils';
 import type { AddressConfirmComponent, AdminHandoffComponent, CustomerConfirmComponent, OrderStatusComponent, OrderSummaryComponent, PaymentUploadComponent, PhoneOtpComponent } from '@/lib/chat-v3/types';
 
@@ -20,20 +20,29 @@ type PaymentMethodOption = {
   accountNumber?: string | null;
 };
 
+/**
+ * CustomerConfirmCard — hasil identifikasi progresif sukses.
+ * Diproduksi setelah OTP login/register berhasil: menampilkan data masked
+ * yang tersimpan dan memberi jalan cepat ke langkah berikutnya.
+ */
 export function CustomerConfirmCard({ component, onAction }: { component: CustomerConfirmComponent; onAction?: (action: string, payload?: Record<string, unknown>) => void }) {
   const customer = component.customer;
+  const name = customer?.name || 'Customer tersimpan';
   return (
     <div className={cardClass}>
-      <div className="flex items-center gap-2"><UserRound size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Data customer tersimpan</h3></div>
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={18} className="text-[#7f9f3e]" />
+        <h3 className="font-semibold text-[#2f241c]">Identitas terverifikasi</h3>
+      </div>
       <div className={panelClass}>
-        <p>Nama: <span className="font-medium text-[#111827]">{customer?.name || 'Customer tersimpan'}</span></p>
+        <p>Nama: <span className="font-medium text-[#111827]">{name}</span></p>
         <p>Nomor WA: <span className="font-medium text-[#111827]">{customer?.phoneMasked || '********'}</span></p>
         {customer?.tags && customer.tags.length > 0 && <p className="mt-1 text-xs">Tag: {customer.tags.slice(0, 3).join(', ')}</p>}
       </div>
-      <p className="mt-2 text-xs text-[#9ca3af]">Data ditampilkan masked agar tetap aman.</p>
+      <p className="mt-2 flex items-center gap-1 text-xs text-[#16a34a]"><Check size={13} className="shrink-0" /> Data tersimpan akan dipakai otomatis untuk checkout.</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => onAction?.('use_saved_customer', { customerId: component.customerId || customer?.id })} className={primaryButtonClass}><ShieldCheck size={15} /> Pakai data ini</button>
-        <button type="button" onClick={() => onAction?.('edit_customer_data')} className={secondaryButtonClass}><Edit3 size={15} /> Ubah data</button>
+        <button type="button" data-testid="customer-confirm-continue" onClick={() => onAction?.('continue_checkout')} className={primaryButtonClass}><Rocket size={15} /> Lanjut checkout</button>
+        <Link href="/pesan/saya" className={secondaryButtonClass}><ClipboardCheck size={15} /> Pesanan saya</Link>
       </div>
     </div>
   );
@@ -53,7 +62,7 @@ export function AddressConfirmCard({ component, onAction }: { component: Address
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={() => onAction?.('use_saved_address', { addressId: component.addressId || address?.id })} className={primaryButtonClass}><ShieldCheck size={15} /> Pakai alamat</button>
-        <button type="button" onClick={() => onAction?.('edit_address')} className={secondaryButtonClass}><Navigation size={15} /> Ubah alamat</button>
+        <button type="button" onClick={() => onAction?.('send_new_location')} className={secondaryButtonClass}><Navigation size={15} /> Kirim lokasi baru</button>
       </div>
     </div>
   );
@@ -83,7 +92,6 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
       }
     }
 
-    // Mulai polling setelah 10 detik (beri waktu user scan)
     const startDelay = setTimeout(() => {
       setPolling(true);
       checkPaymentStatus();
@@ -107,7 +115,7 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
         </div>
         <p className="mt-2 text-sm leading-6 text-[#4b5563]">Terima kasih kak! Pesanan kamu sudah masuk dan sedang diproses oleh tim kami.</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <a href="/pesan/saya" className={primaryButtonClass}>Lihat Status Pesanan</a>
+          <Link href="/pesan/saya" className={primaryButtonClass}>Lihat Status Pesanan</Link>
           <button type="button" onClick={() => onAction?.('refresh_chat')} className={secondaryButtonClass}>Refresh Chat</button>
         </div>
       </div>
@@ -138,42 +146,74 @@ export function PaymentUploadCard({ component, onAction }: { component: PaymentU
           Pindai QRIS di atas dengan GoPay, ShopeePay, DANA, OVO, LinkAja, atau Mobile Banking.
           QRIS berlaku selama 24 jam.
         </p>
+        {component.qrCodeUrl && (
+          <a href={component.qrCodeUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-xs font-medium text-[#c55a2b] transition hover:bg-[#f7eddf]">
+            <ExternalLink size={13} /> Buka QRIS di tab baru (untuk scan dari perangkat lain)
+          </a>
+        )}
+        {component.items && component.items.length > 0 && (
+          <div className="mt-3 rounded-2xl border border-[#ecd8bf] bg-white p-3 text-sm">
+            <p className="mb-2 font-semibold text-[#2f241c]">Rincian pesanan</p>
+            <ul className="space-y-1.5">
+              {component.items.map((item, index) => (
+                <li key={index} className="flex items-baseline justify-between gap-2 text-[#4b5563]">
+                  <span className="min-w-0">{item.quantity}&times; {item.name}{item.variantName ? ` (${item.variantName})` : ''}</span>
+                  <span className="shrink-0 font-medium text-[#2f241c]">{formatRupiah(item.subtotal)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 flex items-baseline justify-between gap-2 border-t border-[#f0dfca] pt-2">
+              <span className="font-semibold text-[#2f241c]">Total</span>
+              <span className="font-semibold text-[#c55a2b]">{formatRupiah(component.amount || 0)}</span>
+            </div>
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => onAction?.('refresh_chat')} className={primaryButtonClass}>
             Saya Sudah Bayar
           </button>
-          <a href="/pesan/saya" className={secondaryButtonClass}>
+          <Link href="/pesan/saya" className={secondaryButtonClass}>
             Buka Pesanan Saya
-          </a>
+          </Link>
         </div>
       </div>
     );
   }
 
-  // Fallback: QRIS gagal generate
+  // Pembayaran manual/QRIS tidak tersedia di chat — arahkan ke checkout online.
   return (
     <div className={cardClass}>
       <div className="flex items-center gap-2">
         <CreditCard size={18} className="text-[#c55a2b]" />
         <h3 className="font-semibold text-[#2f241c]">Lanjutkan pembayaran</h3>
       </div>
-      <p className="mt-2 text-sm leading-6 text-[#6b7280]">QRIS belum berhasil dimuat. Coba refresh atau buka halaman Pesanan Saya untuk melanjutkan checkout.</p>
+      <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+        {component.statusToken
+          ? 'Pembayaran pesanan perlu dicek ulang. Buka Pesanan Saya untuk melanjutkan checkout online atau menghubungi admin.'
+          : 'Checkout online belum siap dari chat. Buka Pesanan Saya untuk melanjutkan pembayaran.'}
+      </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => onAction?.('refresh_chat')} className={primaryButtonClass}>Coba Refresh</button>
-        <a href="/pesan/saya" className={secondaryButtonClass}>Buka Pesanan Saya</a>
+        <Link href="/pesan/saya" className={primaryButtonClass}>Buka Pesanan Saya</Link>
+        <button type="button" onClick={() => onAction?.('refresh_chat')} className={secondaryButtonClass}>Refresh Chat</button>
       </div>
     </div>
   );
 }
 
-export function OrderSummaryCard({ component, onSend, onAction }: { component: OrderSummaryComponent; onSend?: (message: string) => void; onAction: (action: string, payload?: Record<string, unknown>) => void }) {
-  const [step, setStep] = useState<'customer' | 'address' | 'payment' | 'review'>(component.savedCustomerId && component.savedAddressId ? 'review' : 'customer');
-  const [customer, setCustomer] = useState({ name: '', phone: '', type: 'konsumen' });
-  const [address, setAddress] = useState({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
+/**
+ * OrderSummaryCard — kartu konfirmasi order berbasis data teridentifikasi.
+ * BUKAN form manual: identitas/alamat datang dari flow progresif OTP.
+ * Jika customer belum teridentifikasi, dorong verifikasi WhatsApp dulu.
+ */
+export function OrderSummaryCard({ component, onAction }: { component: OrderSummaryComponent; onAction: (action: string, payload?: Record<string, unknown>) => void }) {
+  const [selectedAddressId, setSelectedAddressId] = useState<number | undefined>(component.savedAddressId || component.addresses?.[0]?.id || component.address?.id);
   const [paymentMethodId, setPaymentMethodId] = useState(component.paymentMethodId || '');
   const [notes, setNotes] = useState('');
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
-  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+
+  const savedCustomerId = component.savedCustomerId;
+  const addresses = component.addresses?.length ? component.addresses : (component.address ? [component.address] : []);
+  const selectedAddress = addresses.find((a) => a.id === selectedAddressId) || addresses[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -181,239 +221,196 @@ export function OrderSummaryCard({ component, onSend, onAction }: { component: O
       .then((response) => response.json())
       .then((data) => {
         if (cancelled) return;
-        setPaymentMethods(data.methods || []);
+        const methods = data.methods || [];
+        setPaymentMethods(methods);
+        if (!component.paymentMethodId && methods.length > 0) setPaymentMethodId(methods[0].id);
       })
       .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [component.paymentMethodId]);
 
-    fetch('/api/public/saved-addresses')
-      .then((response) => response.json())
-      .then((data) => {
-        if (cancelled) return;
-        setSavedAddresses(data.ok ? (data.addresses || []) : []);
-      })
-      .catch(() => undefined);
+  const paymentLabel = paymentMethods.find((m) => m.id === paymentMethodId)?.label || component.paymentMethodLabel || 'Belum dipilih';
 
-    fetch('/api/public/me')
-      .then((response) => response.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (data.ok && data.profile) {
-          setCustomer({
-            name: data.profile.nama || '',
-            phone: data.profile.phone || '',
-            type: 'konsumen',
-          });
-          // Skip customer step since data is loaded, go to address step
-          if (!component.savedAddressId) {
-            setStep('address');
-          }
-        }
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [component.savedAddressId]);
-
-  function canSubmit() {
-    return customer.name.trim().length >= 2 && customer.phone.trim().length >= 8 && address.text.trim().length >= 8 && paymentMethodId.trim().length > 0;
+  // BELUM TERIDENTIFIKASI → dorong verifikasi WhatsApp, bukan form manual.
+  if (!savedCustomerId) {
+    return (
+      <div className={cardClass} data-testid="order-summary-identify">
+        <div className="flex items-center gap-2"><KeyRound size={18} className="text-[#c55a2b]" /><h3 className="font-semibold text-[#2f241c]">Lanjut checkout</h3></div>
+        <div className="mt-3 rounded-[1.35rem] border border-[#ecd8bf] bg-[#fffaf3] p-4 text-center shadow-[0_8px_20px_rgba(47,36,28,0.03)]">
+          <p className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#8b4c31] mb-1"><ShieldCheck size={14} className="shrink-0" /> Verifikasi WhatsApp dulu, ya</p>
+          <p className="text-[11px] text-[#6f5d4f] mb-2.5">Setelah diverifikasi, data nama & alamat kakak langsung terisi otomatis — tanpa isi ulang.</p>
+          <button
+            type="button"
+            data-testid="order-summary-request-identity"
+            onClick={() => onAction('request_identity')}
+            className="inline-flex min-h-8 items-center justify-center rounded-full bg-[#c55a2b] px-4 py-1.5 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(197,90,43,0.12)] transition hover:bg-[#ae4d23]"
+          >
+            Verifikasi WhatsApp
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  function useLocation() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((position) => {
-      setAddress((current) => ({ ...current, lat: String(position.coords.latitude), lng: String(position.coords.longitude) }));
-    });
+  function canSubmit() {
+    return Boolean(selectedAddress) && Boolean(paymentMethodId.trim());
   }
 
   return (
-    <div className={cardClass}>
-      <div className="flex items-center gap-2"><PackageCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Buat order dari chat</h3></div>
-      <p className="mt-2 text-sm leading-6 text-[#6b7280]">Aku minta data bertahap supaya order bisa masuk dashboard dengan benar.</p>
-      
-      {/* Banner login interaktif jika belum terdaftar */}
-      {!component.savedCustomerId && (
-        <div className="mt-3 rounded-[1.35rem] border border-[#ecd8bf] bg-[#fffaf3] p-3 text-center shadow-[0_8px_20px_rgba(47,36,28,0.03)]">
-          <p className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#8b4c31] mb-1"><KeyRound size={14} className="shrink-0" /> Sudah Pernah Memesan Sebelumnya?</p>
-          <p className="text-[11px] text-[#6f5d4f] mb-2.5">Kakak bisa masuk lewat chat untuk memuat data alamat secara otomatis.</p>
-          <button
-            type="button"
-            onClick={() => onSend?.('Saya pernah pesan')}
-            className="inline-flex min-h-8 items-center justify-center rounded-full bg-[#c55a2b] px-4 py-1.5 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(197,90,43,0.12)] transition hover:bg-[#ae4d23]"
-          >
-            Masuk / Login Sekarang
-          </button>
-        </div>
-      )}
+    <div className={cardClass} data-testid="order-summary-confirm">
+      <div className="flex items-center gap-2"><PackageCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Konfirmasi pesanan</h3></div>
+      <p className="mt-2 text-sm leading-6 text-[#6b7280]">Data penerima & alamat sudah dimuat dari akun kakak. Cek sekali lagi sebelum order dibuat, ya.</p>
 
-      {/* Tombol Data Tersimpan — paling menonjol jika tersedia */}
-      {(component.savedCustomerId && component.savedAddressId) && (
-        <div className="mt-4 rounded-[1.5rem] border-2 border-[#7f9f3e] bg-[#eef6dd] p-4">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-[#3d5a13] mb-1"><CheckCircle2 size={16} className="shrink-0" /> Data tersimpan tersedia</p>
-          <p className="text-xs text-[#56721f] mb-3">Kakak sudah pernah order sebelumnya. Bisa langsung pakai data yang tersimpan tanpa isi ulang!</p>
-          <div className="grid gap-2">
-            <select
-              className="w-full rounded-[1.2rem] border border-[#c5dea0] bg-white px-4 py-2 text-sm text-[#2f241c] outline-none focus:border-[#7f9f3e]/50"
-              value={paymentMethodId}
-              onChange={(e) => setPaymentMethodId(e.target.value)}
-            >
-              <option value="">-- Pilih metode bayar dulu --</option>
-              {paymentMethods.map((method) => (
-                <option key={method.id} value={method.id}>{method.label}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={!paymentMethodId.trim()}
-              onClick={() => onAction('create_order_saved', { addressId: component.savedAddressId, paymentMethodId, notes })}
-              className={`${primaryButtonClass} w-full rounded-2xl py-3 bg-[#7f9f3e] hover:bg-[#6a8932] text-base font-semibold`}
-            >
-              <Rocket size={16} className="shrink-0" /> Pakai Data Tersimpan &amp; Buat Order
-            </button>
-          </div>
+      <div className="mt-4 space-y-4">
+        {/* Penerima */}
+        <div className={panelClass}>
+          <p className="flex items-center gap-1.5 font-semibold text-[#2f241c]"><UserRound size={14} className="text-[#c55a2b]" /> Penerima</p>
+          <p className="mt-1">Nama: <span className="font-medium text-[#111827]">{component.customer?.name || 'Customer tersimpan'}</span></p>
+          <p>WA: <span className="font-medium text-[#111827]">{component.customer?.phoneMasked || '********'}</span></p>
+        </div>
 
-          {/* Opsi Ubah Profil & Alamat Baru secara explisit */}
-          <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-[#c5dea0]/35 pt-3 text-[11px]">
-            <button
-              type="button"
-              onClick={() => {
-                setAddress({ text: '', note: '', mapsLink: '', lat: '', lng: '' });
-                setStep('address');
-              }}
-              className="inline-flex items-center gap-1.5 font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
-            >
-              <MapPinPlus size={13} className="shrink-0" /> Kirim ke Alamat Baru
+        {/* Alamat */}
+        <div>
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[#5f4d3f]"><MapPinPlus size={13} className="text-[#c55a2b]" /> Alamat pengiriman</p>
+          {addresses.length > 0 ? (
+            <>
+              <select
+                data-testid="order-summary-address"
+                value={selectedAddressId ?? ''}
+                onChange={(e) => setSelectedAddressId(Number(e.target.value))}
+                className={`${inputClass} w-full`}
+              >
+                {addresses.map((addr) => (
+                  <option key={addr.id} value={addr.id}>{addr.label || 'Alamat'} — {addr.recipientName || 'Penerima'}</option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs leading-5 text-[#6b7280]">{selectedAddress?.addressSummary || ''}</p>
+            </>
+          ) : (
+            <button type="button" data-testid="order-summary-new-address" onClick={() => onAction('request_location')} className={`${secondaryButtonClass} w-full`}>
+              <Navigation size={14} /> Belum ada alamat — kirim lokasi dulu
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStep('customer');
-              }}
-              className="inline-flex items-center gap-1.5 font-semibold text-[#56721f] underline hover:text-[#3d5a13]"
-            >
-              <UserRound size={13} className="shrink-0" /> Ubah Profil Penerima
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-4 grid grid-cols-2 gap-2 text-center text-[11px] font-medium text-[#6b7280] sm:grid-cols-4">
-        {(['customer', 'address', 'payment', 'review'] as const).map((item, index) => (
-          <button key={item} type="button" onClick={() => setStep(item)} className={`rounded-full px-2 py-2 transition ${step === item ? 'bg-[#c55a2b] text-white' : 'bg-[#f7eddf] hover:bg-[#f2e2cc]'}`}>{index + 1}. {item === 'customer' ? 'Data' : item === 'address' ? 'Alamat' : item === 'payment' ? 'Bayar' : 'Review'}</button>
-        ))}
-      </div>
-      <div className="mt-4 grid gap-3">
-        {step === 'customer' && <>
-        <input data-testid="order-customer-name" value={customer.name} onChange={(event) => setCustomer({ ...customer, name: event.target.value })} placeholder="Nama penerima" className={inputClass} />
-        <input data-testid="order-customer-phone" value={customer.phone} onChange={(event) => setCustomer({ ...customer, phone: event.target.value })} placeholder="Nomor WhatsApp" inputMode="tel" className={inputClass} />
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {(['konsumen', 'warung', 'reseller'] as const).map((type) => (
-            <button key={type} type="button" onClick={() => setCustomer({ ...customer, type })} className={`rounded-2xl border px-3 py-2 text-xs font-medium capitalize transition ${customer.type === type ? 'border-[#111827] bg-[#111827] text-white' : 'border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f3f4f6]'}`}>{type}</button>
-          ))}
-        </div>
-        <button data-testid="order-step-address" type="button" disabled={customer.name.trim().length < 2 || customer.phone.trim().length < 8} onClick={() => setStep('address')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut alamat</button>
-        </>}
-        {step === 'address' && <>
-        {savedAddresses.length > 0 && (
-          <div className="mb-3 rounded-[1.2rem] bg-[#fbf2e7] p-3 text-xs">
-            <p className="font-semibold text-[#5f4d3f] mb-2">Alamat Tersimpan (Klik untuk isi otomatis):</p>
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
-              {savedAddresses.map((addr: any) => (
-                <button
-                  key={addr.id}
-                  type="button"
-                  onClick={() => {
-                    setAddress({
-                      text: addr.addressText || '',
-                      note: addr.courierNote || addr.landmark || '',
-                      mapsLink: (addr.latitude && addr.longitude) ? `https://www.google.com/maps?q=${addr.latitude},${addr.longitude}` : '',
-                      lat: addr.latitude || '',
-                      lng: addr.longitude || '',
-                    });
-                  }}
-                  className="rounded-xl border border-[#ecd8bf] bg-white p-2.5 text-left transition hover:bg-[#fff9f2]"
-                >
-                  <p className="font-semibold text-[#2f241c] truncate">{addr.recipientName || 'Penerima'} ({addr.phone || ''})</p>
-                  <p className="mt-1 text-[11px] text-[#6b7280] line-clamp-1">{addr.addressText}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        <textarea data-testid="order-address-text" value={address.text} onChange={(event) => setAddress({ ...address, text: event.target.value })} placeholder="Alamat lengkap" className={`${inputClass} min-h-20`} />
-        <input data-testid="order-address-note" value={address.note} onChange={(event) => setAddress({ ...address, note: event.target.value })} placeholder="Patokan/catatan kurir" className={inputClass} />
-        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-          <input data-testid="order-address-maps" value={address.mapsLink} onChange={(event) => setAddress({ ...address, mapsLink: event.target.value })} placeholder="Link Google Maps (opsional)" className={inputClass} />
-          <button data-testid="order-address-geolocate" type="button" onClick={useLocation} className={`${secondaryButtonClass} rounded-2xl px-4 py-3 gap-1.5`}>
-            <Navigation size={14} className="text-[#c55a2b] animate-pulse" /> Ambil titik GPS
-          </button>
-        </div>
-        {(address.lat && address.lng) && <p className="rounded-[1.2rem] bg-[#eef6dd] px-4 py-3 text-xs font-medium text-[#56721f]">Koordinat tersimpan: {address.lat.slice(0, 10)}, {address.lng.slice(0, 10)}</p>}
-        <button data-testid="order-step-payment" type="button" disabled={address.text.trim().length < 8} onClick={() => setStep('payment')} className={`${primaryButtonClass} rounded-2xl py-3`}>Lanjut pembayaran</button>
-        </>}
-      {step === 'payment' && <>
-        <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#5f4d3f]">
-          Pilih metode pembayaran untuk pesanan ini.
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {paymentMethods.map((method) => (
-            <button
-              key={method.id}
-              type="button"
-              onClick={() => setPaymentMethodId(method.id)}
-              className={`rounded-[1.2rem] border px-4 py-3 text-left transition ${
-                paymentMethodId === method.id
-                  ? 'border-[#c55a2b] bg-[#fff4ea] shadow-[0_10px_24px_rgba(197,90,43,0.08)]'
-                  : 'border-[#ecd8bf] bg-white hover:bg-[#fdf6ee]'
-              }`}
-            >
-              <p className="text-sm font-semibold text-[#2f241c]">{method.label}</p>
-              <p className="mt-1 text-xs leading-5 text-[#6b7280]">
-                {method.note || (method.type === 'cod' ? 'Bayar saat pesanan diterima.' : 'Bayar dengan QRIS — scan kode yang muncul setelah order dibuat.')}
-              </p>
-              {method.accountNumber && (
-                <p className="mt-2 text-xs font-medium text-[#2f241c]">
-                  {method.bankName}: {method.accountNumber}
-                </p>
-              )}
-            </button>
-          ))}
-          {paymentMethods.length === 0 && (
-            <div className="rounded-[1.2rem] border border-dashed border-[#ecd8bf] bg-white px-4 py-3 text-sm text-[#6b7280]">
-              Metode pembayaran belum termuat. Coba lanjutkan sebentar lagi.
-            </div>
           )}
         </div>
-        <textarea data-testid="order-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Catatan pesanan opsional" className={`${inputClass} min-h-16`} />
-        <button data-testid="order-step-review" type="button" disabled={!paymentMethodId.trim()} onClick={() => setStep('review')} className={`${primaryButtonClass} rounded-2xl py-3`}>Review order</button>
-      </>}
-        {step === 'review' && <div className="rounded-[1.2rem] bg-[#fbf2e7] p-4 text-sm leading-6 text-[#4b5563]">
-          <p className="font-semibold text-[#2f241c]">Cek ulang sebelum order dibuat</p>
-          <p className="mt-2">Nama: {customer.name || 'Data tersimpan'}</p>
-          <p>WA: {customer.phone || 'Data tersimpan'}</p>
-          <p>Alamat: {address.text || 'Alamat tersimpan'}</p>
-          <p>Metode bayar: {paymentMethodId || 'Belum dipilih'}</p>
-          {notes && <p>Catatan: {notes}</p>}
-        </div>}
-        {step === 'review' && (
-        <button data-testid="order-submit" type="button" disabled={!canSubmit()} onClick={() => onAction('create_order', { customer, address, paymentMethodId, notes })} className={`${primaryButtonClass} rounded-2xl py-3`}>Konfirmasi & Buat Order</button>
-        )}
+
+        {/* Metode pembayaran */}
+        <div>
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[#5f4d3f]"><CreditCard size={13} className="text-[#c55a2b]" /> Metode pembayaran</p>
+          <select
+            data-testid="order-summary-payment"
+            value={paymentMethodId}
+            onChange={(e) => setPaymentMethodId(e.target.value)}
+            className={`${inputClass} w-full`}
+          >
+            <option value="">-- Pilih metode bayar --</option>
+            {paymentMethods.map((method) => (
+              <option key={method.id} value={method.id}>{method.label}</option>
+            ))}
+          </select>
+          {paymentLabel !== 'Belum dipilih' && (
+            <p className="mt-1.5 text-xs text-[#6b7280]">{paymentLabel}</p>
+          )}
+        </div>
+
+        {/* Catatan */}
+        <div>
+          <textarea
+            data-testid="order-summary-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Catatan pesanan opsional (mis. jangan terlalu pedas)"
+            className={`${inputClass} min-h-16 w-full`}
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        data-testid="order-summary-submit"
+        disabled={!canSubmit()}
+        onClick={() => {
+          if (!selectedAddress) return;
+          onAction('create_order_saved', { addressId: selectedAddress.id, paymentMethodId, notes });
+        }}
+        className={`${primaryButtonClass} mt-4 w-full rounded-2xl py-3 text-base font-semibold`}
+      >
+        <Rocket size={16} className="shrink-0" /> Konfirmasi &amp; Buat Order
+      </button>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <button type="button" data-testid="order-summary-back-cart" onClick={() => onAction('show_cart')} className={secondaryButtonClass}>
+          <span aria-hidden="true">&larr;</span> Kembali ke keranjang
+        </button>
+        <span className="text-[11px] text-[#9ca3af]">Mau ubah data? Bisa di chat — ketik nama/alamat baru.</span>
       </div>
     </div>
   );
 }
 
+const ORDER_STATUS_STEPS = [
+  { key: 'created', label: 'Dibuat' },
+  { key: 'paid', label: 'Pembayaran' },
+  { key: 'processing', label: 'Diproses' },
+  { key: 'shipping', label: 'Dikirim' },
+  { key: 'completed', label: 'Selesai' },
+] as const;
+
+function statusStepIndex(status: string | undefined, paymentStatus: string | undefined): number {
+  const s = (status || '').toLowerCase();
+  const p = (paymentStatus || '').toLowerCase();
+  if (s === 'cancelled' || p === 'cancelled') return -1;
+  if (s === 'completed' || s === 'delivered') return 4;
+  if (s === 'shipping' || s === 'dalam_pengiriman' || s === 'dalam pengiriman') return 3;
+  if (s === 'processing' || p === 'verified' || p === 'cod_approved' || p === 'settlement' || p === 'capture') return 2;
+  if (p === 'proof_uploaded' || p === 'awaiting_admin_verification' || p === 'paid') return 1;
+  return 0;
+}
+
+function paymentLabel(status: string | undefined, paymentStatus: string | undefined): { text: string; tone: 'success' | 'warning' | 'danger' | 'neutral' } {
+  const s = (status || '').toLowerCase();
+  const p = (paymentStatus || '').toLowerCase();
+  if (s === 'cancelled' || p === 'cancelled') return { text: 'Dibatalkan', tone: 'danger' };
+  if (p === 'verified' || p === 'settlement' || p === 'capture' || p === 'paid' || p === 'cod_approved') return { text: 'Lunas', tone: 'success' };
+  if (p === 'proof_uploaded' || p === 'awaiting_admin_verification') return { text: 'Menunggu verifikasi', tone: 'warning' };
+  return { text: 'Menunggu pembayaran', tone: 'warning' };
+}
+
 export function OrderStatusCard({ component }: { component: OrderStatusComponent }) {
+  const step = statusStepIndex(component.status, component.paymentStatus);
+  const payment = paymentLabel(component.status, component.paymentStatus);
+  const needsPayment = step <= 1 && payment.tone === 'warning';
+  const toneText = { success: 'text-[#16a34a]', warning: 'text-[#c55a2b]', danger: 'text-[#dc2626]', neutral: 'text-[#6b7280]' }[payment.tone];
+
   return (
-    <div className={cardClass}>
-      <div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Status pesanan</h3></div>
-      <div className="mt-3 grid gap-2 text-sm text-[#4b5563]">
-        <p>Order: {component.orderCode || component.orderId}</p>
-        {component.status && <p>Status: {component.status}</p>}
-        {component.paymentStatus && <p>Pembayaran: {component.paymentStatus}</p>}
-        {component.deliveryStatus && <p>Pengiriman: {component.deliveryStatus}</p>}
-        {component.totalAmount != null && <p>Total: {formatRupiah(component.totalAmount)}</p>}
+    <div className={cardClass} data-testid="order-status-card">
+      <div className="flex items-center gap-2"><ClipboardCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Status pesanan</h3></div>
+      <p className="mt-1 text-xs text-[#6b7280]">Order: {component.orderCode || component.orderId}</p>
+
+      {/* Stepper */}
+      <div className="mt-4 grid grid-cols-5 gap-1">
+        {ORDER_STATUS_STEPS.map((item, index) => {
+          const done = step >= index && step !== -1;
+          const current = step === index && step !== -1;
+          return (
+            <div key={item.key} className="flex flex-col items-center gap-1.5 text-center">
+              <div className={`grid h-8 w-8 place-items-center rounded-full text-xs font-semibold transition ${step === -1 ? 'bg-[#f3ede2] text-[#b9a98f]' : done ? 'bg-[#7f9f3e] text-white' : current ? 'bg-[#c55a2b] text-white ring-4 ring-[#c55a2b]/15' : 'bg-[#f3ede2] text-[#b9a98f]'}`}>
+                {done ? <Check size={14} /> : index + 1}
+              </div>
+              <span className={`text-[10px] leading-tight ${done || current ? 'font-semibold text-[#2f241c]' : 'text-[#b9a98f]'}`}>{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className={`mt-3 flex items-center justify-between gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-medium ${payment.tone === 'success' ? 'bg-[#eef6dd]' : payment.tone === 'danger' ? 'bg-[#fff0ec]' : 'bg-[#fbf2e7]'}`}>
+        <span className={toneText}>{payment.text}</span>
+        {component.totalAmount != null && <span className="font-semibold text-[#2f241c]">{formatRupiah(component.totalAmount)}</span>}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {needsPayment && (
+          <Link href="/pesan/saya" className={primaryButtonClass}><CreditCard size={15} /> Bayar sekarang</Link>
+        )}
+        <Link href="/pesan/saya" className={needsPayment ? secondaryButtonClass : primaryButtonClass}><ClipboardCheck size={15} /> Buka Pesanan Saya</Link>
       </div>
     </div>
   );
@@ -450,6 +447,19 @@ export function PhoneOtpCard({ component, onSend }: { component: PhoneOtpCompone
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(() => (component.expiresInSeconds ?? 300) || 300);
+
+  useEffect(() => {
+    if (!component.otpSent) return;
+    const end = Date.now() + secondsLeft * 1000;
+    const timer = setInterval(() => {
+      const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left <= 0) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [component.otpSent, component.expiresInSeconds]);
 
   function handleVerify() {
     if (code.trim().length !== 6) {
@@ -462,7 +472,7 @@ export function PhoneOtpCard({ component, onSend }: { component: PhoneOtpCompone
   }
 
   return (
-    <div className={cardClass}>
+    <div className={cardClass} data-testid="phone-otp-card">
       <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-[#7f9f3e]" /><h3 className="font-semibold text-[#2f241c]">Verifikasi nomor WhatsApp</h3></div>
       <div className={panelClass}>
         {component.otpSent ? (
@@ -498,7 +508,19 @@ export function PhoneOtpCard({ component, onSend }: { component: PhoneOtpCompone
         </div>
       )}
       {error && <p className="mt-2 text-xs text-[#dc2626]" data-testid="otp-error">{error}</p>}
-      <p className="mt-3 text-[11px] text-[#9ca3af]">Tidak menerima kode? Balas &quot;kirim ulang&quot; di chat. Kode berlaku 5 menit.</p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#9ca3af]">
+        <span>
+          {component.otpSent && secondsLeft > 0 ? `Kode berlaku ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}` : 'Kode berlaku 5 menit.'}
+        </span>
+        <button
+          type="button"
+          data-testid="otp-resend-button"
+          onClick={() => onSend?.('kirim ulang')}
+          className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium text-[#c55a2b] transition hover:bg-[#fdf0e5]"
+        >
+          <RefreshCcw size={12} /> Kirim ulang kode
+        </button>
+      </div>
     </div>
   );
 }

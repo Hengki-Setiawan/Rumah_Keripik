@@ -99,7 +99,15 @@ export type PaymentUploadComponent = {
   allowedTypes?: Array<'image/jpeg' | 'image/png' | 'application/pdf'>;
   maxSizeMb?: number;
   qrCodeUrl?: string | null;
+  qrString?: string | null;
   amount?: number;
+  items?: Array<{
+    name: string;
+    variantName?: string | null;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+  }>;
 };
 
 export type OrderSummaryComponent = {
@@ -108,6 +116,10 @@ export type OrderSummaryComponent = {
   paymentMethodId?: string;
   savedCustomerId?: string;
   savedAddressId?: number;
+  customer?: MaskedCustomerSummary | null;
+  address?: AddressSummary | null;
+  addresses?: AddressSummary[];
+  paymentMethodLabel?: string | null;
   actions?: Array<'confirm_order' | 'edit_cart' | 'edit_address'>;
 };
 

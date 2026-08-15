@@ -21,9 +21,8 @@ const sections = [
     title: 'Proses Order Harian',
     steps: [
       'Pelanggan order dari /pesan.',
-      'Jika pelanggan upload bukti, buka Verifikasi Pembayaran.',
-      'Cek nominal, gambar bukti, OCR assist, dan duplicate warning.',
-      'Approve jika valid, reject jika salah lalu pelanggan bisa upload ulang.',
+      'Untuk QRIS/e-wallet, cek Verifikasi Pembayaran — pembayaran Midtrans sudah otomatis, verifikasi manual hanya untuk konfirmasi riwayat lama.',
+      'Approve/reject verifikasi manual jika masih ada. Pelanggan yang butuh bantuan diarahkan ke checkout online.',
       'Cetak packing label untuk proses pengemasan.',
     ],
   },

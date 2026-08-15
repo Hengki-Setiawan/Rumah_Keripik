@@ -15,9 +15,9 @@ type OrderNotificationType =
   | 'order_cancelled';
 
 const templates: Record<OrderNotificationType, string> = {
-  payment_uploaded: 'Riwayat pembayaran pesanan sudah masuk. Status akan diperbarui setelah verifikasi selesai ya kak.',
+  payment_uploaded: 'Pembayaran kakak sudah tercatat. Status akan diperbarui setelah verifikasi selesai ya kak.',
   payment_verified: 'Pembayaran kakak sudah berhasil diverifikasi. Pesanan sedang kami proses ya.',
-  payment_rejected: 'Pembayaran belum berhasil diverifikasi. Coba buka lagi checkout online dari status pesanan atau Pesanan Saya ya.',
+  payment_rejected: 'Pembayaran belum berhasil diproses. Kalau perlu bantuan, buka status pesanan atau hubungi admin ya kak.',
   order_processing: 'Pesanan kakak sedang disiapkan.',
   order_shipping: 'Pesanan kakak sudah masuk proses pengiriman.',
   order_completed: 'Pesanan sudah selesai. Terima kasih sudah pesan di Rumah Keripik.',
@@ -37,12 +37,17 @@ export async function notifyChatForOrderEvent(orderId: string, type: OrderNotifi
       orderId,
       status: order.order_status,
       paymentStatus: order.payment_status,
-      deliveryStatus: order.order_status,
     },
   ];
 
-  if (type === 'payment_rejected' && order.status_token) {
-    components.push({ type: 'payment_upload', orderId, statusToken: order.status_token });
+  if (type === 'payment_rejected') {
+    components.push({
+      type: 'quick_replies',
+      options: [
+        { id: 'rejected-track', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' },
+        { id: 'rejected-admin', label: 'Hubungi admin', value: 'saya butuh bantuan admin', action: 'send_message' },
+      ],
+    });
   }
 
   const content = options.note ? `${templates[type]}\n${options.note}` : templates[type];

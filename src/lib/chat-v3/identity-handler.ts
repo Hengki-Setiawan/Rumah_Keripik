@@ -1,5 +1,6 @@
 import type { AIChatResponse } from '@/lib/chat-v3/types';
 import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
+import { getChatCart } from '@/lib/ai/tools/cart';
 import { getOrCreateIdentityFlow, updateIdentityFlow, type IdentityPurpose } from '@/lib/identity/flow';
 import { requestOtp, type OtpPurpose } from '@/lib/identity/otp';
 import { completeOtpIdentity } from '@/lib/identity/complete';
@@ -38,11 +39,11 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
 
   switch (flow.step) {
     case 'ask_prior_order': {
-      if (/(sudah|pernah|iya|ya\b)/.test(lower) && !/(belum|enggak|tidak)/.test(lower)) {
+      if (/(sudah|udah|dah|pernah|pernh|sering|iya|ya\b|langganan)/.test(lower) && !/(belum|belom|enggak|nggak|tidak|belon)/.test(lower)) {
         await updateIdentityFlow(chatSessionId, { purpose: 'login', step: 'ask_phone_login' });
         return { reply: 'Siap kak! Masukkan nomor WhatsApp yang dulu dipakai untuk pesan, ya.', intent: 'identity_verification', confidence: 1.0 };
       }
-      if (/(belum|baru|pertama kali|pertama)/.test(lower)) {
+      if (/(belum|belom|baru|pertama kali|pertama|nggak|enggak|tidak|belon)/.test(lower)) {
         await updateIdentityFlow(chatSessionId, { purpose: 'register', step: 'ask_name' });
         return { reply: 'Tentu kak! Senang kenalan. Boleh tahu nama panggilan kakak?', intent: 'identity_verification', confidence: 1.0 };
       }
@@ -199,11 +200,23 @@ export async function buildIdentityFlowResponse(chatSessionId: string, message: 
       });
       if (!result.ok) return { reply: result.error, intent: 'identity_verification', confidence: 1.0 };
 
+      const [cart, freshContext] = await Promise.all([getChatCart(chatSessionId), getCustomerContextForChat(chatSessionId)]);
+      const nextAction = cart.itemCount > 0
+        ? ' Lanjut ke pembayaran ya.'
+        : ' Kakak bisa langsung pesan keripik atau cek pesanan sebelumnya di chat.';
+      const customer = freshContext.customer;
+      const components = customer
+        ? [{ type: 'customer_confirm' as const, maskedFields: true as const, customer, customerId: customer.id, actions: ['use_saved_data', 'edit_data', 'send_new_location'] }]
+        : [];
+
       return {
         reply: result.isNew
-          ? `Berhasil terdaftar kak! Data kakak sudah aman untuk order berikutnya. Lanjut ke pembayaran ya.`
-          : `Berhasil dikonfirmasi kak! Data tersimpan sudah dipakai. Lanjut ke pembayaran ya.`,
+          ? `Berhasil terdaftar kak! Data kakak sudah aman untuk order berikutnya.${nextAction}`
+          : `Berhasil dikonfirmasi kak! Data tersimpan sudah dipakai.${nextAction}`,
         intent: 'confirm_customer_data',
+        components: cart.itemCount > 0
+          ? [...components, { type: 'quick_replies', options: [{ id: 'idp-lanjut', label: 'Lanjut checkout', value: 'lanjut checkout', action: 'send_message' }] }]
+          : components,
         confidence: 1.0,
       };
     }
