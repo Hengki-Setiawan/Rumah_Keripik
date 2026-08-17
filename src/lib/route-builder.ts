@@ -22,6 +22,9 @@ type ClusterableOrder = {
   lng: string | null;
 };
 
+/** Tipe transaksi drizzle (libsql) — dipakai agar build jalur bersifat atomik. */
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /** Jumlah kurir TERDAFTAR (bukan aktif) ΓÇö sesuai keputusan user: jalur = kurir terdaftar. */
 async function countRegisteredCouriers(): Promise<number> {
   const [row] = await db.select({ count: sql<number>`COUNT(*)` }).from(couriers);
@@ -143,6 +146,7 @@ async function labelCluster(
 }
 
 async function buildSingleRoute(
+  tx: Tx,
   cluster: ClusterableOrder[],
   routeDate: string,
   warehouse: { lat: number; lng: number },
@@ -162,7 +166,7 @@ async function buildSingleRoute(
   const ordered = [...optimized, ...withoutCoord];
   const totalKm = routeTotalKm(optimized);
 
-  const [inserted] = await db
+  const [inserted] = await tx
     .insert(deliveryRoutes)
     .values({
       routeDate,
@@ -182,7 +186,7 @@ async function buildSingleRoute(
   // jalur lain (uniq_route_point_date_tx) dilewati, bukan menggagalkan build.
   let insertedStops = 0;
   for (const [i, wp] of ordered.entries()) {
-    const [row] = await db
+    const [row] = await tx
       .insert(deliveryRoutePoint)
       .values({
         route_date: routeDate,
@@ -201,7 +205,7 @@ async function buildSingleRoute(
   // stopCount = jumlah yang BENAR-BENAR masuk (bukan total cluster awal) supaya
   // UI kurir tidak menampilkan angka stop yang tidak ada di rute.
   if (insertedStops !== ordered.length) {
-    await db.update(deliveryRoutes).set({ stopCount: insertedStops }).where(eq(deliveryRoutes.id, inserted.id));
+    await tx.update(deliveryRoutes).set({ stopCount: insertedStops }).where(eq(deliveryRoutes.id, inserted.id));
   }
   return inserted.id;
 }
@@ -209,10 +213,13 @@ async function buildSingleRoute(
 /**
  * Pembentukan jalur otomatis:
  * - JUMLAH JALUR = jumlah kurir TERDAFTAR (K). Tidak ada konsep "kurir tidak ada".
- * - PRIORITAS #1: ORS VROOM multi-vehicle (1 request, K vehicle di gudang).
- *   Bila hasil tidak valid / ORS nonaktif ΓåÆ fallback k-means + nearestNeighbor+2-opt.
- * - Setiap jalur status 'open' tanpa kurir; kurir bebas claim.
+ * - PARTISI: k-means(K) = primari (pasti menghasilkan K klaster disjoint bila >= K titik).
+ *   ORS VROOM multi-vehicle hanya dipakai bila menghasilkan TEPAT K rute yang menutup
+ *   semua job; selain itu fallback k-means (VROOM tanpa fixed-cost cenderung menggabung
+ *   semua job ke 1 kendaraan, sehingga tidak menjamin K jalur).
+ * - Setiap jalur di-optimasi nearestNeighbor + 2-opt, status 'open' tanpa kurir; kurir bebas claim.
  * - order_status TIDAK diubah ke 'shipping' di sini (dilakukan saat claim).
+ * - Build ATOMIK (transaksi): tidak ada jalur parsial bila ada kegagalan.
  */
 export async function buildRoutesForDate(routeDate?: string): Promise<RouteBuildResult> {
   const date = routeDate ?? witaToday();
@@ -264,7 +271,10 @@ export async function buildRoutesForDate(routeDate?: string): Promise<RouteBuild
           if (group.length > 0) perRoute.set(perRoute.size, group);
         }
         const orsClusters = [...perRoute.values()];
-        if (orsClusters.length > 0 && orsClusters.flat().length === withCoord.length) {
+        // ORS hanya dipakai bila menghasilkan TEPAT K jalur yang menutup SEMUA job.
+        // Tanpa fixed cost, VROOM cenderung menggabungkan semua job ke 1 kendaraan
+        // → tidak menjamin K jalur untuk K kurir → fallback k-means (partisi pasti K).
+        if (orsClusters.length === K && orsClusters.flat().length === withCoord.length) {
           clusters = orsClusters;
           engine = 'ors';
         } else {
@@ -280,14 +290,26 @@ export async function buildRoutesForDate(routeDate?: string): Promise<RouteBuild
     clusters = kMeans(withCoord, K, warehouse);
   }
 
+// Nama jalur memakai penghitung PER TANGGAL (bukan index per-build) supaya tidak
+  // ada "Jalur #1" duplikat bila build dijalankan beberapa kali pada hari sama.
+  const [existingRow] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(deliveryRoutes)
+    .where(eq(deliveryRoutes.routeDate, date));
+  let nameCounter = existingRow?.count ?? 0;
+
+  // Seluruh build bersifat ATOMIK: bila satu jalur gagal, tidak ada jalur parsial
+  // yang tertinggal (open) di DB.
   let routesCreated = 0;
-  for (const [i, cluster] of clusters.entries()) {
-    const label = await labelCluster(cluster, warehouse);
-    const name = `Jalur #${i + 1} ΓÇö ${label}`;
-    if (cluster.length === 0) continue;
-    const id = await buildSingleRoute(cluster, date, warehouse, name);
-    if (id != null) routesCreated++;
-  }
+  await db.transaction(async (tx) => {
+    for (const cluster of clusters) {
+      if (cluster.length === 0) continue;
+      const label = await labelCluster(cluster, warehouse);
+      const name = `Jalur #${++nameCounter} \u2014 ${label}`;
+      const id = await buildSingleRoute(tx, cluster, date, warehouse, name);
+      if (id != null) routesCreated++;
+    }
+  });
 
   return {
     routeDate: date,
