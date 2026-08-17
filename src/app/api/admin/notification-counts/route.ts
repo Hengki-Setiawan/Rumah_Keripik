@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { transaksi, pelangganChatbot, sosEvents } from '@/lib/schema';
 import { eq, sql } from 'drizzle-orm';
+import { getUnreadAdminNotificationCount } from '@/lib/admin-notifications';
 
 export async function GET() {
   try {
@@ -20,10 +21,13 @@ export async function GET() {
       .from(sosEvents)
       .where(eq(sosEvents.status, 'active'));
 
+    const adminNotifs = await getUnreadAdminNotificationCount();
+
     return NextResponse.json({
       pending_verifikasi: pendingVerif.count,
       unread_chats: unreadChats.count,
       active_sos: activeSos.count,
+      admin_notifications: adminNotifs,
     });
   } catch (err) {
     console.error('[NotificationCounts]', err);

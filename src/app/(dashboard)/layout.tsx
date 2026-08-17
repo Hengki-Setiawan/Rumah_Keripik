@@ -5,7 +5,7 @@ import {signOut} from 'next-auth/react';
 import {usePathname} from 'next/navigation';
 import Link from 'next/link';
 import {BrandLogo} from '@/components/brand/BrandLogo';
-import {BarChart3, Bell, Bot, ChevronLeft, ChevronRight, Gift, Home, LogOut, Menu, MessageSquare, Package, Plus, ShieldAlert, ShoppingCart, Truck, Users, X} from 'lucide-react';
+import {BarChart3, Bell, Bot, ChevronLeft, ChevronRight, Home, LogOut, Menu, MessageSquare, Package, Plus, ShieldAlert, ShoppingCart, Truck, Users, X} from 'lucide-react';
 import {ToastProvider, useToast} from '@/components/ui/toast';
 import {ConfirmModal} from '@/components/ui/modal';
 
@@ -13,6 +13,17 @@ interface NotifCounts {
   pending_verifikasi: number;
   unread_chats: number;
   active_sos: number;
+  admin_notifications?: number;
+}
+
+interface AdminNotificationItem {
+  id: number;
+  category: string;
+  title: string;
+  body: string | null;
+  meta: { href?: string; id_transaksi?: string; productId?: string } | null;
+  isRead: boolean;
+  createdAt: string;
 }
 
 const coreMenuItems = [
@@ -21,8 +32,7 @@ const coreMenuItems = [
   { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
-  { href: '/kurir', label: 'Kurir', icon: Truck, activeHrefs: ['/kurir', '/kurir/live', '/kurir/assign', '/kurir/dispatch', '/kurir/payroll', '/kurir/performa', '/kurir/zona', '/kurir/riwayat', '/kurir/rute', '/kurir/absensi', '/kurir/kendaraan', '/kurir/analitik'] },
-  { href: '/loyalty', label: 'Loyalitas', icon: Gift },
+  { href: '/kurir', label: 'Kurir', icon: Truck, activeHrefs: ['/kurir', '/kurir/live', '/kurir/assign', '/kurir/payroll', '/kurir/performa', '/kurir/zona', '/kurir/riwayat', '/kurir/rute', '/kurir/kendaraan', '/kurir/analitik'] },
   { href: '/keuangan', label: 'Keuangan', icon: BarChart3 },
   { href: '/ai-workspace', label: 'Pusat AI', icon: Bot, activeHrefs: ['/ai-workspace', '/bot-config', '/knowledge-base', '/ai-monitor', '/ai-skills', '/model-router', '/ai-ops'] },
 ];
@@ -59,7 +69,7 @@ function NotificationPoller() {
   }
 
   useEffect(() => {
-    let prev = { pending_verifikasi: 0, unread_chats: 0, active_sos: 0 };
+    let prev: NotifCounts = { pending_verifikasi: 0, unread_chats: 0, active_sos: 0, admin_notifications: 0 };
 
     async function poll() {
       try {
@@ -75,9 +85,13 @@ function NotificationPoller() {
           addToast('info', `${data.unread_chats} chat baru masuk`);
           showBrowserNotif('Chat Baru', `${data.unread_chats} chat baru masuk ke hub komunikasi`);
         }
-        if (data.active_sos && data.active_sos > (prev as any).active_sos) {
+        if (data.active_sos && data.active_sos > (prev.active_sos ?? 0)) {
           addToast('error', `SOS Darurat! ${data.active_sos} kurir butuh bantuan`);
           showBrowserNotif('SOS Darurat!', `${data.active_sos} kurir mengirim sinyal darurat`);
+        }
+        if (data.admin_notifications && data.admin_notifications > (prev.admin_notifications ?? 0)) {
+          addToast('info', `${data.admin_notifications} notifikasi admin baru`);
+          showBrowserNotif('Notifikasi Admin', `${data.admin_notifications} notifikasi baru di dashboard`);
         }
         prev = data;
       } catch {
@@ -144,6 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifCounts>({ pending_verifikasi: 0, unread_chats: 0, active_sos: 0 });
+  const [adminNotifs, setAdminNotifs] = useState<AdminNotificationItem[]>([]);
   const pathname = usePathname();
 
   const dateStr = new Intl.DateTimeFormat('id-ID', {
@@ -171,8 +186,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, []);
 
-  const totalNotif = notifs.pending_verifikasi + notifs.unread_chats + notifs.active_sos;
+  const totalNotif = notifs.pending_verifikasi + notifs.unread_chats + notifs.active_sos + (notifs.admin_notifications || 0);
   const currentLabel = menuItems.find((item) => isMenuActive(pathname, item))?.label || 'Dashboard';
+
+  async function toggleNotif() {
+    const next = !notifOpen;
+    setNotifOpen(next);
+    if (next) {
+      try {
+        const res = await fetch('/api/admin/notifications?limit=20');
+        if (!res.ok) return;
+        const data = await res.json();
+        setAdminNotifs(data.notifications || []);
+        if ((data.unread || 0) > 0) {
+          fetch('/api/admin/notifications/read', { method: 'POST' }).catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
 
   async function handleLogout() {
     setLogoutLoading(true);
@@ -330,7 +363,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setNotifOpen((value) => !value)}
+                  onClick={toggleNotif}
                   className="relative grid h-10 w-10 place-items-center rounded-full border border-[#f0dfca] bg-[#fffaf3]/92 text-[#6f5d4f] shadow-[0_8px_22px_rgba(47,36,28,0.06)] transition hover:text-[#2f241c]"
                 >
                   <Bell size={17} />
@@ -342,11 +375,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </button>
 
                 {notifOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-3 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-[1.4rem] border border-[#f0dfca] bg-[#fffaf3] shadow-[0_24px_70px_rgba(47,36,28,0.12)]">
+                  <div className="absolute right-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-[1.4rem] border border-[#f0dfca] bg-[#fffaf3] shadow-[0_24px_70px_rgba(47,36,28,0.12)]">
                     <div className="border-b border-[#f0e4d2] px-4 py-3">
                       <p className="text-sm font-semibold text-[#2f241c]">Notifikasi</p>
                     </div>
-                    <div className="p-2">
+                    <div className="max-h-[24rem] overflow-y-auto p-2">
+                      {adminNotifs.length > 0 && (
+                        <div className="mb-2">
+                          {adminNotifs.map((n) => {
+                            const href = n.meta?.href || (n.meta?.id_transaksi ? `/transaksi` : undefined);
+                            const content = (
+                              <div className="flex items-start gap-3 rounded-[1.1rem] p-3 transition hover:bg-[#f9efe0]">
+                                <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${n.isRead ? 'bg-[#d8c9b8]' : 'bg-[#c55a2b]'}`} />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-[#2f241c]">{n.title}</p>
+                                  {n.body ? <p className="text-xs text-[#776454]">{n.body}</p> : null}
+                                </div>
+                              </div>
+                            );
+                            return href ? (
+                              <Link key={n.id} href={href} onClick={() => setNotifOpen(false)}>
+                                {content}
+                              </Link>
+                            ) : (
+                              <div key={n.id}>{content}</div>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {notifs.pending_verifikasi > 0 ? (
                         <Link
                           href="/transaksi?tab=verifikasi"

@@ -6,8 +6,8 @@ import type { LocationPickerComponent } from '@/lib/chat-v3/types';
 
 type LeafletModule = typeof import('leaflet');
 
-const DEFAULT_LAT = -5.1340;
-const DEFAULT_LNG = 119.4135;
+const DEFAULT_LAT = -5.105950;
+const DEFAULT_LNG = 119.432407;
 
 const cardClass = 'rounded-[1.7rem] border border-[#f0dfca] bg-[rgba(255,250,244,0.9)] p-4 shadow-[0_14px_34px_rgba(47,36,28,0.05)] backdrop-blur';
 const secondaryButtonClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-[#ecd8bf] bg-white px-4 py-2 text-sm font-medium text-[#2f241c] transition hover:bg-[#f7eddf]';

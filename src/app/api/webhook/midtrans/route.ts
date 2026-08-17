@@ -6,6 +6,8 @@ import { markOrderPaidFromGateway } from '@/lib/orders/payment-settlement';
 import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 import { verifyMidtransNotificationSignature } from '@/lib/payments/midtrans';
 import { getIdempotentResponse, saveIdempotentResponse } from '@/lib/idempotency';
+import { enqueueJob } from '@/lib/worker-queue';
+import { createAdminNotification } from '@/lib/admin-notifications';
 
 export const runtime = 'nodejs';
 
@@ -66,6 +68,7 @@ export async function POST(req: Request) {
     if (order.payment_status !== 'verified') {
       await markOrderPaidFromGateway(order.id_transaksi, note);
       await notifyChatForOrderEvent(order.id_transaksi, 'payment_verified');
+      enqueueJob('generate_invoice', { idTransaksi: order.id_transaksi }).catch(() => {});
     }
     const response = NextResponse.json({ ok: true });
     await saveIdempotentResponse(idempotencyKey, response);
@@ -107,6 +110,16 @@ export async function POST(req: Request) {
         note,
       });
     });
+
+    const failureCopy = transactionStatus === 'expire'
+      ? 'Pembayaran kakak kedaluwarsa sebelum selesai. Tenang, pesanan tidak hilang — kakak bisa lanjut bayar lagi ya.'
+      : transactionStatus === 'cancel'
+        ? 'Pembayaran kakak dibatalkan. Pesanan masih aman, kakak bisa coba bayar lagi dengan metode lain ya.'
+        : transactionStatus === 'deny'
+          ? 'Pembayaran kakak ditolak (kartu/bank kemungkinan menolak). Coba metode bayar lain atau ulangi ya, pesanan tetap aman.'
+          : 'Pembayaran belum berhasil. Pesanan masih tersimpan, kakak bisa coba lagi ya.';
+
+    await notifyChatForOrderEvent(order.id_transaksi, 'payment_rejected', { note: failureCopy });
   }
 
   const response = NextResponse.json({ ok: true });

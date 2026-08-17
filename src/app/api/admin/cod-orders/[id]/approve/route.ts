@@ -5,6 +5,7 @@ import { detailTransaksi, orderStatusHistory, paymentIntent, produk, produkVaria
 import { isUnauthorizedAdminError, requireAdminActor } from '@/lib/admin-actor';
 import { canApproveCod } from '@/lib/order-status-policy';
 import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
+import { enqueueJob } from '@/lib/worker-queue';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -52,5 +53,6 @@ export async function POST(_req: Request, context: RouteContext) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal approve COD' }, { status: 409 });
   }
   await notifyChatForOrderEvent(id, 'order_processing');
+  enqueueJob('generate_invoice', { idTransaksi: id }).catch(() => {});
   return NextResponse.json({ ok: true });
 }

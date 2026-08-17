@@ -1,5 +1,5 @@
 /**
- * Smoke test untuk API baru (loyalty, ledger, AI ops) di production.
+ * Smoke test untuk API baru (ledger, AI ops) di production.
  * Jalankan: npx tsx src/scripts/smoke-production-apis.ts
  */
 
@@ -51,7 +51,6 @@ async function main() {
 
   // 1. Public GET endpoints
   console.log('\n Public GET (expect JSON):');
-  await test('Loyalty Balance', () => GET('/api/loyalty/balance?customerId=INVALID'));
   await test('Chat Order History', () => GET('/api/chat/history?no_wa=6281234567890&page=1&limit=5'));
   await test('Public Products', () => GET('/api/public/products'));
   await test('Public Categories', () => GET('/api/public/categories'));
@@ -59,9 +58,14 @@ async function main() {
 
   // 2. Public POST — Auth.js v5 intercepts & redirects to login (expected)
   console.log('\n Public POST (expect 307 → login — Auth.js CSRF):');
-  await test('Loyalty Redeem', () => POST('/api/loyalty/redeem', { customerId: '', points: 0, orderId: '' }));
-  await test('Referral Use', () => POST('/api/loyalty/referral/use', { code: '', refereeCustomerId: '' }));
   await test('Chat Send', () => POST('/api/chat/send', { no_wa: '', teks: '' }));
+
+  // 2b. Sistem Jalur (no auth → 401 JSON, kode reachable)
+  console.log('\n Sistem Jalur (no auth → expect 401):');
+  await test('Courier Routes List', () => GET('/api/courier/routes?routeDate=2026-08-17'));
+  await test('Courier Route Action', () => POST('/api/courier/routes/1', { action: 'claim' }));
+  await test('Courier Route Optimize', () => POST('/api/courier/routes/1/optimize', {}));
+  await test('Admin Routes List', () => GET('/api/admin/routes?routeDate=2026-08-17'));
 
   // 3. Admin GET (no auth → 307 or 200 with login page)
   console.log('\n Admin GET (no auth → expect redirect/login):');
@@ -69,7 +73,6 @@ async function main() {
   await test('AI Ops Provider Usage', () => GET('/api/admin/ai-ops/provider-usage'));
   await test('AI Ops Daily Usage', () => GET('/api/admin/ai-ops/daily-usage'));
   await test('AI Ops Task Dist', () => GET('/api/admin/ai-ops/task-distribution'));
-  await test('Loyalty Stats', () => GET('/api/admin/loyalty/stats'));
 
   // 4. Admin POST (no auth → 307 redirect to login)
   console.log('\n Admin POST (no auth → expect 307 redirect):');

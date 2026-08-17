@@ -3,11 +3,16 @@ import { db } from '@/lib/db';
 import { deliveryAssignment, transaksi } from '@/lib/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { requireAdminRole } from '@/lib/admin-actor';
+import { witaToday } from '@/lib/wita-date';
 
 export async function GET() {
   try {
     await requireAdminRole('order:update');
+    const today = witaToday();
 
+    // Antrian penugasan: (1) legacy shipping tanpa assignment, (2) processing yang
+    // belum masuk jalur mana pun hari ini — kedua-duanya bisa di-assign langsung
+    // atau dimasukkan ke jalur terbuka.
     const pending = await db
       .select({
         id_transaksi: transaksi.id_transaksi,
@@ -22,9 +27,12 @@ export async function GET() {
       .leftJoin(deliveryAssignment, eq(transaksi.id_transaksi, deliveryAssignment.id_transaksi))
       .where(
         and(
-          eq(transaksi.order_status, 'shipping'),
+          sql`${transaksi.order_status} IN ('shipping','processing')`,
           isNull(deliveryAssignment.id),
-          sql`${transaksi.lat_pengiriman} IS NOT NULL`
+          sql`NOT EXISTS (
+            SELECT 1 FROM delivery_route_point rp
+            WHERE rp.id_transaksi = transaksi.id_transaksi AND rp.route_date = ${today}
+          )`
         )
       )
       .orderBy(sql`${transaksi.waktu_simpan} DESC`);

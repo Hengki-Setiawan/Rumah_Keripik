@@ -5,8 +5,8 @@ import { calculateDistance, buildMapsLink } from './location-parser';
 import { estimateShipping, reverseGeocode } from './geocoding';
 import type { OrderContext } from './order-types';
 
-const MAKASSAR_CENTER_LAT = -5.1340;
-const MAKASSAR_CENTER_LNG = 119.4135;
+const MAKASSAR_CENTER_LAT = -5.105950;
+const MAKASSAR_CENTER_LNG = 119.432407;
 
 export interface LocationInput {
   lat: number;

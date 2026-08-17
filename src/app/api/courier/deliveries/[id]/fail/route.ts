@@ -42,8 +42,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ ok: false, error: 'Pengiriman tidak ditemukan' }, { status: 404 });
     }
 
-    if (assignment.status !== 'Dalam_Pengiriman') {
-      return NextResponse.json({ ok: false, error: 'Pengiriman harus dalam status pengiriman' }, { status: 400 });
+    if (assignment.status !== 'Siap_Dikirim' && assignment.status !== 'Dalam_Pengiriman') {
+      return NextResponse.json({ ok: false, error: 'Pengiriman tidak bisa digagalkan dari status ini' }, { status: 400 });
     }
 
     const now = new Date().toISOString();

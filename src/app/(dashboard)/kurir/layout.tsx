@@ -2,16 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, BarChart3, CalendarCheck, Map as MapIcon, MapPinned, ReceiptText, Route as RouteIcon, Truck, Users, Wrench } from 'lucide-react';
+import { Activity, BarChart3, Map as MapIcon, MapPinned, ReceiptText, Route as RouteIcon, Truck, Users, Wrench, GitBranch } from 'lucide-react';
 
 const tabs = [
   { href: '/kurir', label: 'Roster', icon: Users },
   { href: '/kurir/assign', label: 'Assign', icon: Truck },
+  { href: '/kurir/jalur', label: 'Jalur', icon: GitBranch },
   { href: '/kurir/live', label: 'Live Map', icon: MapIcon },
   { href: '/kurir/rute', label: 'Rute', icon: RouteIcon },
-  { href: '/kurir/dispatch', label: 'Dispatch', icon: RouteIcon },
   { href: '/kurir/payroll', label: 'Payroll', icon: ReceiptText },
-  { href: '/kurir/absensi', label: 'Absensi', icon: CalendarCheck },
   { href: '/kurir/kendaraan', label: 'Kendaraan', icon: Wrench },
   { href: '/kurir/performa', label: 'Performa', icon: Activity },
   { href: '/kurir/analitik', label: 'Analitik', icon: BarChart3 },

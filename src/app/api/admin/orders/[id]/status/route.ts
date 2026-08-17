@@ -6,7 +6,6 @@ import { orderStatusHistory, transaksi } from '@/lib/schema';
 import { isForbiddenAdminPermissionError, isUnauthorizedAdminError, requireAdminRole } from '@/lib/admin-actor';
 import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 import { logAdminAudit } from '@/lib/admin-audit';
-import { awardPointsForCompletedOrder } from '@/services/loyalty-service';
 import { recordRevenue, ensureDefaultCategories } from '@/services/ledger-service';
 
 const StatusSchema = z.object({
@@ -44,7 +43,6 @@ export async function POST(req: Request, context: RouteContext) {
 
   if (parsed.data.orderStatus === 'completed') {
     try {
-      if (order.id_customer) await awardPointsForCompletedOrder(order.id_customer, id, order.total_bayar);
       await ensureDefaultCategories();
       await recordRevenue(id, order.total_bayar);
     } catch (svcErr) {

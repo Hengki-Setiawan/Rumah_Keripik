@@ -115,9 +115,6 @@ async function runCourierLifecycle() {
   const historyFinal = await query(`SELECT event_type, order_status, payment_status, actor FROM order_status_history WHERE id_transaksi = '${state.id_transaksi}' ORDER BY id`);
   console.log('• Audit Trail Order Status History:', historyFinal);
 
-  const pointsFinal = await query(`SELECT customerId, pointsBalance, tier FROM loyalty_accounts WHERE customerId = (SELECT id_customer FROM transaksi WHERE id_transaksi = '${state.id_transaksi}')`);
-  console.log('• Poin Loyalitas Pelanggan (loyalty_accounts):', pointsFinal);
-
   const ledgerFinal = await query(`SELECT id, id_transaksi, amount, category FROM ledger_entries WHERE id_transaksi = '${state.id_transaksi}'`);
   console.log('• Jurnal Keuangan Pendapatan (ledger_entries):', ledgerFinal);
 

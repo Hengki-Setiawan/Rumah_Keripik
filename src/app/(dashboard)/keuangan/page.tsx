@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {BarChart3, DollarSign, CreditCard, TrendingDown, TrendingUp} from 'lucide-react';
+import {BarChart3, DollarSign, CreditCard, TrendingDown, TrendingUp, Plus, Save} from 'lucide-react';
 
 interface CategoryInfo { id: string; name: string; type: string }
 interface ReportData {
@@ -21,12 +21,48 @@ export default function KeuanganPage() {
   });
   const [periodEnd, setPeriodEnd] = useState(() => new Date().toISOString().slice(0, 10));
 
+  // Expense form state
+  const [expCategoryId, setExpCategoryId] = useState('');
+  const [expAmount, setExpAmount] = useState('');
+  const [expNote, setExpNote] = useState('');
+  const [expSaving, setExpSaving] = useState(false);
+  const [expMessage, setExpMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   useEffect(() => {
     setLoading(true);
     fetch(`/api/admin/ledger/report?periodStart=${periodStart}&periodEnd=${periodEnd}`)
       .then((r) => r.json()).then((data) => { if (data.ok) setReport(data); })
       .finally(() => setLoading(false));
   }, [periodStart, periodEnd]);
+
+  async function handleExpenseSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setExpSaving(true);
+    setExpMessage(null);
+    const amount = Number(expAmount);
+    try {
+      const res = await fetch('/api/admin/ledger/expense', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: expCategoryId, amount, note: expNote }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setExpMessage({ type: 'error', text: data.error || 'Gagal catat pengeluaran' });
+        return;
+      }
+      setExpMessage({ type: 'success', text: 'Pengeluaran berhasil dicatat' });
+      setExpAmount('');
+      setExpNote('');
+      const refetch = await fetch(`/api/admin/ledger/report?periodStart=${periodStart}&periodEnd=${periodEnd}`);
+      const fresh = await refetch.json();
+      if (fresh.ok) setReport(fresh);
+    } catch {
+      setExpMessage({ type: 'error', text: 'Gagal catat pengeluaran' });
+    } finally {
+      setExpSaving(false);
+    }
+  }
 
   const catName = (id?: string) => {
     if (!id || !report?.categories) return '-';
@@ -44,6 +80,36 @@ export default function KeuanganPage() {
         <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="border rounded px-2 py-1 text-sm" />
         <label className="text-sm">Sampai:</label>
         <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+      </div>
+
+      {/* Form Catat Pengeluaran */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <h2 className="font-semibold mb-3 flex items-center gap-2"><Plus /> Catat Pengeluaran</h2>
+        <form onSubmit={handleExpenseSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <label className="space-y-1 text-sm">
+            <span className="block text-gray-500">Kategori</span>
+            <select value={expCategoryId} onChange={(e) => setExpCategoryId(e.target.value)} required className="w-full border rounded px-2 py-1.5 text-sm">
+              <option value="">-- Pilih Kategori --</option>
+              {(report?.categories || []).filter((c) => c.type !== 'revenue').map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="block text-gray-500">Jumlah (Rp)</span>
+            <input type="number" min="1" required value={expAmount} onChange={(e) => setExpAmount(e.target.value)} placeholder="100000" className="w-full border rounded px-2 py-1.5 text-sm" />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="block text-gray-500">Catatan</span>
+            <input value={expNote} onChange={(e) => setExpNote(e.target.value)} required maxLength={500} placeholder="Mis. Beli 50 pcs plastik kemasan" className="w-full border rounded px-2 py-1.5 text-sm" />
+          </label>
+          <button disabled={expSaving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
+            <Save size={16} /> {expSaving ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </form>
+        {expMessage && (
+          <p className={`mt-2 text-sm ${expMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>{expMessage.text}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-4 gap-4">

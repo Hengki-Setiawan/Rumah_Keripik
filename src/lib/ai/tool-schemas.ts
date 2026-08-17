@@ -105,6 +105,11 @@ export const identifyProductFromImageSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid'),
 });
 
+export const watchStockSchema = z.object({
+  productId: z.string().min(1, 'ID produk wajib diisi'),
+  variantId: z.string().optional(),
+});
+
 export const toolSchemaRegistry: Record<string, z.ZodTypeAny> = {
   search_products: searchProductsSchema,
   searchProducts: searchProductsSchema,
@@ -145,4 +150,6 @@ export const toolSchemaRegistry: Record<string, z.ZodTypeAny> = {
   suggestAlternativeProduct: suggestAlternativeProductSchema,
   identify_product_from_image: identifyProductFromImageSchema,
   identifyProductFromImage: identifyProductFromImageSchema,
+  watch_stock: watchStockSchema,
+  watchStock: watchStockSchema,
 };

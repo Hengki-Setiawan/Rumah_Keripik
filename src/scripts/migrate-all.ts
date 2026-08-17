@@ -9,7 +9,6 @@ const commands: Array<[string, string[]]> = [
   ['npm', ['run', 'db:migrate:v7']],
   ['npm', ['run', 'db:migrate:v8']],
   ['npm', ['run', 'db:migrate:v9']],
-  ['npm', ['run', 'db:migrate:v10']],
   ['npm', ['run', 'db:migrate:v11']],
   ['npm', ['run', 'db:migrate:v12']],
   ['npm', ['run', 'db:migrate:v13']],
@@ -20,6 +19,12 @@ const commands: Array<[string, string[]]> = [
   ['npm', ['run', 'db:migrate:v18']],
   ['npm', ['run', 'db:migrate:v19']],
   ['npm', ['run', 'db:migrate:v21']],
+  ['npm', ['run', 'db:migrate:v22']],
+  ['npm', ['run', 'db:migrate:v23']],
+  ['npm', ['run', 'db:migrate:v24']],
+  ['npm', ['run', 'db:migrate:v25']],
+  ['npm', ['run', 'db:migrate:v26']],
+  ['npm', ['run', 'db:migrate:v27']],
 ];
 
 for (const [cmd, args] of commands) {

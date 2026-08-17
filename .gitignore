@@ -47,3 +47,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Build logs (hasil verifikasi lokal, bukan artefak repo)
+build-fase*.log

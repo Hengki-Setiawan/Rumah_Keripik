@@ -1,12 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/payment-ops",
-      "schedule": "0 1 * * *"
-    },
-    {
       "path": "/api/cron/worker",
-      "schedule": "0 2 * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/courier-ops",
@@ -19,6 +15,22 @@
     {
       "path": "/api/cron/cleanup",
       "schedule": "45 1 * * *"
+    },
+    {
+      "path": "/api/cron/stock-watch",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/midtrans-reconcile",
+      "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-dispatch",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/route-build",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

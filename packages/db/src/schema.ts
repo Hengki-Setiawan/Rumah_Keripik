@@ -917,6 +917,7 @@ export const deliveryAssignment = sqliteTable(
     eta_at_assignment: text('eta_at_assignment'),
     delayed_notification_sent: integer('delayed_notification_sent').notNull().default(0),
     warehouse_id: integer('warehouse_id').references(() => warehouses.id).default(1),
+    route_id: integer('route_id').references(() => deliveryRoutes.id),
     pickup_at: text('pickup_at'),
     delivered_at: text('delivered_at'),
     proof_url: text('proof_url'),
@@ -932,12 +933,53 @@ export const deliveryAssignment = sqliteTable(
   })
 );
 
+// ─── SISTEM JALUR — MULTI-ROUTE DISPATCH (v26) ─────────────────────────────
+export const deliveryRoutes = sqliteTable(
+  'delivery_routes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    routeDate: text('route_date').notNull(),
+    routeName: text('route_name').notNull(),
+    warehouseId: integer('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id)
+      .default(1),
+    courierId: integer('courier_id').references(() => couriers.id),
+    status: text('status', {
+      enum: ['open', 'claimed', 'in_progress', 'completed', 'cancelled'],
+    }).notNull().default('open'),
+    capacityKg: real('capacity_kg'),
+    estimatedDistanceKm: text('estimated_distance_km'),
+    estimatedDurationMinutes: integer('estimated_duration_minutes'),
+    stopCount: integer('stop_count').notNull().default(0),
+    createdByType: text('created_by_type', { enum: ['admin', 'system'] }).notNull().default('system'),
+    createdBy: text('created_by'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    completedAt: text('completed_at'),
+  },
+  (table) => ({
+    routeDateIdx: index('idx_routes_date_status').on(table.routeDate, table.status),
+    routeCourierIdx: index('idx_routes_courier').on(table.courierId, table.routeDate),
+    // Invariant jalur aktif: SATU kurir hanya boleh punya 1 jalur claimed/
+    // in_progress pada tanggal sama (TOCTOU-safe di level DB). Index parsial
+    // memungkinkan beberapa jalur open/completed/cancelled per kurir per tanggal.
+    activeCourierUnique: uniqueIndex('uniq_routes_active_courier_date').on(table.courierId, table.routeDate).where(
+      sql`${table.status} IN ('claimed','in_progress')`
+    ),
+  })
+);
+
+export type DeliveryRoute = typeof deliveryRoutes.$inferSelect;
+export type InsertDeliveryRoute = typeof deliveryRoutes.$inferInsert;
+
 export const deliveryRoutePoint = sqliteTable(
   'delivery_route_point',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     route_date: text('route_date').notNull(),
     id_transaksi: text('id_transaksi').notNull(),
+    route_id: integer('route_id').references(() => deliveryRoutes.id),
     sequence_no: integer('sequence_no').notNull(),
     lat: text('lat').notNull(),
     lng: text('lng').notNull(),
@@ -950,6 +992,8 @@ export const deliveryRoutePoint = sqliteTable(
   },
   (table) => ({
     routeIdx: index('idx_delivery_route_date').on(table.route_date, table.sequence_no),
+    routePointRouteIdx: index('idx_delivery_route_point_route').on(table.route_id, table.route_date),
+    uniqueRoutePointTx: uniqueIndex('uniq_route_point_date_tx').on(table.route_date, table.id_transaksi),
   })
 );
 
@@ -1043,6 +1087,7 @@ export const chatSessions = sqliteTable(
     aiMode: text('ai_mode', { enum: ['enabled', 'manual', 'paused'] }).notNull().default('enabled'),
     assignedAdminId: text('assigned_admin_id'),
     activeOrderId: text('active_order_id').references(() => transaksi.id_transaksi),
+    contextSummary: text('context_summary'),
     createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
     updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
   },
@@ -1084,6 +1129,29 @@ export const chatIdentityFlows = sqliteTable(
 
 export type ChatIdentityFlow = typeof chatIdentityFlows.$inferSelect;
 export type InsertChatIdentityFlow = typeof chatIdentityFlows.$inferInsert;
+
+// ─── BACK-IN-STOCK NOTIFICATION — WATCH LIST PER CHAT SESSION ────────────────
+export const stockWatch = sqliteTable(
+  'stock_watch',
+  {
+    id: text('id').primaryKey(),
+    chatSessionId: text('chat_session_id')
+      .notNull()
+      .references(() => chatSessions.id, { onDelete: 'cascade' }),
+    idProduk: text('id_produk').notNull().references(() => produk.id_produk),
+    idVarian: text('id_varian').references(() => produkVarian.id_varian),
+    status: text('status', { enum: ['watching', 'notified', 'cancelled'] }).notNull().default('watching'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+    notifiedAt: text('notified_at'),
+  },
+  (table) => ({
+    watchSessionIdx: index('idx_stock_watch_session').on(table.chatSessionId, table.status),
+    watchProdukIdx: index('idx_stock_watch_produk').on(table.idProduk, table.status),
+  })
+);
+
+export type StockWatch = typeof stockWatch.$inferSelect;
+export type InsertStockWatch = typeof stockWatch.$inferInsert;
 
 export const chatMessages = sqliteTable(
   'chat_messages',
@@ -1435,60 +1503,6 @@ export const expoPushTokens = sqliteTable(
 export type ExpoPushToken = typeof expoPushTokens.$inferSelect;
 export type InsertExpoPushToken = typeof expoPushTokens.$inferInsert;
 
-// ─── LOYALTY & REFERRAL ────────────────────────────────────────────────────────
-export const loyaltyAccounts = sqliteTable(
-  'loyalty_accounts',
-  {
-    id: text('id').primaryKey(),
-    customerId: text('customer_id').notNull().references(() => customerProfile.id_customer, { onDelete: 'cascade' }),
-    pointsBalance: integer('points_balance').notNull().default(0),
-    tier: text('tier', { enum: ['bronze', 'silver', 'gold'] }).notNull().default('bronze'),
-    referralCode: text('referral_code').notNull().unique(),
-    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
-    updatedAt: text('updated_at').notNull().default(sql`(datetime('now', 'utc'))`),
-  },
-  (table) => ({
-    customerIdx: index('idx_loyalty_customer').on(table.customerId),
-    tierIdx: index('idx_loyalty_tier').on(table.tier),
-    referralCodeUnique: unique('uq_loyalty_referral_code').on(table.referralCode),
-  })
-);
-
-export const loyaltyLedger = sqliteTable(
-  'loyalty_ledger',
-  {
-    id: text('id').primaryKey(),
-    accountId: text('account_id').notNull().references(() => loyaltyAccounts.id, { onDelete: 'cascade' }),
-    delta: integer('delta').notNull(),
-    reason: text('reason', { enum: ['order_completed', 'referral_bonus', 'redeemed', 'admin_adjustment'] }).notNull(),
-    relatedOrderId: text('related_order_id'),
-    balanceAfter: integer('balance_after').notNull(),
-    note: text('note'),
-    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
-  },
-  (table) => ({
-    accountIdx: index('idx_loyalty_ledger_account').on(table.accountId, table.createdAt),
-  })
-);
-
-export const referrals = sqliteTable(
-  'referrals',
-  {
-    id: text('id').primaryKey(),
-    referrerAccountId: text('referrer_account_id').notNull().references(() => loyaltyAccounts.id, { onDelete: 'cascade' }),
-    refereeCustomerId: text('referee_customer_id').references(() => customerProfile.id_customer),
-    code: text('code').notNull().unique(),
-    status: text('status', { enum: ['pending', 'used', 'expired'] }).notNull().default('pending'),
-    bonusPointsAwarded: integer('bonus_points_awarded'),
-    usedAt: text('used_at'),
-    createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
-  },
-  (table) => ({
-    referrerIdx: index('idx_referrals_referrer').on(table.referrerAccountId),
-    statusIdx: index('idx_referrals_status').on(table.status),
-  })
-);
-
 // ─── FINANCIAL / ACCOUNTING BRIDGE ─────────────────────────────────────────────
 export const expenseCategories = sqliteTable(
   'expense_categories',
@@ -1551,13 +1565,6 @@ export const backupRestoreDrills = sqliteTable(
   }
 );
 
-export type LoyaltyAccount = typeof loyaltyAccounts.$inferSelect;
-export type InsertLoyaltyAccount = typeof loyaltyAccounts.$inferInsert;
-export type LoyaltyLedger = typeof loyaltyLedger.$inferSelect;
-export type InsertLoyaltyLedger = typeof loyaltyLedger.$inferInsert;
-export type Referral = typeof referrals.$inferSelect;
-export type InsertReferral = typeof referrals.$inferInsert;
-
 export type ExpenseCategory = typeof expenseCategories.$inferSelect;
 export type InsertExpenseCategory = typeof expenseCategories.$inferInsert;
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;
@@ -1600,13 +1607,9 @@ export const courierEarnings = sqliteTable('courier_earnings', {
   orderId: text('order_id').notNull(),
   baseFee: integer('base_fee').notNull(),
   bonusAmount: integer('bonus_amount').notNull().default(0),
-  status: text('status', { enum: ['pending', 'confirmed', 'paid_out'] }).notNull().default('pending'),
-  earningType: text('earning_type', { enum: ['per_delivery', 'bonus_ontime', 'bonus_target_harian', 'penalti', 'lainnya'] }).notNull().default('per_delivery'),
-  payrollPeriodId: text('payroll_period_id'),
-  calculationRuleId: integer('calculation_rule_id'),
+  status: text('status', { enum: ['confirmed'] }).notNull().default('confirmed'),
   note: text('note'),
   createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
-  paidOutAt: text('paid_out_at'),
 }, (table) => ({
   courierEarningsIdx: index('idx_courier_earnings_courier').on(table.courierId, table.createdAt),
 }));
@@ -1981,58 +1984,9 @@ export const vehicleLogs = sqliteTable('vehicle_logs', {
 export type VehicleLog = typeof vehicleLogs.$inferSelect;
 export type InsertVehicleLog = typeof vehicleLogs.$inferInsert;
 
-// ─── COURIER BLUEPRINT v26 — EARNING RULES & PAYROLL ─────────────────────────
-export const earningRules = sqliteTable('earning_rules', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  ruleType: text('rule_type', {
-    enum: ['percentage_of_order', 'flat_per_delivery', 'flat_per_km', 'bonus_threshold'],
-  }).notNull(),
-  percentageValue: real('percentage_value'),
-  flatValue: integer('flat_value'),
-  minimumAmount: integer('minimum_amount'),
-  thresholdCount: integer('threshold_count'),
-  thresholdBonusAmount: integer('threshold_bonus_amount'),
-  vehicleTypeFilter: text('vehicle_type_filter', { enum: ['motor', 'mobil', 'semua'] }).notNull().default('semua'),
-  isActive: integer('is_active').notNull().default(1),
-  effectiveFrom: text('effective_from').notNull().default(sql`(datetime('now', 'utc'))`),
-  effectiveUntil: text('effective_until'),
-  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
-});
-
-export type EarningRule = typeof earningRules.$inferSelect;
-export type InsertEarningRule = typeof earningRules.$inferInsert;
-
-export const payrollPeriods = sqliteTable('payroll_periods', {
-  id: text('id').primaryKey(),
-  periodStart: text('period_start').notNull(),
-  periodEnd: text('period_end').notNull(),
-  status: text('status', { enum: ['open', 'locked', 'paid'] }).notNull().default('open'),
-  lockedAt: text('locked_at'),
-  paidAt: text('paid_at'),
-  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
-});
-
-export type PayrollPeriod = typeof payrollPeriods.$inferSelect;
-export type InsertPayrollPeriod = typeof payrollPeriods.$inferInsert;
-
-export const payrollSlips = sqliteTable('payroll_slips', {
-  id: text('id').primaryKey(),
-  payrollPeriodId: text('payroll_period_id').notNull().references(() => payrollPeriods.id),
-  courierId: integer('courier_id').notNull().references(() => couriers.id),
-  totalDeliveries: integer('total_deliveries').notNull().default(0),
-  totalBaseEarnings: integer('total_base_earnings').notNull().default(0),
-  totalBonus: integer('total_bonus').notNull().default(0),
-  totalPenalty: integer('total_penalty').notNull().default(0),
-  totalNet: integer('total_net').notNull().default(0),
-  generatedAt: text('generated_at').notNull().default(sql`(datetime('now', 'utc'))`),
-  pdfUrl: text('pdf_url'),
-}, (table) => ({
-  slipCourierIdx: index('idx_payroll_slips_courier').on(table.courierId, table.payrollPeriodId),
-}));
-
-export type PayrollSlip = typeof payrollSlips.$inferSelect;
-export type InsertPayrollSlip = typeof payrollSlips.$inferInsert;
+// ─── COURIER BLUEPRINT v26 — (earning rules & payroll periods/slips DIHAPUS 16 Agu 2026:
+//     kurir internal, "pendapatan" = total nilai penjualan yang diantar, dicatat langsung
+//     di courier_earnings. earning_rules/payroll_periods/payroll_slips tak pernah dipakai.) ──
 
 // ─── COURIER BLUEPRINT v27 — SOS INCIDENTS TERSTRUKTUR ───────────────────────
 export const sosIncidents = sqliteTable('sos_incidents', {
@@ -2092,12 +2046,8 @@ export const courierKpiDaily = sqliteTable('courier_kpi_daily', {
   totalAssigned: integer('total_assigned').notNull().default(0),
   totalDelivered: integer('total_delivered').notNull().default(0),
   totalFailed: integer('total_failed').notNull().default(0),
-  totalRejectedOffers: integer('total_rejected_offers').notNull().default(0),
   onTimeRate: real('on_time_rate'),
-  avgDeliveryMinutes: real('avg_delivery_minutes'),
-  totalDistanceKm: real('total_distance_km'),
   totalEarnings: integer('total_earnings').notNull().default(0),
-  attendanceStatus: text('attendance_status'),
   computedAt: text('computed_at').notNull().default(sql`(datetime('now', 'utc'))`),
 }, (table) => ({
   kpiCourierDateIdx: index('idx_kpi_courier_date').on(table.courierId, table.kpiDate),
@@ -2106,4 +2056,23 @@ export const courierKpiDaily = sqliteTable('courier_kpi_daily', {
 
 export type CourierKpiDaily = typeof courierKpiDaily.$inferSelect;
 export type InsertCourierKpiDaily = typeof courierKpiDaily.$inferInsert;
+
+// ─── ADMIN NOTIFICATIONS INBOX ───────────────────────────────────────────────
+export const adminNotifications = sqliteTable('admin_notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  category: text('category', {
+    enum: ['stock', 'payment', 'dispatch', 'delivery', 'system', 'order'],
+  }).notNull(),
+  title: text('title').notNull(),
+  body: text('body'),
+  metaJson: text('meta_json'), // JSON link/target: { href, id_transaksi, productId, ... }
+  isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+}, (table) => ({
+  adminNotifReadIdx: index('idx_admin_notif_read').on(table.isRead, table.createdAt),
+  adminNotifCategoryIdx: index('idx_admin_notif_category').on(table.category, table.createdAt),
+}));
+
+export type AdminNotification = typeof adminNotifications.$inferSelect;
+export type InsertAdminNotification = typeof adminNotifications.$inferInsert;
 

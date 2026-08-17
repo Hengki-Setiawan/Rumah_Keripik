@@ -5,7 +5,6 @@ import { BarChart3, RefreshCw, TrendingUp, PackageCheck, AlertTriangle, Wallet }
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { CardSkeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 
 interface KpiRow {
   id: number;
@@ -14,12 +13,8 @@ interface KpiRow {
   totalAssigned: number;
   totalDelivered: number;
   totalFailed: number;
-  totalRejectedOffers: number;
   onTimeRate: number | null;
-  avgDeliveryMinutes: number | null;
-  totalDistanceKm: number | null;
   totalEarnings: number;
-  attendanceStatus: string | null;
 }
 
 export default function AnalitikPage() {
@@ -144,9 +139,7 @@ export default function AnalitikPage() {
                 <th className="text-right p-3 font-medium text-gray-600">Terkirim</th>
                 <th className="text-right p-3 font-medium text-gray-600">Gagal</th>
                 <th className="text-right p-3 font-medium text-gray-600">On-Time</th>
-                <th className="text-right p-3 font-medium text-gray-600">Jarak (km)</th>
                 <th className="text-right p-3 font-medium text-gray-600">Earnings</th>
-                <th className="text-center p-3 font-medium text-gray-600">Absensi</th>
               </tr>
             </thead>
             <tbody>
@@ -158,15 +151,7 @@ export default function AnalitikPage() {
                   <td className="p-3 text-right font-medium text-emerald-600">{k.totalDelivered}</td>
                   <td className="p-3 text-right text-red-600">{k.totalFailed}</td>
                   <td className="p-3 text-right">{k.onTimeRate != null ? `${k.onTimeRate.toFixed(0)}%` : '–'}</td>
-                  <td className="p-3 text-right text-gray-600">{k.totalDistanceKm != null ? k.totalDistanceKm.toFixed(1) : '–'}</td>
                   <td className="p-3 text-right font-medium">{rupiah(k.totalEarnings)}</td>
-                  <td className="p-3 text-center">
-                    {k.attendanceStatus ? (
-                      <Badge variant={k.attendanceStatus === 'closed' ? 'default' : 'secondary'}>{k.attendanceStatus}</Badge>
-                    ) : (
-                      <span className="text-gray-300">–</span>
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>

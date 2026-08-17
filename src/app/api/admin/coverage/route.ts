@@ -4,8 +4,8 @@ import { requireAdminRole } from '@/lib/admin-actor';
 import { fetchIsochrones, isInsidePolygon, orsEnabled } from '@/lib/courier/ors';
 import { isValidCoordinate } from '@/lib/location-parser';
 
-const WAREHOUSE_LAT = -5.134;
-const WAREHOUSE_LNG = 119.4135;
+const WAREHOUSE_LAT = -5.105950;
+const WAREHOUSE_LNG = 119.432407;
 
 /**
  * Zona layanan berbasis jaringan jalan (ORS Isochrones).

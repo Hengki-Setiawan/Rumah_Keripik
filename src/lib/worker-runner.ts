@@ -61,6 +61,13 @@ export async function processWorkerBatch(workerId: string, limit = 5) {
         results.push({ id: job.id, type: job.type, status: 'completed' });
         continue;
       }
+      if (job.type === 'generate_invoice') {
+        const { generateAndSaveInvoice } = await import('@/lib/invoice-generator');
+        const url = await generateAndSaveInvoice(String(payload.idTransaksi || payload.id_transaksi || ''));
+        await completeJob(job.id, { invoice_url: url });
+        results.push({ id: job.id, type: job.type, status: 'completed' });
+        continue;
+      }
 
       await completeJob(job.id, { skipped: true, reason: `Unknown job type: ${job.type}` });
       results.push({ id: job.id, type: job.type, status: 'skipped' });

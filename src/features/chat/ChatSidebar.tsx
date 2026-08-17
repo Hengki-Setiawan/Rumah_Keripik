@@ -23,6 +23,7 @@ import {
   PackageSearch,
   ShoppingBag,
   Trash2,
+  User,
 } from 'lucide-react';
 
 export type ChatSessionSummary = {
@@ -230,6 +231,7 @@ export function ChatSidebar({
       <div className={`mt-3 grid w-full gap-1 ${compact ? 'justify-items-center' : ''}`}>
         <SidebarItem icon={<MessageSquarePlus size={16} />} label="Pesanan baru" active={!activeId} compact={compact} onClick={onNewOrder} />
         <SidebarItem icon={<PackageSearch size={16} />} label="Pesanan saya" href="/pesan/saya" compact={compact} />
+        <SidebarItem icon={<User size={16} />} label="Profil Pelanggan" href="/pesan/profil" compact={compact} />
         <SidebarItem
           icon={<ShoppingBag size={16} />}
           label="Keranjang"

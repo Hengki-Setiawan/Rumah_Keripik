@@ -17,12 +17,27 @@ type OrderNotificationType =
 const templates: Record<OrderNotificationType, string> = {
   payment_uploaded: 'Pembayaran kakak sudah tercatat. Status akan diperbarui setelah verifikasi selesai ya kak.',
   payment_verified: 'Pembayaran kakak sudah berhasil diverifikasi. Pesanan sedang kami proses ya.',
-  payment_rejected: 'Pembayaran belum berhasil diproses. Kalau perlu bantuan, buka status pesanan atau hubungi admin ya kak.',
+  payment_rejected: 'Pembayaran belum berhasil diproses. Pesanan tetap tersimpan — kakak bisa coba bayar lagi ya.',
   order_processing: 'Pesanan kakak sedang disiapkan.',
   order_shipping: 'Pesanan kakak sudah masuk proses pengiriman.',
   order_completed: 'Pesanan sudah selesai. Terima kasih sudah pesan di Rumah Keripik.',
   order_cancelled: 'Pesanan dibatalkan. Jika perlu bantuan, admin siap membantu ya.',
 };
+
+// Tipe-tipe yang butuh aksi lanjutan dari customer.
+function buildRecoveryActions(type: OrderNotificationType, orderId: string, statusToken?: string): ChatComponent[] {
+  if (type === 'payment_rejected') {
+    return [{
+      type: 'quick_replies',
+      options: [
+        { id: 'rejected-retry', label: 'Lanjut Bayar', value: statusToken ? `/pesan/status/${orderId}?token=${statusToken}` : `/pesan/saya`, action: 'tool_action' },
+        { id: 'rejected-methods', label: 'Lihat Cara Bayar', value: 'cara bayar', action: 'send_message' },
+        { id: 'rejected-admin', label: 'Hubungi admin', value: 'saya butuh bantuan admin', action: 'send_message' },
+      ],
+    }];
+  }
+  return [];
+}
 
 export async function notifyChatForOrderEvent(orderId: string, type: OrderNotificationType, options: { statusToken?: string; note?: string } = {}) {
   const [order] = await db.select().from(transaksi).where(eq(transaksi.id_transaksi, orderId)).limit(1);
@@ -38,17 +53,8 @@ export async function notifyChatForOrderEvent(orderId: string, type: OrderNotifi
       status: order.order_status,
       paymentStatus: order.payment_status,
     },
+    ...buildRecoveryActions(type, orderId, options.statusToken),
   ];
-
-  if (type === 'payment_rejected') {
-    components.push({
-      type: 'quick_replies',
-      options: [
-        { id: 'rejected-track', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' },
-        { id: 'rejected-admin', label: 'Hubungi admin', value: 'saya butuh bantuan admin', action: 'send_message' },
-      ],
-    });
-  }
 
   const content = options.note ? `${templates[type]}\n${options.note}` : templates[type];
   await Promise.all([
