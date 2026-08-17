@@ -60,7 +60,11 @@ export function twoOpt<T extends LatLng>(route: T[], maxIterations = 50): T[] {
     improved = false;
     iterations++;
     for (let i = 1; i < n - 1; i++) {
-      for (let k = i + 1; k < n; k++) {
+      // BOUND: k maksimal n-2. Untuk rute TERBUKA (start/end berbeda), membalik
+      // segmen yang menyentuh ujung (k = n-1) membuat 'after' = undefined → crash
+      // TypeError pada after.lat untuk klaster >= 3 stop. 2-opt segmen-ujung tidak
+      // valid secara semantik (mengubah start/end), jadi di-skip.
+      for (let k = i + 1; k < n - 1; k++) {
         const delta = twoOptGain(route, i, k);
         if (delta < -1e-9) {
           reverseSegment(route, i, k);
@@ -78,6 +82,8 @@ function twoOptGain<T extends LatLng>(route: T[], i: number, k: number): number 
   const a = route[i];
   const b = route[k];
   const after = route[k + 1];
+  // Guard: segmen menyentuh ujung rute (k = n-1) bukan kandidat 2-opt terbuka.
+  if (!after) return 0;
 
   const removed = haversineKm(before.lat, before.lng, a.lat, a.lng) +
     haversineKm(b.lat, b.lng, after.lat, after.lng);
