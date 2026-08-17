@@ -1,9 +1,9 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/lib/db';
-import { customerAddress, customerProfile, customerSessions, transaksi, webOrderSession } from '@/lib/schema';
+import { chatCarts, chatCartItems, customerAddress, customerProfile, customerSessions, produk, transaksi, webOrderSession } from '@/lib/schema';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { CUSTOMER_SESSION_COOKIE, hashCustomerSessionToken } from '@/lib/chat-v3/session';
 import { normalizePhoneNumber } from '@/lib/utils';
@@ -79,7 +79,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, profile: null, addresses: [], orders: [], anonymousLabel: context.anonymousLabel });
   }
 
-  const [profile, addresses, orders] = await Promise.all([
+  const [profile, addresses, orders, drafts] = await Promise.all([
     context.customerId
       ? db.select().from(customerProfile).where(eq(customerProfile.id_customer, context.customerId)).limit(1).then((rows) => rows[0] || null)
       : Promise.resolve(null),
@@ -128,6 +128,44 @@ export async function GET(req: Request) {
       )
       .orderBy(desc(transaksi.waktu_simpan))
       .limit(20),
+    context.customerId
+      ? db
+          .select({
+            cartId: chatCarts.id,
+            cartStatus: chatCarts.status,
+            chatSessionId: chatCarts.chatSessionId,
+            cartUpdatedAt: chatCarts.updatedAt,
+            productName: produk.nama_produk,
+            quantity: chatCartItems.quantity,
+            priceSnapshot: chatCartItems.priceSnapshot,
+          })
+          .from(chatCarts)
+          .innerJoin(chatCartItems, eq(chatCartItems.cartId, chatCarts.id))
+          .innerJoin(produk, eq(chatCartItems.productId, produk.id_produk))
+          .where(
+            and(
+              eq(chatCarts.customerId, context.customerId),
+              inArray(chatCarts.status, ['active', 'abandoned'])
+            )
+          )
+          .orderBy(desc(chatCarts.updatedAt))
+          .limit(50)
+          .then((rows) => {
+            const grouped = new Map<string, { cartId: string; cartStatus: string; chatSessionId: string; updatedAt: string; items: { productName: string; quantity: number; subtotal: number }[] }>();
+            for (const row of rows) {
+              const entry = grouped.get(row.cartId) || {
+                cartId: row.cartId,
+                cartStatus: row.cartStatus,
+                chatSessionId: row.chatSessionId,
+                updatedAt: row.cartUpdatedAt,
+                items: [],
+              };
+              entry.items.push({ productName: row.productName, quantity: row.quantity, subtotal: row.priceSnapshot * row.quantity });
+              grouped.set(row.cartId, entry);
+            }
+            return Array.from(grouped.values());
+          })
+      : Promise.resolve([]),
   ]);
 
   return NextResponse.json({
@@ -143,6 +181,15 @@ export async function GET(req: Request) {
       : null,
     addresses,
     orders,
+    drafts: drafts.map((draft) => ({
+      cartId: draft.cartId,
+      chatSessionId: draft.chatSessionId,
+      status: draft.cartStatus,
+      itemCount: draft.items.reduce((sum, item) => sum + item.quantity, 0),
+      total: draft.items.reduce((sum, item) => sum + item.subtotal, 0),
+      preview: draft.items.slice(0, 3).map((item) => `${item.productName} ×${item.quantity}`).join(', '),
+      updatedAt: draft.updatedAt,
+    })),
   });
 }
 

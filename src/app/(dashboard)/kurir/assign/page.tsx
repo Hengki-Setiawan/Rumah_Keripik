@@ -1,7 +1,7 @@
 'use client';
 
 import {useState, useEffect} from 'react';
-import {Truck, Search, MapPin, ArrowLeft} from 'lucide-react';
+import {Truck, Search, MapPin, ArrowLeft, GitBranch} from 'lucide-react';
 import {useToast} from '@/components/ui/toast';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -26,13 +26,22 @@ interface Courier {
   is_active: boolean;
 }
 
+interface OpenRoute {
+  id: number;
+  routeName: string;
+  stopCount: number;
+  status: string;
+}
+
 export default function AssignCourierPage() {
   const { addToast } = useToast();
   const [deliveries, setDeliveries] = useState<PendingDelivery[]>([]);
   const [couriers, setCouriers] = useState<Courier[]>([]);
+  const [routes, setRoutes] = useState<OpenRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [selectedCourier, setSelectedCourier] = useState<Record<string, number>>({});
+  const [selectedRoute, setSelectedRoute] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -42,14 +51,17 @@ export default function AssignCourierPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [delRes, couRes] = await Promise.all([
+      const [delRes, couRes, routeRes] = await Promise.all([
         fetch('/api/admin/deliveries/pending'),
         fetch('/api/admin/couriers'),
+        fetch('/api/admin/routes'),
       ]);
       const delData = await delRes.json();
       const couData = await couRes.json();
+      const routeData = await routeRes.json();
       setDeliveries(delData.deliveries || []);
       setCouriers((couData.couriers || []).filter((c: Courier) => c.is_active));
+      setRoutes((routeData.routes || []).filter((r: OpenRoute) => r.status === 'open'));
     } catch {
       addToast('error', 'Gagal memuat data');
     }
@@ -79,6 +91,33 @@ export default function AssignCourierPage() {
       }
     } catch {
       addToast('error', 'Gagal menugaskan kurir');
+    }
+    setAssigningId(null);
+  }
+
+  async function handleAddToRoute(id_transaksi: string) {
+    const routeId = selectedRoute[id_transaksi];
+    if (!routeId) {
+      addToast('error', 'Pilih jalur terlebih dahulu');
+      return;
+    }
+
+    setAssigningId(id_transaksi);
+    try {
+      const res = await fetch(`/api/admin/routes/${routeId}/stops`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idTransaksi: id_transaksi }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        addToast('success', 'Pesanan dimasukkan ke jalur');
+        setDeliveries((prev) => prev.filter((d) => d.id_transaksi !== id_transaksi));
+      } else {
+        addToast('error', data.error || 'Gagal memasukkan ke jalur');
+      }
+    } catch {
+      addToast('error', 'Gagal memasukkan ke jalur');
     }
     setAssigningId(null);
   }
@@ -140,11 +179,38 @@ export default function AssignCourierPage() {
 
                 <div className="flex items-center gap-2 shrink-0">
                   <select
+                    value={selectedRoute[d.id_transaksi] || ''}
+                    onChange={(e) =>
+                      setSelectedRoute((prev) => ({ ...prev, [d.id_transaksi]: parseInt(e.target.value) }))
+                    }
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-[150px]"
+                    data-testid={`assign-route-select-${d.id_transaksi}`}
+                  >
+                    <option value="">Masukkan ke jalur…</option>
+                    {routes.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.routeName} ({r.stopCount} stop)
+                      </option>
+                    ))}
+                  </select>
+
+                  <Button
+                    onClick={() => handleAddToRoute(d.id_transaksi)}
+                    disabled={assigningId === d.id_transaksi || !selectedRoute[d.id_transaksi]}
+                    className="bg-emerald-600 hover:bg-emerald-700 shrink-0"
+                    data-testid={`assign-to-route-${d.id_transaksi}`}
+                  >
+                    <GitBranch className="w-4 h-4 mr-1" />
+                    {assigningId === d.id_transaksi ? '...' : 'Ke Jalur'}
+                  </Button>
+
+                  <select
                     value={selectedCourier[d.id_transaksi] || ''}
                     onChange={(e) =>
                       setSelectedCourier((prev) => ({ ...prev, [d.id_transaksi]: parseInt(e.target.value) }))
                     }
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 min-w-[140px]"
+                    data-testid={`assign-courier-select-${d.id_transaksi}`}
                   >
                     <option value="">Pilih kurir...</option>
                     {couriers.map((c) => (
@@ -158,6 +224,7 @@ export default function AssignCourierPage() {
                     onClick={() => handleAssign(d.id_transaksi)}
                     disabled={assigningId === d.id_transaksi || !selectedCourier[d.id_transaksi]}
                     className="bg-orange-600 hover:bg-orange-700 shrink-0"
+                    data-testid={`assign-courier-button-${d.id_transaksi}`}
                   >
                     {assigningId === d.id_transaksi ? '...' : 'Assign'}
                   </Button>

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { courierPerformanceDaily, deliveryAssignment, couriers, shifts, notifications } from '@/lib/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { courierPerformanceDaily, deliveryAssignment } from '@/lib/schema';
+import { sql } from 'drizzle-orm';
 import { validateCronRequest } from '@/lib/cron-auth';
-import { sendCourierPushNotification } from '@/lib/expo-push';
 import { witaToday } from '@/lib/wita-date';
 
 export async function GET(req: Request) {
@@ -63,48 +62,6 @@ export async function GET(req: Request) {
     results.performance = { date, upserted };
   } catch (error) {
     results.performanceError = error instanceof Error ? error.message : String(error);
-  }
-
-  try {
-    const now = new Date();
-
-    const clockedRows = await db
-      .select({ courierId: shifts.courierId })
-      .from(shifts)
-      .where(
-        and(
-          sql`date(${shifts.clockInAt}, '+8 hours') = ${date}`,
-          eq(shifts.status, 'active')
-        )
-      );
-
-    const activeCouriers = await db
-      .select({ id: couriers.id, name: couriers.name })
-      .from(couriers)
-      .where(eq(couriers.is_active, 1));
-
-    const clockedIds = new Set(clockedRows.map((r) => r.courierId));
-    const notClocked = activeCouriers.filter((c) => !clockedIds.has(c.id));
-
-    let reminded = 0;
-    for (const c of notClocked) {
-      try {
-        await db.insert(notifications).values({
-          courierId: c.id,
-          title: '⏰ Belum Clock-in',
-          body: `Halo ${c.name || 'Kurir'}, jangan lupa clock-in sebelum mulai antar hari ini.`,
-          type: 'system',
-          createdAt: now.toISOString(),
-        });
-        await sendCourierPushNotification(c.id, '⏰ Belum Clock-in', 'Jangan lupa clock-in sebelum mulai antar hari ini.', { type: 'shift_reminder' }).catch(() => {});
-        reminded += 1;
-      } catch {
-        // lanjut ke kurir berikutnya
-      }
-    }
-    results.shiftReminder = { date, notClocked: notClocked.length, reminded };
-  } catch (error) {
-    results.shiftReminderError = error instanceof Error ? error.message : String(error);
   }
 
   return NextResponse.json({ ok: true, ...results });

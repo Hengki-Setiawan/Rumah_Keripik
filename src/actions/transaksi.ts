@@ -340,3 +340,44 @@ export async function getActiveOrderDrafts() {
     return [];
   }
 }
+
+/**
+ * Ambil daftar transaksi COD yang menunggu persetujuan admin (status_pembayaran='Menunggu_Verifikasi')
+ */
+export async function getTransaksiMenungguVerifikasi() {
+  try {
+    return await db
+      .select({
+        id_transaksi: transaksi.id_transaksi,
+        no_wa_pelanggan: transaksi.no_wa_pelanggan,
+        id_warung: transaksi.id_warung,
+        tipe_penjualan: transaksi.tipe_penjualan,
+        total_bayar: transaksi.total_bayar,
+        status_pembayaran: transaksi.status_pembayaran,
+        payment_method: transaksi.payment_method,
+        payment_status: transaksi.payment_status,
+        order_status: transaksi.order_status,
+        kode_pesanan: transaksi.kode_pesanan,
+        bukti_transfer_url: transaksi.bukti_transfer_url,
+        waktu_simpan: transaksi.waktu_simpan,
+        nama_pelanggan: pelangganChatbot.nama_pelanggan,
+        nama_warung: warungRetail.nama_warung,
+        nama_penerima: transaksi.nama_penerima,
+        no_hp_penerima: transaksi.no_hp_penerima,
+      })
+      .from(transaksi)
+      .leftJoin(pelangganChatbot, eq(transaksi.no_wa_pelanggan, pelangganChatbot.no_wa_pelanggan))
+      .leftJoin(warungRetail, eq(transaksi.id_warung, warungRetail.id_warung))
+      .where(
+        and(
+          eq(transaksi.status_pembayaran, 'Menunggu_Verifikasi'),
+          eq(transaksi.payment_method, 'cod'),
+        ),
+      )
+      .orderBy(desc(transaksi.waktu_simpan))
+      .limit(100);
+  } catch (error) {
+    console.error('Error fetch transaksi COD menunggu verifikasi:', error);
+    return [];
+  }
+}

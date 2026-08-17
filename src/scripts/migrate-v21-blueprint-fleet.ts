@@ -33,7 +33,7 @@ async function main() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
     )`,
     `INSERT INTO warehouses (name, address, lat, lng, is_active)
-     SELECT 'Gudang Utama Makassar', 'Makassar, Sulawesi Selatan', '-5.1340', '119.4135', 1
+     SELECT 'Rumah Produksi Kaluku Bodoa', 'Kaluku Bodoa, Kec. Tallo, Kota Makassar, Sulawesi Selatan', '-5.105950', '119.432407', 1
      WHERE NOT EXISTS (SELECT 1 FROM warehouses WHERE id = 1)`,
     `CREATE TABLE IF NOT EXISTS geofence_zones (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +47,7 @@ async function main() {
       created_at TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
     )`,
     `INSERT INTO geofence_zones (warehouse_id, name, zone_type, center_lat, center_lng, radius_meters)
-     SELECT 1, 'Radius Absensi Gudang Utama', 'attendance_radius', '-5.1340', '119.4135', 150
+     SELECT 1, 'Radius Absensi Rumah Produksi', 'attendance_radius', '-5.105950', '119.432407', 150
      WHERE NOT EXISTS (SELECT 1 FROM geofence_zones WHERE zone_type = 'attendance_radius')`,
     `CREATE INDEX IF NOT EXISTS idx_geofence_warehouse ON geofence_zones(warehouse_id)`,
 

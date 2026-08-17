@@ -22,17 +22,22 @@ export async function recordCourierEarning(input: {
   deliveryAssignmentId: number;
   orderId: string;
   baseFee?: number;
+  productCount?: number;
   note?: string;
 }): Promise<void> {
+  // Pendapatan internal = total nilai penjualan (harga × qty) yang dikirim kurir,
+  // karena kurir bersifat internal (bukan mitra). baseFee diisi total subtotal
+  // pesanan oleh caller (= transaksi.total_bayar).
+  const baseFee = input.baseFee ?? COURIER_BASE_FEE;
+  const note = input.note ?? 'Otomatis dari delivery completed';
   await db.insert(courierEarnings).values({
     id: earningId(),
     courierId: input.courierId,
     deliveryAssignmentId: input.deliveryAssignmentId,
     orderId: input.orderId,
-    baseFee: input.baseFee ?? COURIER_BASE_FEE,
+    baseFee,
     status: 'confirmed',
-    earningType: 'per_delivery',
-    note: input.note,
+    note,
   });
 }
 

@@ -1,14 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/cron/payment-ops",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/worker",
-      "schedule": "0 2 * * *"
-    },
-    {
       "path": "/api/cron/courier-ops",
       "schedule": "30 15 * * *"
     },

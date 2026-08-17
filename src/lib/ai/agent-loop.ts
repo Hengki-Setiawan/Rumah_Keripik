@@ -3,6 +3,7 @@ import {runChatTool} from '@/lib/ai/tool-registry';
 import {toolSchemaRegistry} from '@/lib/ai/tool-schemas';
 import {getCustomerContextForChat} from '@/lib/chat-v3/customer-context';
 import {getChatCart} from '@/lib/ai/tools/cart';
+import {getContextSummaryPrompt} from '@/lib/chat-v3/context-summary';
 ;
 import {searchKnowledgeBase} from '@/lib/knowledge/retrieval';
 import {loadAllSkillMetadata, loadFullSkill} from '@/lib/ai/skill-loader';
@@ -38,6 +39,8 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
     getCustomerContextForChat(chatSessionId),
     getChatCart(chatSessionId),
   ]);
+
+  const contextSummaryPrompt = await getContextSummaryPrompt(chatSessionId);
 
   const knowledgeChunks = await searchKnowledgeBase({ query: userMessage, topK: 3 }).catch(() => []);
   const availableSkills = loadAllSkillMetadata();
@@ -87,6 +90,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       `Cart aktif: ${cart.itemCount} item, total Rp${cart.total.toLocaleString('id-ID')}.`,
       customerContext.customer ? `Customer dikenal: ${customerContext.customer.name || customerContext.customer.id}.` : 'Customer belum identified.',
       customerContext.defaultAddress ? `Alamat default: ${customerContext.defaultAddress.addressSummary}.` : 'Alamat default belum tersedia.',
+      contextSummaryPrompt,
       availableSkills.length > 0 ? `SKILLS TERSEDIA (Layer 1 Metadata):\n${availableSkills.map((s) => `- ${s.name}: ${s.description}`).join('\n')}` : '',
       activeSkillFull ? `\n[ACTIVE SKILL INSTRUCTIONS - ${activeSkillFull.name}]\n${activeSkillFull.instructions}` : '',
       knowledgeChunks.length > 0 ? `Knowledge base relevan:\n${knowledgeChunks.map((chunk, i) => `[${i + 1}] ${chunk.judul}: ${chunk.teks.slice(0, 200)}`).join('\n')}` : '',

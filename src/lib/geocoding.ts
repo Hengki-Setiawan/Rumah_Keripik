@@ -4,8 +4,8 @@ import { geocodeCache } from './schema';
 import { isValidCoordinate } from './location-parser';
 import { orsGeocode } from '@/lib/courier/ors';
 
-const MAKASSAR_CENTER_LAT = -5.134;
-const MAKASSAR_CENTER_LNG = 119.4135;
+const MAKASSAR_CENTER_LAT = -5.105950;
+const MAKASSAR_CENTER_LNG = 119.432407;
 
 const GEOCODING_CACHE = new Map<string, string>();
 
@@ -75,7 +75,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
 /**
  * Forward geocoding: textual address -> coordinates
  *
- * NOTE: bisnis berpusat di Makassar, Sulawesi Selatan (pusat area -5.1340, 119.4135).
+ * NOTE: bisnis berpusat di Makassar, Sulawesi Selatan (pusat area -5.105950, 119.432407 — Rumah Produksi Kaluku Bodoa).
  * Bug lama menambahkan "Kalimantan Timur" sehingga hampir semua alamat di-geocode
  * ke provinsi yang salah / gagal. Region diturunkan dari isi alamat, fallback Sulsel.
  */

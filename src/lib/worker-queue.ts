@@ -8,7 +8,8 @@ export type WorkerJobType =
   | 'reembed_knowledge'
   | 'send_outbound_message'
   | 'refresh_location_zones'
-  | 'revenue_payout';
+  | 'revenue_payout'
+  | 'generate_invoice';
 
 export async function enqueueJob(
   type: WorkerJobType,

@@ -75,7 +75,7 @@ export async function mockAllApi(page: Page) {
   });
 
   page.route('**/api/public/me', async (route: Route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, profile: null, addresses: [], orders: [], anonymousLabel: null }) });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, profile: null, addresses: [], orders: [], drafts: [], anonymousLabel: null }) });
   });
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { catatPenjualanOffline, getPiutangBelumLunas, tandaiPiutangLunas, getAllTransaksi, getActiveOrderDrafts } from '@/actions/transaksi';
+import { catatPenjualanOffline, getPiutangBelumLunas, tandaiPiutangLunas, getAllTransaksi, getActiveOrderDrafts, getTransaksiMenungguVerifikasi } from '@/actions/transaksi';
 import { getAllProdukAktif } from '@/actions/produk';
 import { getAllWarungAktif } from '@/actions/warung';
 import { useToast } from '@/components/ui/toast';
@@ -24,6 +24,7 @@ import {
   User,
   Store,
   MapPin,
+  ShieldCheck,
 } from 'lucide-react';
 
 const MiniMap = dynamic(() => import('@/components/maps/MiniDeliveryMap').then((m) => ({ default: m.MiniDeliveryMap })), { ssr: false });
@@ -31,11 +32,12 @@ const MiniMap = dynamic(() => import('@/components/maps/MiniDeliveryMap').then((
 export default function TransaksiHubPage() {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang' | 'zona'>('riwayat');
+  const [activeTab, setActiveTab] = useState<'riwayat' | 'catat' | 'piutang' | 'zona' | 'verifikasi'>('riwayat');
 
   // Unified Lists
   const [transactions, setTransactions] = useState<any[]>([]);
   const [drafts, setDrafts] = useState<any[]>([]);
+  const [pendingVerif, setPendingVerif] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(15);
@@ -74,7 +76,7 @@ export default function TransaksiHubPage() {
 
   useEffect(() => {
     const nextTab = searchParams.get('tab');
-    if (nextTab === 'riwayat' || nextTab === 'catat' || nextTab === 'piutang' || nextTab === 'zona') {
+    if (nextTab === 'riwayat' || nextTab === 'catat' || nextTab === 'piutang' || nextTab === 'zona' || nextTab === 'verifikasi') {
       setActiveTab(nextTab);
     }
   }, [searchParams]);
@@ -98,8 +100,10 @@ export default function TransaksiHubPage() {
     if (!silent) setLoading(true);
     const res = await getAllTransaksi(currentPage, limit);
     const activeDrafts = await getActiveOrderDrafts();
+    const pending = await getTransaksiMenungguVerifikasi();
     setTransactions(res.data);
     setDrafts(activeDrafts);
+    setPendingVerif(pending);
     setTotalCount(res.total);
     if (!silent) setLoading(false);
   }
@@ -202,6 +206,23 @@ export default function TransaksiHubPage() {
     }
   }
 
+  async function handleVerifikasiPembayaran(id: string, action: 'approve' | 'reject') {
+    const label = action === 'approve' ? 'Approve COD ini? Stok akan dipotong dan order masuk proses.' : 'Tolak COD ini? Order akan dibatalkan.';
+    if (!confirm(label)) return;
+    try {
+      const res = await fetch(`/api/admin/cod-orders/${encodeURIComponent(id)}/${action}`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        addToast('success', action === 'approve' ? 'COD disetujui' : 'COD ditolak');
+        fetchMainData();
+      } else {
+        addToast('error', data.error || 'Gagal update status COD');
+      }
+    } catch {
+      addToast('error', 'Gagal update status COD');
+    }
+  }
+
   async function handleOrderStatus(id: string, orderStatus: 'processing' | 'shipping' | 'completed' | 'cancelled') {
     const labels = { processing: 'diproses', shipping: 'dikirim', completed: 'selesai', cancelled: 'dibatalkan' };
     if (!confirm(`Tandai order ini ${labels[orderStatus]} dan kirim update ke chat?`)) return;
@@ -296,6 +317,7 @@ export default function TransaksiHubPage() {
       <div className="flex gap-1 bg-surface-container-lowest border border-neutral-200 rounded-xl p-1 w-full md:w-fit">
         {[
           { key: 'riwayat' as const, label: 'Semua Transaksi', icon: ShoppingCart },
+          { key: 'verifikasi' as const, label: 'Approve COD', icon: ShieldCheck, count: pendingVerif.length },
           { key: 'zona' as const, label: 'Zona Pengiriman', icon: MapPin },
           { key: 'catat' as const, label: 'Catat Penjualan (Offline)', icon: Plus },
           { key: 'piutang' as const, label: 'Daftar Piutang', icon: DollarSign, count: piutang.length },
@@ -529,6 +551,96 @@ export default function TransaksiHubPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* --- TAB: APPROVE COD --- */}
+      {activeTab === 'verifikasi' && (
+        <div className="space-y-4">
+          <div className="bg-surface-container-lowest border border-neutral-200 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-outline-variant/10 flex items-center justify-between">
+              <div>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface">Antrian Persetujuan COD</h3>
+                <p className="text-sm text-on-surface-variant mt-0.5">
+                  Order COD menunggu persetujuan admin. Approve = potong stok + order diproses; Reject = batalkan.
+                </p>
+              </div>
+              {pendingVerif.length > 0 && (
+                <span className="px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-sm font-semibold">
+                  {pendingVerif.length} menunggu
+                </span>
+              )}
+            </div>
+
+            {pendingVerif.length === 0 ? (
+              <div className="p-12 text-center text-on-surface-variant font-body-md">
+                <CheckCircle size={48} className="mx-auto mb-2 text-outline-variant" />
+                <p>Tidak ada order COD yang perlu disetujui</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-surface-container">
+                    <tr className="font-label-md text-label-md text-on-surface-variant">
+                      <th className="px-4 py-3 text-left">ID Transaksi</th>
+                      <th className="px-4 py-3 text-left">Penerima</th>
+                      <th className="px-4 py-3 text-left">Tanggal</th>
+                      <th className="px-4 py-3 text-right">Total Bayar</th>
+                      <th className="px-4 py-3 text-center">Status</th>
+                      <th className="px-4 py-3 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10 font-body-md">
+                    {pendingVerif.map((tx) => (
+                      <tr key={tx.id_transaksi} className="hover:bg-surface-cream transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-mono text-xs font-semibold text-primary">#{tx.id_transaksi}</p>
+                          {tx.kode_pesanan && (
+                            <p className="text-[10px] text-on-surface-variant/65 uppercase tracking-wide">Ref: {tx.kode_pesanan}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <p className="font-semibold">{tx.nama_pelanggan || tx.nama_penerima || tx.nama_warung || 'Walk-in Customer'}</p>
+                          {tx.no_hp_penerima && (
+                            <p className="text-[10px] text-on-surface-variant font-mono mt-0.5">{tx.no_hp_penerima}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-on-surface-variant text-sm whitespace-nowrap">{formatDate(tx.waktu_simpan)}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-sm text-on-surface">{formatRupiah(tx.total_bayar)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-50 text-orange-700 ring-1 ring-orange-100">
+                            {formatStatus(tx.payment_status) || formatStatus(tx.status_pembayaran)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              data-testid={`tx-cod-approve-${tx.id_transaksi}`}
+                              onClick={() => handleVerifikasiPembayaran(tx.id_transaksi, 'approve')}
+                              disabled={tx.payment_status !== 'cod_requested'}
+                              className="rounded-md bg-[#111827] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+                              title="Setujui COD (potong stok + proses)"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              data-testid={`tx-cod-reject-${tx.id_transaksi}`}
+                              onClick={() => handleVerifikasiPembayaran(tx.id_transaksi, 'reject')}
+                              disabled={tx.payment_status !== 'cod_requested'}
+                              className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 disabled:opacity-40"
+                              title="Tolak COD (batalkan order)"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

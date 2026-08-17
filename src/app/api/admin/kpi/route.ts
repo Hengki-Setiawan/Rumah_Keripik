@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { courierKpiDaily, deliveryAssignment, shifts, courierEarnings, courierAttendance } from '@/lib/schema';
+import { courierKpiDaily, deliveryAssignment, courierEarnings } from '@/lib/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { requireAdminRole, isForbiddenAdminPermissionError, isUnauthorizedAdminError } from '@/lib/admin-actor';
@@ -76,25 +76,6 @@ export async function POST(req: Request) {
           sql`date(${courierEarnings.createdAt}) = ${date}`,
         ));
 
-      const shiftAgg = await db
-        .select({
-          totalDistance: sql<number>`coalesce(sum(${shifts.totalDistanceKm}), 0)`,
-        })
-        .from(shifts)
-        .where(and(
-          eq(shifts.courierId, courierId),
-          sql`date(${shifts.clockInAt}) = ${date}`,
-        ));
-
-      const attendanceRows = await db
-        .select({ status: courierAttendance.status })
-        .from(courierAttendance)
-        .where(and(
-          eq(courierAttendance.courierId, courierId),
-          sql`date(${courierAttendance.clockInAt}) = ${date}`,
-        ))
-        .limit(1);
-
       const a = agg[0];
       const delivered = Number(a?.totalDelivered ?? 0);
       const failed = Number(a?.totalFailed ?? 0);
@@ -106,12 +87,8 @@ export async function POST(req: Request) {
         totalAssigned: assigned,
         totalDelivered: delivered,
         totalFailed: failed,
-        totalRejectedOffers: 0,
         onTimeRate: assigned > 0 ? (delivered / assigned) * 100 : null,
-        avgDeliveryMinutes: null,
-        totalDistanceKm: Number(shiftAgg[0]?.totalDistance ?? 0),
         totalEarnings: Number(earningsAgg[0]?.total ?? 0),
-        attendanceStatus: attendanceRows[0]?.status ?? null,
       }).onConflictDoUpdate({
         target: [courierKpiDaily.courierId, courierKpiDaily.kpiDate],
         set: {
@@ -119,9 +96,7 @@ export async function POST(req: Request) {
           totalDelivered: delivered,
           totalFailed: failed,
           onTimeRate: assigned > 0 ? (delivered / assigned) * 100 : null,
-          totalDistanceKm: Number(shiftAgg[0]?.totalDistance ?? 0),
           totalEarnings: Number(earningsAgg[0]?.total ?? 0),
-          attendanceStatus: attendanceRows[0]?.status ?? null,
           computedAt: new Date().toISOString(),
         },
       });

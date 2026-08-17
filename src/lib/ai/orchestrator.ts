@@ -6,6 +6,7 @@ import { getChatMessages } from '@/lib/chat-v3/messages';
 import { AIChatResponseSchema } from '@/lib/chat-v3/schemas';
 import { getCustomerContextForChat } from '@/lib/chat-v3/customer-context';
 import { buildMemoryPrompt } from '@/lib/chat-v3/memory';
+import { getContextSummaryPrompt } from '@/lib/chat-v3/context-summary';
 import { getChatV3Stage } from '@/lib/chat-v3/stage';
 import type { ChatV3Stage } from '@/lib/chat-v3/stage';
 import { buildIdentityFlowResponse } from '@/lib/chat-v3/identity-handler';
@@ -86,6 +87,7 @@ export async function buildChatResponse(chatSessionId: string, message: string):
     ]);
     const knowledgeChunks = await maybeSearchKnowledge(message);
     const memoryPrompt = buildMemoryPrompt(customerContext.memory);
+    const contextSummaryPrompt = await getContextSummaryPrompt(chatSessionId);
     const knowledgePrompt = formatKnowledgePrompt(knowledgeChunks);
     const contextPrompt = [
       ORDER_ASSISTANT_SYSTEM_PROMPT,
@@ -95,6 +97,7 @@ export async function buildChatResponse(chatSessionId: string, message: string):
       customerContext.customer ? `Customer dikenal: ${customerContext.customer.name || customerContext.customer.id}, WA ${customerContext.customer.phoneMasked || '-'}.` : 'Customer belum identified.',
       customerContext.defaultAddress ? `Alamat default tersedia: ${customerContext.defaultAddress.addressSummary}.` : 'Alamat default belum tersedia.',
       memoryPrompt ? `Memory customer:\n${memoryPrompt}` : '',
+      contextSummaryPrompt,
       knowledgePrompt,
     ].filter(Boolean).join('\n\n');
 
@@ -213,12 +216,19 @@ export async function buildDeterministicResponse(chatSessionId: string, message:
     return { reply: 'Bisa kak. Buka halaman Pesanan Saya untuk melihat order yang tersimpan di browser ini.', intent: 'track_order', components: [{ type: 'quick_replies', options: [{ id: 'pesanan-saya', label: 'Buka Pesanan Saya', value: '/pesan/saya', action: 'tool_action' }] }], confidence: 0.9 };
   }
 
+  if (/beri tahu.*(stok|masuk)|notif.*(stok|masuk)|biasa?.?watching|stock watch/i.test(lower)) {
+    return { reply: 'Bisa kak! Ceritakan produk apa yang kakak tunggu. Kalau sudah tahu nama produknya, ketik misalnya "beri tahu kalau Keripik Original masuk" atau "lihat produk" untuk menemukannya.', intent: 'show_products', components: [{ type: 'quick_replies', options: [{ id: 'swc-produk', label: 'Lihat Produk', value: 'lihat produk', action: 'send_message' }] }], confidence: 0.85 };
+  }
+
   if (/stok (habis|kosong|0)|produk (habis|kosong)|tidak (ada|tersedia)/.test(lower)) {
     const products = await recommendProducts('rekomendasi produk pengganti', customerContext.memory);
     const productIds = products.map((product) => product.id).slice(0, 4);
     return { reply: 'Kalau produk yang kakak cari sedang habis, ini beberapa pilihan yang masih tersedia sekarang:', intent: 'recommend_products', components: [
       { type: 'product_cards', productIds, reason: 'Alternatif stok tersedia', actions: ['add_to_cart', 'view_detail'] },
-      { type: 'quick_replies', options: [{ id: 'stok-cart', label: 'Lihat Keranjang', value: 'lihat keranjang', action: 'send_message' }] },
+      { type: 'quick_replies', options: [
+        { id: 'stok-cart', label: 'Lihat Keranjang', value: 'lihat keranjang', action: 'send_message' },
+        { id: 'stok-watch', label: 'Beri Tahu Saat Stok Masuk', value: 'beri tahu saya kalau stok masuk', action: 'send_message' },
+      ] },
     ], confidence: 0.88 };
   }
 

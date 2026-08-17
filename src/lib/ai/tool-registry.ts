@@ -11,6 +11,7 @@ import {resolveCustomerByPhone} from '@/lib/customer-resolver';
 import {normalizePhoneNumber} from '@/lib/utils';
 import {buildPaymentInstructionPayload, generatePaymentIntentId} from '@/lib/payments/payment-utils';
 import {createOrderFromChatCart} from '@/lib/orders/create-chat-order';
+import {getStockStatus, subscribeStockWatch} from '@/lib/chat-v3/stock-watch';
 
 export async function runChatTool(chatSessionId: string, toolName: string, args: Record<string, unknown> = {}) {
   switch (toolName) {
@@ -99,6 +100,9 @@ export async function runChatTool(chatSessionId: string, toolName: string, args:
     case 'identify_product_from_image':
     case 'identifyProductFromImage':
       return identifyProductFromImageTool(args);
+    case 'watch_stock':
+    case 'watchStock':
+      return watchStockTool(chatSessionId, args);
     default:
       throw new Error(`Tool ${toolName} belum tersedia`);
   }
@@ -246,6 +250,18 @@ function identifyProductFromImageTool(args: Record<string, unknown>) {
     imageUrl,
     confidence: 'pending',
   };
+}
+
+async function watchStockTool(chatSessionId: string, args: Record<string, unknown>) {
+  const idProduk = String(args.productId || args.idProduk || '').trim();
+  const idVarian = args.variantId || args.idVarian ? String(args.variantId || args.idVarian).trim() : null;
+  if (!idProduk) throw new Error('ID produk wajib diisi');
+  const status = await getStockStatus(idProduk, idVarian);
+  if (status.available) {
+    return { ok: true, subscribed: false, alreadyAvailable: true, message: 'Produk ini sudah tersedia sekarang.' };
+  }
+  const result = await subscribeStockWatch({ chatSessionId, idProduk, idVarian });
+  return { ok: true, subscribed: true, alreadyWatching: result.alreadyWatching, message: 'Kakak akan diberi tahu begitu stok produk masuk kembali.' };
 }
 
 function normalizeCustomerType(value: unknown): 'konsumen' | 'warung' | 'reseller' {

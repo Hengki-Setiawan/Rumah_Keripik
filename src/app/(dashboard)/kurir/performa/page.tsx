@@ -19,15 +19,10 @@ interface EarningEntry {
   courierId: number;
   baseFee: number;
   bonusAmount: number;
-  status: 'pending' | 'confirmed' | 'paid_out';
+  status: string;
+  note?: string | null;
   createdAt: string;
 }
-
-const statusColor: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  confirmed: 'bg-emerald-100 text-emerald-700',
-  paid_out: 'bg-blue-100 text-blue-700',
-};
 
 export default function PerformaPage() {
   const { addToast } = useToast();
@@ -68,11 +63,7 @@ export default function PerformaPage() {
 
   useEffect(() => { if (selectedId) loadEarnings(); }, [selectedId, loadEarnings]);
 
-  const confirmed = earnings.filter((e) => e.status === 'confirmed');
-  const pending = earnings.filter((e) => e.status === 'pending');
-  const totalConfirmed = confirmed.reduce((a, e) => a + e.baseFee + e.bonusAmount, 0);
-  const totalPending = pending.reduce((a, e) => a + e.baseFee + e.bonusAmount, 0);
-  const onTimeRate = earnings.length ? Math.round((confirmed.length / earnings.length) * 100) : 0;
+  const totalPenjualan = earnings.reduce((a, e) => a + e.baseFee, 0);
 
   return (
     <div>
@@ -99,28 +90,18 @@ export default function PerformaPage() {
         <div className="space-y-3"><CardSkeleton /><CardSkeleton /></div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            {[
-              { label: 'Pengiriman', value: earnings.length },
-              { label: 'Terkonfirmasi', value: confirmed.length },
-              { label: 'On-time Rate', value: `${onTimeRate}%` },
-              { label: 'Menunggu Konfirmasi', value: pending.length },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl border bg-white p-4">
-                <p className="text-xs text-gray-500">{s.label}</p>
-                <p className="mt-1 text-lg font-bold text-gray-800">{s.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
             <div className="rounded-xl border bg-white p-4">
-              <p className="text-xs text-gray-500">Total Pendapatan Terkonfirmasi</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-600">{rupiah(totalConfirmed)}</p>
+              <p className="text-xs text-gray-500">Pengiriman</p>
+              <p className="mt-1 text-lg font-bold text-gray-800">{earnings.length}</p>
             </div>
             <div className="rounded-xl border bg-white p-4">
-              <p className="text-xs text-gray-500">Total Belum Dikonfirmasi</p>
-              <p className="mt-1 text-2xl font-bold text-amber-600">{rupiah(totalPending)}</p>
+              <p className="text-xs text-gray-500">Total Nilai Penjualan</p>
+              <p className="mt-1 text-lg font-bold text-emerald-600">{rupiah(totalPenjualan)}</p>
+            </div>
+            <div className="rounded-xl border bg-white p-4">
+              <p className="text-xs text-gray-500">Rata-rata per Pengiriman</p>
+              <p className="mt-1 text-lg font-bold text-gray-800">{earnings.length ? rupiah(Math.round(totalPenjualan / earnings.length)) : rupiah(0)}</p>
             </div>
           </div>
 
@@ -132,10 +113,8 @@ export default function PerformaPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b">
                     <th className="text-left p-3 font-medium text-gray-600">ID</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Fee</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Bonus</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Total</th>
-                    <th className="text-center p-3 font-medium text-gray-600">Status</th>
+                    <th className="text-right p-3 font-medium text-gray-600">Nilai Penjualan</th>
+                    <th className="text-left p-3 font-medium text-gray-600">Catatan</th>
                     <th className="text-left p-3 font-medium text-gray-600">Tanggal</th>
                   </tr>
                 </thead>
@@ -143,12 +122,8 @@ export default function PerformaPage() {
                   {earnings.map((e) => (
                     <tr key={e.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="p-3 text-gray-500">#{e.id}</td>
-                      <td className="p-3 text-right text-gray-700">{rupiah(e.baseFee)}</td>
-                      <td className="p-3 text-right text-gray-700">{rupiah(e.bonusAmount)}</td>
                       <td className="p-3 text-right font-bold text-gray-800">{rupiah(e.baseFee + e.bonusAmount)}</td>
-                      <td className="p-3 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[e.status]}`}>{e.status}</span>
-                      </td>
+                      <td className="p-3 text-gray-500 text-xs">{e.note || '-'}</td>
                       <td className="p-3 text-gray-500 text-xs">{new Date(e.createdAt).toLocaleString('id-ID')}</td>
                     </tr>
                   ))}

@@ -16,8 +16,6 @@ interface PayrollRow {
   deliveryCount: number;
   confirmedCount: number;
   paidOutCount: number;
-  totalShifts: number;
-  totalDistanceKm: number;
 }
 
 interface PayrollResponse {
@@ -62,9 +60,9 @@ export default function PayrollPage() {
 
   function exportCsv() {
     if (!data) return;
-    const header = 'Kurir,TotalFee,Bonus,Total,Delivery,Konfirmasi,Dibayar,Shift,JarakKm';
+    const header = 'Kurir,TotalPenjualan,Total,Pengiriman';
     const lines = data.payroll.map((p) =>
-      [p.courierName ?? `Kurir#${p.courierId}`, p.totalDeliveryFee, p.totalBonus, p.total, p.deliveryCount, p.confirmedCount, p.paidOutCount, p.totalShifts, p.totalDistanceKm].join(',')
+      [p.courierName ?? `Kurir#${p.courierId}`, p.totalDeliveryFee, p.total, p.deliveryCount].join(',')
     );
     const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -79,7 +77,7 @@ export default function PayrollPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <ReceiptText className="w-6 h-6 text-orange-600" />
-          <h1 className="text-xl font-bold text-gray-800">Payroll Kurir</h1>
+          <h1 className="text-xl font-bold text-gray-800">Pendapatan Kurir</h1>
         </div>
         <div className="flex items-center gap-2">
           <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="w-44" />
@@ -88,18 +86,21 @@ export default function PayrollPage() {
         </div>
       </div>
 
+      <p className="mb-4 text-xs text-gray-500">
+        Kurir bersifat internal — pendapatan yang tercatat adalah total nilai penjualan yang diantar (bukan fee), mengikuti tampilan di aplikasi kurir.
+      </p>
+
       {loading ? (
         <div className="space-y-3"><CardSkeleton /><CardSkeleton /></div>
       ) : !data ? (
-        <div className="text-center py-12 text-gray-400">Pilih periode untuk memuat payroll.</div>
+        <div className="text-center py-12 text-gray-400">Pilih periode untuk memuat data.</div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             {[
               { label: 'Kurir', value: data.summary.courierCount },
-              { label: 'Total Fee Pengiriman', value: rupiah(data.summary.totalDeliveryFee) },
-              { label: 'Total Bonus', value: rupiah(data.summary.totalBonus) },
-              { label: 'Total Dibayar', value: rupiah(data.summary.total), highlight: true },
+              { label: 'Total Penjualan', value: rupiah(data.summary.totalDeliveryFee) },
+              { label: 'Total Pendapatan', value: rupiah(data.summary.total), highlight: true },
               { label: 'Total Pengiriman', value: data.summary.totalDeliveries },
             ].map((s) => (
               <div key={s.label} className={`rounded-xl border bg-white p-4 ${s.highlight ? 'border-orange-300 ring-1 ring-orange-200' : ''}`}>
@@ -117,14 +118,9 @@ export default function PayrollPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b">
                     <th className="text-left p-3 font-medium text-gray-600">Kurir</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Fee</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Bonus</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Total</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Delivery</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Konfirmasi</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Dibayar</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Shift</th>
-                    <th className="text-right p-3 font-medium text-gray-600">Jarak (km)</th>
+                    <th className="text-right p-3 font-medium text-gray-600">Total Penjualan</th>
+                    <th className="text-right p-3 font-medium text-gray-600">Total Pendapatan</th>
+                    <th className="text-right p-3 font-medium text-gray-600">Pengiriman</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -132,13 +128,8 @@ export default function PayrollPage() {
                     <tr key={p.courierId} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="p-3 font-medium">{p.courierName ?? `Kurir#${p.courierId}`}</td>
                       <td className="p-3 text-right text-gray-700">{rupiah(p.totalDeliveryFee)}</td>
-                      <td className="p-3 text-right text-gray-700">{rupiah(p.totalBonus)}</td>
                       <td className="p-3 text-right font-bold text-orange-700">{rupiah(p.total)}</td>
                       <td className="p-3 text-right text-gray-700">{p.deliveryCount}</td>
-                      <td className="p-3 text-right text-gray-700">{p.confirmedCount}</td>
-                      <td className="p-3 text-right text-gray-700">{p.paidOutCount}</td>
-                      <td className="p-3 text-right text-gray-700">{p.totalShifts}</td>
-                      <td className="p-3 text-right text-gray-700">{Math.round(p.totalDistanceKm * 10) / 10}</td>
                     </tr>
                   ))}
                 </tbody>

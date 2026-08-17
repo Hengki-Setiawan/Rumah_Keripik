@@ -1,0 +1,16 @@
+name: Cron midtrans reconcile (hourly)
+
+on:
+  schedule:
+    - cron: "30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-midtrans-reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Midtrans reconcile
+        run: curl -sf -o /dev/null -w "midtrans-reconcile %{http_code}\n" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "https://rumah-keripik.vercel.app/api/cron/midtrans-reconcile"

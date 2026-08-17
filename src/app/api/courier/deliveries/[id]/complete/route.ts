@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { deliveryAssignment, orderEvents, transaksi, courierLocations, deliveryEvents } from '@/lib/schema';
+import { deliveryAssignment, orderEvents, transaksi, courierLocations, deliveryEvents, detailTransaksi } from '@/lib/schema';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierCompleteDeliverySchema } from '@/lib/courier-types';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sum } from 'drizzle-orm';
 import { sendOrderPushNotification } from '@/lib/expo-push';
-import { awardPointsForCompletedOrder } from '@/services/loyalty-service';
 import { recordRevenue, ensureDefaultCategories } from '@/services/ledger-service';
 import { insertDeliveryEvent } from '@/lib/courier-event';
 import { recordCourierEarning, bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
 import { sumTrackedDistanceKm } from '@/lib/courier-distance';
+import { createAdminNotification } from '@/lib/admin-notifications';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -45,8 +45,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ ok: false, error: 'Pengiriman tidak ditemukan' }, { status: 404 });
     }
 
-    if (assignment.status !== 'Dalam_Pengiriman') {
-      return NextResponse.json({ ok: false, error: 'Pengiriman harus dalam status pengiriman' }, { status: 400 });
+    if (assignment.status !== 'Siap_Dikirim' && assignment.status !== 'Dalam_Pengiriman') {
+      return NextResponse.json({ ok: false, error: 'Pengiriman tidak bisa diselesaikan dari status ini' }, { status: 400 });
     }
 
     const now = new Date().toISOString();
@@ -127,11 +127,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
 
     try {
+      const [valueRow] = await db
+        .select({ totalQty: sum(detailTransaksi.qty_terjual), totalValue: sum(detailTransaksi.subtotal) })
+        .from(detailTransaksi)
+        .where(eq(detailTransaksi.id_transaksi, assignment.id_transaksi));
+      const totalQty = Number(valueRow?.totalQty ?? 0);
+      const totalValue = Number(valueRow?.totalValue ?? 0);
       await recordCourierEarning({
         courierId: courier.id,
         deliveryAssignmentId: deliveryId,
         orderId: assignment.id_transaksi,
-        note: 'Otomatis dari delivery completed',
+        productCount: totalQty > 0 ? totalQty : undefined,
+        baseFee: totalValue > 0 ? totalValue : undefined,
+        note: totalQty > 0 ? `${totalQty} produk, nilai ${totalValue.toLocaleString('id-ID')}` : 'Otomatis dari delivery completed',
       });
       await bumpCourierPerformanceDaily(courier.id, 'completed', distanceActualKm > 0 ? distanceActualKm : undefined);
     } catch (earningErr) {
@@ -142,7 +150,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       await ensureDefaultCategories();
       const [tx] = await db.select({ total: transaksi.total_bayar, customer: transaksi.id_customer }).from(transaksi).where(eq(transaksi.id_transaksi, assignment.id_transaksi)).limit(1);
       if (tx) {
-        if (tx.customer) await awardPointsForCompletedOrder(tx.customer, assignment.id_transaksi, tx.total);
         await recordRevenue(assignment.id_transaksi, tx.total);
       }
     } catch (svcErr) {
@@ -163,6 +170,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       } catch (enqueueErr) {
         console.error('[COURIER_COMPLETE_INTEGRATION_ENQUEUE]', enqueueErr);
       }
+    }
+
+    const [orderMeta] = await db
+      .select({ kode: transaksi.kode_pesanan, paymentStatus: transaksi.payment_status, statusPembayaran: transaksi.status_pembayaran })
+      .from(transaksi)
+      .where(eq(transaksi.id_transaksi, assignment.id_transaksi))
+      .limit(1);
+
+    if (orderMeta?.paymentStatus === 'cod_approved' || orderMeta?.statusPembayaran === 'Piutang') {
+      await createAdminNotification({
+        category: 'delivery',
+        title: `Pengiriman ${orderMeta.kode || assignment.id_transaksi} selesai`,
+        body: 'Pembayaran COD diterima kurir di lokasi. Tandai piutang sebagai lunas di tab Daftar Piutang.',
+        metaJson: { id_transaksi: assignment.id_transaksi, href: '/transaksi?tab=piutang' },
+      });
+    } else {
+      await createAdminNotification({
+        category: 'delivery',
+        title: `Pengiriman ${orderMeta?.kode || assignment.id_transaksi} selesai`,
+        body: 'Order telah terkirim dan selesai. Tidak ada tindak lanjut pembayaran yang diperlukan.',
+        metaJson: { id_transaksi: assignment.id_transaksi, href: '/transaksi' },
+      });
     }
 
     return NextResponse.json({ ok: true });

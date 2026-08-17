@@ -38,13 +38,16 @@ export function ChatShell({ verify }: { verify?: string }) {
   const [resumableSession, setResumableSession] = useState<{ id: string; preview: string } | null>(null);
   // Session ID yang sudah siap dipakai (diinisialisasi) tapi belum "started"
   const pendingSessionIdRef = useRef<string>('');
-  // Guard supaya trigger identifikasi dari ?verify=wa hanya jalan sekali
+  // Guard supaya trigger identifikasi dari ?verify=... hanya jalan sekali
   const verifyTriggeredRef = useRef(false);
+  // Tujuan redirect setelah OTP sukses (diisi dari ?verify=wa / ?verify=profil)
+  const verifyRedirectRef = useRef<string | null>(null);
 
-  // Dari /pesan/saya: auto-buka chat lalu kirim trigger identifikasi (minta nomor WA + OTP)
+  // Dari /pesan/saya atau /pesan/profil: auto-buka chat lalu kirim trigger identifikasi (minta nomor WA + OTP)
   useEffect(() => {
-    if (verify !== 'wa' || verifyTriggeredRef.current || loading || sending) return;
+    if ((verify !== 'wa' && verify !== 'profil') || verifyTriggeredRef.current || loading || sending) return;
     verifyTriggeredRef.current = true;
+    verifyRedirectRef.current = verify === 'wa' ? '/pesan/saya' : '/pesan/profil';
     const t = window.setTimeout(() => {
       sendMessage('saya pernah pesan');
     }, 400);
@@ -221,6 +224,13 @@ export function ChatShell({ verify }: { verify?: string }) {
       setStarted(true);
       setStage(data.response?.stage || data.stage || 'idle');
       loadSessions().catch(() => undefined);
+
+      // Auto-redirect setelah OTP/verifikasi berhasil (datang dari /pesan/saya atau /pesan/profil)
+      if (verifyRedirectRef.current && data.response?.intent === 'confirm_customer_data') {
+        const target = verifyRedirectRef.current;
+        verifyRedirectRef.current = null;
+        window.location.href = target;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Pesan gagal dikirim');
     } finally {

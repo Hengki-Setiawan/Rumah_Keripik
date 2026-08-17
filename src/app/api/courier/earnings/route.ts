@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { courierEarnings } from '@/lib/schema';
-import { eq, desc, and, sum, sql } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 import { requireCourierAuth } from '@/lib/courier-auth';
 import { witaTodayStartDb } from '@/lib/wita-date';
 
@@ -41,21 +41,13 @@ export async function GET(req: Request) {
       .limit(50);
 
     const totalConfirmed = earnings.reduce((sum, e) => sum + e.baseFee + e.bonusAmount, 0);
-    const pendingTotal = await db
-      .select({ total: sum(courierEarnings.baseFee) })
-      .from(courierEarnings)
-      .where(and(
-        eq(courierEarnings.courierId, courier.id),
-        eq(courierEarnings.status, 'pending'),
-        sql`${courierEarnings.createdAt} >= ${startDate}`
-      ));
 
     return NextResponse.json({
       ok: true,
       earnings,
       summary: {
         totalConfirmed,
-        pendingTotal: pendingTotal[0]?.total || 0,
+        pendingTotal: 0,
         deliveryCount: earnings.length,
         period,
       },

@@ -129,27 +129,20 @@ export async function createReconciliation(periodStart: string, periodEnd: strin
 }
 
 /**
- * Retry terpisah untuk integrasi pasca-complete yang gagal (poin loyalty +
- * pencatatan revenue). Kedua operasi idempoten:
- *  - awardPointsForCompletedOrder menolak bila ledger poin sudah ada.
- *  - recordRevenue menolak bila entry revenue sudah ada.
+ * Retry terpisah untuk integrasi pasca-complete yang gagal (pencatatan revenue).
+ * Operasi idempoten: recordRevenue menolak bila entry revenue sudah ada.
  * Dipanggil oleh worker job `revenue_payout`.
  */
 export async function processRevenuePayoutJob(payload: Record<string, unknown>) {
   const orderId = typeof payload.orderId === 'string' ? payload.orderId : null;
-  const customerId = payload.customerId && typeof payload.customerId === 'string' ? payload.customerId : null;
   const totalBayar = typeof payload.totalBayar === 'number' ? payload.totalBayar : null;
 
   if (!orderId || totalBayar == null) {
     throw new Error('orderId dan totalBayar wajib ada');
   }
 
-  const results: Record<string, unknown> = {};
-  if (customerId) {
-    const { awardPointsForCompletedOrder } = await import('@/services/loyalty-service');
-    results.loyalty = await awardPointsForCompletedOrder(customerId, orderId, totalBayar);
-  }
   await ensureDefaultCategories();
+  const results: Record<string, unknown> = {};
   results.revenue = await recordRevenue(orderId, totalBayar, `Pendapatan dari order ${orderId} (retry worker)`);
   return results;
 }
