@@ -1,3 +1,4 @@
+# Re-commit to force GitHub to re-register workflow triggers on default branch.
 name: Cron 15-minute jobs (worker, route-build, stock-watch)
 
 on:

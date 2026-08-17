@@ -1,3 +1,4 @@
+# Re-commit to force GitHub to re-register workflow triggers on default branch.
 name: Cron midtrans reconcile (hourly)
 
 on:
