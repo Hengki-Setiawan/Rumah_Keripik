@@ -9,6 +9,11 @@ import { test, expect } from '@playwright/test';
 // Run with: npx playwright test --config=playwright.prod.config.ts
 // State (kode_pesanan / id_transaksi / courier_id) is persisted to
 // e2e-run-state.json so the Maestro courier-app flow can pick it up.
+//
+// Checkout is the PROGRESSIVE wizard: customer identity is pre-linked to the
+// fresh chat session via SQL (chat_sessions.customer_id) BEFORE checkout, so
+// the WhatsApp OTP step is skipped deterministically. The linked customer must
+// already have a default address with lat/lng (E2E_CUSTOMER_ID).
 // ============================================================================
 
 const PROD = process.env.PLAYWRIGHT_BASE_URL || 'https://rumah-keripik.vercel.app';
@@ -18,11 +23,8 @@ const QTY = Number(process.env.E2E_QTY || 2);
 const UNIT_PRICE = Number(process.env.E2E_UNIT_PRICE || 20000);
 const COURIER_PHONE = process.env.E2E_COURIER_PHONE || '08123456789';
 const CUSTOMER_PHONE = process.env.E2E_CUSTOMER_PHONE || '081234567899';
-const RECEIVER_NAME = process.env.E2E_RECEIVER_NAME || 'Ibu E2E';
-const ADDRESS_TEXT =
-  process.env.E2E_ADDRESS_TEXT ||
-  'Jl. Gunung Agung No. 12, Kec. Rappocini, Kota Makassar, Sulawesi Selatan';
-const ADDRESS_NOTE = process.env.E2E_ADDRESS_NOTE || 'Patokan toko kelontong';
+// Dedicated E2E test customer with a default address (lat/lng) in prod.
+const CUSTOMER_ID = process.env.E2E_CUSTOMER_ID || 'CUS-20260801-B82DF898';
 const RUN_STATE_PATH = path.join(process.cwd(), 'e2e-run-state.json');
 
 type RunState = {
@@ -116,7 +118,22 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 90_000 });
 
     // --- add product (qty 1) via the idle product card ---
+    // The first action from the hero screen forces bootstrap(true) (fresh chat
+    // session). Capture THAT session id from the add_to_cart request body so the
+    // pre-link targets the exact session the UI keeps for checkout.
+    const actionReqPromise = page.waitForRequest(
+      (r) => r.url().includes('/api/chat/action') && r.method() === 'POST',
+    );
     await page.getByTestId(`idle-product-${PRODUCT_ID}`).click();
+    const actionReq = await actionReqPromise;
+    const chatSessionId = (actionReq.postDataJSON() as { chatSessionId: string }).chatSessionId;
+    expect(chatSessionId).toBeTruthy();
+
+    // --- pre-link the E2E test customer so the progressive wizard skips OTP ---
+    await tursoRows(
+      `UPDATE chat_sessions SET customer_id = '${CUSTOMER_ID}' WHERE id = '${chatSessionId}'`,
+    );
+
     const cart = page.getByTestId('chat-cart-summary').first();
     await expect(cart).toBeVisible({ timeout: 40_000 });
     await expect(cart).toContainText(PRODUCT_NAME);
@@ -125,37 +142,20 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
     await cart.locator('button').nth(1).click();
     await expect(cart).toContainText(rupiah(UNIT_PRICE * QTY), { timeout: 40_000 });
 
-    // --- choose COD payment ---
-    await cart.getByTestId('cart-choose-payment').click();
+    // --- checkout: progressive wizard shows payment methods (customer pre-linked) ---
+    await cart.getByTestId('cart-checkout-next').click();
     await expect(page.getByTestId('payment-method-PM-COD-PERMANENT')).toBeVisible({ timeout: 40_000 });
     await page.getByTestId('payment-method-PM-COD-PERMANENT').click();
 
-    // --- customer step ---
-    await expect(page.getByTestId('order-customer-name')).toBeVisible({ timeout: 40_000 });
-    await page.getByTestId('order-customer-name').fill(RECEIVER_NAME);
-    await page.getByTestId('order-customer-phone').fill(CUSTOMER_PHONE);
-    await page.getByTestId('order-customer-pin').fill('4713');
-    await page.getByTestId('order-step-address').click();
-
-    // --- address step (must capture lat/lng for delivery assignment) ---
-    await expect(page.getByTestId('order-address-text')).toBeVisible();
-    await page.getByTestId('order-address-text').fill(ADDRESS_TEXT);
-    await page.getByTestId('order-address-note').fill(ADDRESS_NOTE);
-    await page.getByTestId('order-address-geolocate').click();
-    await expect(page.getByText('Koordinat tersimpan')).toBeVisible({ timeout: 20_000 });
-    await page.getByTestId('order-step-payment').click();
-
-    // --- payment + notes + review ---
-    await expect(page.getByTestId('order-notes')).toBeVisible();
-    await page.getByTestId('order-notes').fill('[E2E] cross-platform COD run');
-    await page.getByTestId('order-step-review').click();
-    await expect(page.getByTestId('order-submit')).toBeVisible();
+    // --- order summary (saved customer + default address) + notes ---
+    await expect(page.getByTestId('order-summary-confirm')).toBeVisible({ timeout: 40_000 });
+    await page.getByTestId('order-summary-notes').fill('[E2E] cross-platform COD run');
 
     // --- create order (capture statusUrl from API response) ---
     const respPromise = page.waitForResponse(
       (r) => r.url().includes('/api/chat/action') && r.request().method() === 'POST',
     );
-    await page.getByTestId('order-submit').click();
+    await page.getByTestId('order-summary-submit').click();
     const resp = await respPromise;
     const body = (await resp.json()) as { ok: boolean; statusUrl: string };
     expect(body.ok).toBe(true);
@@ -262,7 +262,7 @@ test.describe.serial('COD cross-platform E2E (prod, no mocks)', () => {
       .filter({ hasText: runState.kode_pesanan })
       .first();
     await expect(card).toBeVisible({ timeout: 40_000 });
-    await card.locator('select').selectOption(String(runState.courier_id));
+    await card.getByTestId(`assign-courier-select-${runState.id_transaksi}`).selectOption(String(runState.courier_id));
     await card.getByRole('button', { name: 'Assign' }).click();
 
     await expect
