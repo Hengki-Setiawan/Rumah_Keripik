@@ -74,13 +74,13 @@ test.describe('L2 real chat via API (prod LLM)', () => {
     expect(roles).toContain('assistant');
   });
 
-  test('auto_greet action writes a greeting message (deterministic, no LLM)', async ({ request }) => {
+  test('show_cart action writes a deterministic assistant message (no LLM)', async ({ request }) => {
     const created = await request.post('/api/customer/session');
     expect(created.ok()).toBeTruthy();
     const { chatSession } = (await created.json()) as { chatSession: { id: string } };
 
     const res = await request.post('/api/chat/action', {
-      data: { chatSessionId: chatSession.id, action: 'auto_greet_new', payload: {} },
+      data: { chatSessionId: chatSession.id, action: 'show_cart', payload: {} },
     });
     expect(res.ok()).toBeTruthy();
     const body = (await res.json()) as { ok: boolean };
@@ -90,7 +90,7 @@ test.describe('L2 real chat via API (prod LLM)', () => {
       `SELECT role, content FROM chat_messages WHERE chat_session_id = '${chatSession.id}'
        ORDER BY created_at ASC`,
     );
-    expect(dbRows.some((r) => r.role === 'assistant' && String(r.content).includes('Selamat datang'))).toBe(true);
+    expect(dbRows.some((r) => r.role === 'assistant' && String(r.content).includes('Keranjang'))).toBe(true);
   });
 
   test('add_to_cart action is deterministic and persists cart in DB', async ({ request }) => {
