@@ -112,6 +112,18 @@ async function dumpDatabase(): Promise<void> {
   console.log(`Backup metadata written: ${metaPath}`);
   console.log(`SQL backup written: ${sqlPath}`);
   console.log(`Tables: ${tablesResult.rows.length}, rows: ${totalRows}, size: ${fs.statSync(sqlPath).size} bytes`);
+
+  const oldBackups = fs
+    .readdirSync(backupDir)
+    .filter((f) => /^backup-.*\.sql$/.test(f))
+    .sort()
+    .reverse();
+  for (const f of oldBackups.slice(7)) {
+    fs.unlinkSync(path.join(backupDir, f));
+    const meta = f.replace(/\.sql$/, '.json');
+    if (fs.existsSync(path.join(backupDir, meta))) fs.unlinkSync(path.join(backupDir, meta));
+    console.log(`pruned: ${f}`);
+  }
 }
 
 dumpDatabase().catch((error) => {
