@@ -13,7 +13,10 @@ export function getCustomerSessionMaxAge() {
 }
 
 export function hashCustomerSessionToken(token: string) {
-  const secret = process.env.CUSTOMER_SESSION_SECRET || process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'rumah-keripik-dev-secret';
+  const secret = process.env.CUSTOMER_SESSION_SECRET || process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('CUSTOMER_SESSION_SECRET (atau AUTH_SECRET/NEXTAUTH_SECRET) wajib di-set untuk sesi customer');
+  }
   return createHash('sha256').update(`${token}:${secret}`).digest('hex');
 }
 

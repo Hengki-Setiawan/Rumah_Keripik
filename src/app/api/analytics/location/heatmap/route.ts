@@ -2,8 +2,11 @@ import {NextRequest, NextResponse} from 'next/server';
 import {db} from '@/lib/db';
 import {transaksi} from '@/lib/schema';
 import {sql} from 'drizzle-orm';
+import {requireAdminRoleOrResponse} from '@/lib/admin-actor';
 
 export async function GET(req: NextRequest) {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const period = searchParams.get('period') || '7d';
 

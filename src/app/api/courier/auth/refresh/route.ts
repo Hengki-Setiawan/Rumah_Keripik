@@ -3,9 +3,15 @@ import { db } from '@/lib/db';
 import { courierSessions } from '@/lib/schema';
 import { eq, and } from 'drizzle-orm';
 import { verifyRefreshToken, signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
   try {
+    const rate = await checkRateLimit(`courier-refresh:${getClientIp(req)}`, 30, 60_000);
+    if (!rate.ok) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan refresh token' }, { status: 429 });
+    }
+
     const { refreshToken: incomingToken } = await req.json();
     if (!incomingToken) {
       return NextResponse.json({ ok: false, error: 'Refresh token diperlukan' }, { status: 400 });

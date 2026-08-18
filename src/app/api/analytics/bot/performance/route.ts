@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { chatLog, transaksi } from '@/lib/schema';
 import { sql, gte } from 'drizzle-orm';
+import { requireAdminRoleOrResponse } from '@/lib/admin-actor';
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);

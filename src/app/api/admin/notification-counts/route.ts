@@ -3,9 +3,11 @@ import { db } from '@/lib/db';
 import { transaksi, pelangganChatbot, sosEvents } from '@/lib/schema';
 import { eq, sql } from 'drizzle-orm';
 import { getUnreadAdminNotificationCount } from '@/lib/admin-notifications';
+import { adminAuthErrorResponse, requireAdminRole } from '@/lib/admin-actor';
 
 export async function GET() {
   try {
+    await requireAdminRole('audit:read');
     const [pendingVerif] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(transaksi)
@@ -30,6 +32,8 @@ export async function GET() {
       admin_notifications: adminNotifs,
     });
   } catch (err) {
+    const authResponse = adminAuthErrorResponse(err);
+    if (authResponse) return authResponse;
     console.error('[NotificationCounts]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

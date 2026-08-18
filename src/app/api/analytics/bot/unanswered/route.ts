@@ -2,8 +2,11 @@ import {NextResponse} from 'next/server';
 import {db} from '@/lib/db';
 import {chatLog} from '@/lib/schema';
 import {sql, and, gte} from 'drizzle-orm';
+import {requireAdminRoleOrResponse} from '@/lib/admin-actor';
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
   try {
     const since = new Date();
     since.setDate(since.getDate() - 30);

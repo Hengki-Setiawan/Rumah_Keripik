@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { adminAuthErrorResponse, requireAdminRole } from '@/lib/admin-actor';
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAdminRole('order:update');
+
     const { id_transaksi } = await req.json();
 
     if (!id_transaksi) {
@@ -18,10 +21,12 @@ export async function POST(req: NextRequest) {
       success: true,
       invoice_url: secureUrl,
     });
-  } catch (err: any) {
-    console.error('[API/GenerateInvoice] Error:', err);
+  } catch (error) {
+    const authResponse = adminAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    console.error('[API/GenerateInvoice] Error:', error);
     return NextResponse.json(
-      { error: err.message || 'Internal server error' },
+      { error: (error as Error)?.message || 'Internal server error' },
       { status: 500 }
     );
   }

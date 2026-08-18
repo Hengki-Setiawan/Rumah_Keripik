@@ -2,18 +2,24 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { skillDrafts } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
+import { adminAuthErrorResponse, requireAdminRole } from '@/lib/admin-actor';
 
 export async function GET() {
   try {
+    await requireAdminRole('chat:manage');
     const drafts = await db.select().from(skillDrafts).orderBy(desc(skillDrafts.createdAt));
     return NextResponse.json({ ok: true, drafts });
   } catch (error) {
+    const authResponse = adminAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    console.error('[ADMIN_SKILL_DRAFTS]', error);
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
+    await requireAdminRole('chat:manage');
     const body = await req.json();
     const { sourceType, sourceChatSessionId, sourceConversationExcerpt, draftMarkdown, proposedName, proposedDescription } = body;
 
@@ -31,12 +37,16 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, id });
   } catch (error) {
+    const authResponse = adminAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    console.error('[ADMIN_SKILL_DRAFTS]', error);
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
+    await requireAdminRole('chat:manage');
     const body = await req.json();
     const { id, action, rejectionReason } = body;
 
@@ -56,6 +66,9 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ ok: true, status: newStatus });
   } catch (error) {
+    const authResponse = adminAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    console.error('[ADMIN_SKILL_DRAFTS]', error);
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
   }
 }

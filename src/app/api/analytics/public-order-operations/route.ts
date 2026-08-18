@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import { count, desc, eq, gte, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { orderEvents, transaksi } from '@/lib/schema';
+import { requireAdminRoleOrResponse } from '@/lib/admin-actor';
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
 
   const [orders30d, chatOrders30d] = await Promise.all([

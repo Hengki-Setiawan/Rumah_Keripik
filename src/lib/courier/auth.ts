@@ -1,9 +1,11 @@
 ﻿import { jwtVerify } from 'jose';
 import type { RumahKeripikJWT } from '../auth-jwt';
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'rumah-keripik-jwt-dev-secret'
-);
+const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+if (!jwtSecret) {
+  throw new Error('JWT_SECRET (atau NEXTAUTH_SECRET) wajib di-set untuk autentikasi kurir');
+}
+const SECRET = new TextEncoder().encode(jwtSecret);
 
 export interface AuthResult {
   courierId: number;
