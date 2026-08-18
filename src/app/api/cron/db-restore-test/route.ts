@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
 import { backupRestoreDrills, transaksi } from '@/lib/schema'
 import { sql } from 'drizzle-orm'
@@ -6,10 +7,18 @@ import { sql } from 'drizzle-orm'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function secretMatches(value: string | null): boolean {
+  const expected = process.env.CRON_SECRET
+  if (!expected || !value) return false
+  const a = createHash('sha256').update(value).digest()
+  const b = createHash('sha256').update(expected).digest()
+  return timingSafeEqual(a, b)
+}
+
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')
-  const expected = `Bearer ${process.env.CRON_SECRET}`
-  if (auth !== expected) {
+  const expected = `Bearer ${process.env.CRON_SECRET ?? ''}`
+  if (auth !== expected && !secretMatches(auth)) {
     return NextResponse.json({ ok: false, error: 'UNAUTHORIZED' }, { status: 401 })
   }
 

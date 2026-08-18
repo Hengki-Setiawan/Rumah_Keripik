@@ -1,4 +1,23 @@
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+
+export function adminAuthErrorResponse(error: unknown) {
+  if (error instanceof Error && (error.message === 'UNAUTHORIZED_ADMIN' || error.message === 'FORBIDDEN_ADMIN_PERMISSION')) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 403 });
+  }
+  return null;
+}
+
+export async function requireAdminRoleOrResponse(permission: AdminPermission): Promise<NextResponse | null> {
+  try {
+    await requireAdminRole(permission);
+    return null;
+  } catch (error) {
+    const response = adminAuthErrorResponse(error);
+    if (response) return response;
+    throw error;
+  }
+}
 
 export async function getAdminActor() {
   const session = await auth().catch(() => null);

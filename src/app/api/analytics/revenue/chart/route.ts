@@ -2,8 +2,11 @@ import {NextResponse} from 'next/server';
 import {db} from '@/lib/db';
 import {transaksi} from '@/lib/schema';
 import {eq, sql, gte, and} from 'drizzle-orm';
+import {requireAdminRoleOrResponse} from '@/lib/admin-actor';
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
   try {
     const days = 7;
     const data: { date: string; revenue: number; orders: number }[] = [];

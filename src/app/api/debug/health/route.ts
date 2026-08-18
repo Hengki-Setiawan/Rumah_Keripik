@@ -2,8 +2,12 @@ import { createClient } from '@libsql/client';
 import { NextResponse } from 'next/server';
 import { getTelegramWebhookInfo } from '@/lib/telegram-bot';
 import { resolvePublicBaseUrl } from '@/lib/public-url';
+import { requireAdminRoleOrResponse } from '@/lib/admin-actor';
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
+
   const env = {
     tursoUrl: Boolean(process.env.TURSO_DATABASE_URL),
     tursoToken: Boolean(process.env.TURSO_AUTH_TOKEN),

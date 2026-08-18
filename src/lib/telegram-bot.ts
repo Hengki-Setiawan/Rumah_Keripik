@@ -1,5 +1,15 @@
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 
+import { createHash, timingSafeEqual } from 'crypto'
+
+export function telegramWebhookSecretMatches(value: string | null): boolean {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET
+  if (!secret || !value) return false
+  const a = createHash('sha256').update(value).digest()
+  const b = createHash('sha256').update(secret).digest()
+  return timingSafeEqual(a, b)
+}
+
 interface TelegramMessage {
   message_id: number
   chat: { id: number; type: string }
@@ -19,10 +29,11 @@ export async function sendTelegramMessage(chatId: number | string, text: string)
 }
 
 export async function setTelegramWebhook(url: string): Promise<boolean> {
+  const secretToken = process.env.TELEGRAM_WEBHOOK_SECRET
   const res = await fetch(`${TELEGRAM_API}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, allowed_updates: ['message'] }),
+    body: JSON.stringify({ url, allowed_updates: ['message'], ...(secretToken ? { secret_token: secretToken } : {}) }),
   })
   return res.ok
 }

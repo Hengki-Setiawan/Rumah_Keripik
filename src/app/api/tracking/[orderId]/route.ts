@@ -1,4 +1,5 @@
 ;
+import {NextResponse} from 'next/server';
 import {db} from '@/lib/db';
 import {trackingEvents, deliveryAssignment, couriers, transaksi} from '@/lib/schema';
 import {eq, desc, and} from 'drizzle-orm';
@@ -8,6 +9,21 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request, { params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
+
+  const url = new URL(req.url);
+  const token = url.searchParams.get('token');
+
+  const [order] = await db
+    .select({ status_token: transaksi.status_token })
+    .from(transaksi)
+    .where(eq(transaksi.id_transaksi, orderId))
+    .limit(1)
+    .catch(() => []);
+
+  if (!order || !order.status_token || !token || token !== order.status_token) {
+    return NextResponse.json({ ok: false, error: 'Verifikasi pesanan tidak valid' }, { status: 403 });
+  }
+
   const encoder = new TextEncoder();
   let closed = false;
 

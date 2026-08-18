@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { courierSessions, courierEarnings } from '@/lib/schema';
 import { sql, gte } from 'drizzle-orm';
+import { adminAuthErrorResponse, requireAdminRole } from '@/lib/admin-actor';
 
 export async function GET() {
   try {
+    await requireAdminRole('courier:manage');
     const now = new Date();
     const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
     const [onlineRow] = await db
@@ -28,6 +30,9 @@ export async function GET() {
       couriers: couriers.map((c) => ({ id: c.courierId, name: c.courierId, queueSize: 0, lastSyncAt: '', status: 'unknown' })),
     });
   } catch (error) {
+    const authResponse = adminAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    console.error('[ADMIN_SYNC_HEALTH]', error);
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { transaksi, detailTransaksi, produk, chatLog, ratingPelanggan } from '@/lib/schema';
 import { eq, and, sql, gte, desc } from 'drizzle-orm';
+import { requireAdminRoleOrResponse } from '@/lib/admin-actor';
 
 const BUSINESS_TIME_ZONE = 'Asia/Makassar';
 
@@ -46,6 +47,8 @@ function getDayRangeInUtc(timeZone: string, daysFromToday = 0) {
 
 export async function GET() {
   try {
+    const denied = await requireAdminRoleOrResponse('audit:read');
+    if (denied) return denied;
     const todayRange = getDayRangeInUtc(BUSINESS_TIME_ZONE, 0);
     const yesterdayRange = getDayRangeInUtc(BUSINESS_TIME_ZONE, -1);
     const todayStart = todayRange.start;

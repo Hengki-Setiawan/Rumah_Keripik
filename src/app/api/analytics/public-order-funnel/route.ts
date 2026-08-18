@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { count, gte } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { orderEvents } from '@/lib/schema';
+import { requireAdminRoleOrResponse } from '@/lib/admin-actor';
 
 const FUNNEL_EVENTS = [
   'WEB_SESSION_CREATED',
@@ -17,6 +18,8 @@ const FUNNEL_EVENTS = [
 ] as const;
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
   const rows = await db
     .select({ eventType: orderEvents.event_type, total: count() })

@@ -36,6 +36,7 @@ export async function GET(req: Request) {
 
   const tokenCookie = (await cookies()).get('rk_order_session')?.value;
   let recentOrders: Array<{ kode_pesanan: string; total_bayar: number; waktu_simpan: string; order_status: string }> = [];
+  let sessionOwned = false;
 
   if (tokenCookie) {
     const [session] = await db
@@ -82,8 +83,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: 'Pesanan tidak ditemukan' }, { status: 404 });
   }
 
-  // Verifikasi hanya dijalankan jika user secara eksplisit memberikan phone atau token
-  if (phone || token) {
+  if (order.id_session) {
+    const [session] = await db
+      .select({ id_session: webOrderSession.id_session })
+      .from(webOrderSession)
+      .where(eq(webOrderSession.anonymous_token, tokenCookie ?? ''))
+      .limit(1);
+    sessionOwned = Boolean(session && order.id_session === session.id_session);
+  }
+
+  // Verifikasi wajib: pemilik sesi web, phone, atau token
+  if (!sessionOwned) {
     const normalizedPhone = phone ? normalizePhoneNumber(phone) : null;
     const tokenMatches = Boolean(order.status_token && token && token === order.status_token);
     const phoneMatches = Boolean(

@@ -2,15 +2,23 @@ import {NextRequest, NextResponse} from 'next/server'
 import {db} from '@/lib/db'
 import {pelangganChatbot, pesanChat} from '@/lib/schema'
 import {eq, sql} from 'drizzle-orm'
-import {sendTelegramMessage, parseTelegramPayload, setTelegramWebhook, getTelegramWebhookInfo} from '@/lib/telegram-bot'
+import {sendTelegramMessage, parseTelegramPayload, setTelegramWebhook, getTelegramWebhookInfo, telegramWebhookSecretMatches} from '@/lib/telegram-bot'
 import {formatTelegramChatId} from '@/lib/utils'
 
 
 
 
 import {resolvePublicBaseUrl} from '@/lib/public-url'
+import {requireAdminRoleOrResponse} from '@/lib/admin-actor'
 
 export async function POST(req: NextRequest) {
+  if (!telegramWebhookSecretMatches(req.headers.get('x-telegram-bot-api-secret-token'))) {
+    return NextResponse.json(
+      { ok: false, error: process.env.TELEGRAM_WEBHOOK_SECRET ? 'Webhook tidak sah' : 'TELEGRAM_WEBHOOK_SECRET belum dikonfigurasi' },
+      { status: process.env.TELEGRAM_WEBHOOK_SECRET ? 403 : 503 }
+    )
+  }
+
   const body = await req.json()
 
   const parsed = parseTelegramPayload(body)
@@ -86,6 +94,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await requireAdminRoleOrResponse('chat:manage')
+  if (denied) return denied
+
   const url = new URL(req.url)
   const setup = url.searchParams.get('setup')
 

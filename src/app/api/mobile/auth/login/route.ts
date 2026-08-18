@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { pelangganChatbot } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
+import { checkRateLimit, getClientIp, isRateLimited } from '@/lib/rate-limit';
 
 const MobileLoginSchema = z.object({
   phone: z.string().min(10).max(20).regex(/^62\d+/),
@@ -15,6 +16,12 @@ const MobileLoginSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const clientIp = getClientIp(req);
+    const overall = await checkRateLimit(`mobile-login-ip:${clientIp}`, 20, 60_000);
+    if (!overall.ok) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan login. Coba lagi nanti.' }, { status: 429 });
+    }
+
     const body = MobileLoginSchema.safeParse(await req.json());
     if (!body.success) {
       return NextResponse.json({ ok: false, error: 'Data tidak valid', details: body.error.flatten() }, { status: 400 });
@@ -22,13 +29,29 @@ export async function POST(req: Request) {
 
     const { phone, pin, register, name } = body.data;
 
+    const attemptLimit = await checkRateLimit(`mobile-login-phone:${phone}`, 10, 60_000);
+    if (!attemptLimit.ok) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak percobaan untuk nomor ini. Coba lagi nanti.' }, { status: 429 });
+    }
+
+    const failureBlocked = await isRateLimited(`mobile-login-failures:${phone}`, 5);
+    if (failureBlocked) {
+      return NextResponse.json({ ok: false, error: 'Terlalu banyak kegagalan. Akses diblokir sementara 5 menit.' }, { status: 429 });
+    }
+
     const [existing] = await db.select().from(pelangganChatbot).where(eq(pelangganChatbot.no_wa_pelanggan, phone)).limit(1);
 
     if (register && !existing) {
       if (!name) {
         return NextResponse.json({ ok: false, error: 'Nama diperlukan untuk registrasi' }, { status: 400 });
       }
-      const hashedPin = await bcrypt.hash(pin || phone.slice(-4), 10);
+      if (!pin) {
+        return NextResponse.json({ ok: false, error: 'PIN 4 digit wajib dibuat saat registrasi' }, { status: 400 });
+      }
+      if (pin === phone.slice(-4)) {
+        return NextResponse.json({ ok: false, error: 'PIN tidak boleh sama dengan 4 digit terakhir nomor HP' }, { status: 400 });
+      }
+      const hashedPin = await bcrypt.hash(pin, 10);
       await db.insert(pelangganChatbot).values({
         no_wa_pelanggan: phone,
         nama_pelanggan: name,
@@ -38,6 +61,7 @@ export async function POST(req: Request) {
     } else if (register && existing) {
       return NextResponse.json({ ok: false, error: 'Nomor sudah terdaftar' }, { status: 409 });
     } else if (!existing) {
+      await checkRateLimit(`mobile-login-failures:${phone}`, 5, 300_000);
       return NextResponse.json({ ok: false, error: 'Nomor tidak terdaftar' }, { status: 401, statusText: 'Nomor tidak terdaftar' });
     }
 
@@ -56,6 +80,7 @@ export async function POST(req: Request) {
     } else {
       const pinMatch = await bcrypt.compare(pin, customer.pin_hash);
       if (!pinMatch) {
+        await checkRateLimit(`mobile-login-failures:${phone}`, 5, 300_000);
         return NextResponse.json({ ok: false, error: 'PIN salah' }, { status: 401 });
       }
     }

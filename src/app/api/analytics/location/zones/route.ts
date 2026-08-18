@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient, type Row } from '@libsql/client';
+import { requireAdminRoleOrResponse } from '@/lib/admin-actor';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,8 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 }
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
   try {
     const client = createClient({
       url: process.env.TURSO_DATABASE_URL!,

@@ -1,7 +1,11 @@
 import {NextResponse} from 'next/server';
+import {requireAdminRoleOrResponse} from '@/lib/admin-actor';
 ;
 
 export async function GET() {
+  const denied = await requireAdminRoleOrResponse('audit:read');
+  if (denied) return denied;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     env: {
