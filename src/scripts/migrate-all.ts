@@ -25,6 +25,7 @@ const commands: Array<[string, string[]]> = [
   ['npm', ['run', 'db:migrate:v25']],
   ['npm', ['run', 'db:migrate:v26']],
   ['npm', ['run', 'db:migrate:v27']],
+  ['npm', ['run', 'db:migrate:v28']],
 ];
 
 for (const [cmd, args] of commands) {

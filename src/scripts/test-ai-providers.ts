@@ -35,13 +35,13 @@ async function main() {
 
   // 1. Gemini
   if (process.env.GEMINI_API_KEY) {
-    results.push(await testProvider('Gemini 2.0 Flash', async () => {
+    results.push(await testProvider('Gemini 3.5 Flash Lite', async () => {
       return generateGeminiText(
         [{ role: 'user', content: 'Say "Gemini OK"' }],
         15,
         0,
         'Jawab singkat.',
-        'gemini-2.5-flash'
+        'gemini-3.5-flash-lite'
       );
     }));
   } else {
@@ -78,7 +78,7 @@ async function main() {
 
   // 3. Groq
   if (process.env.GROQ_API_KEY) {
-    results.push(await testProvider('Groq 8B', async () => {
+    results.push(await testProvider('Groq GPT-OSS', async () => {
       const res = await callGroqLLM(
         [{ role: 'user', content: 'Say "Groq OK"' }],
         15,
