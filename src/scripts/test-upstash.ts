@@ -90,7 +90,7 @@ async function main() {
   // 4. Test Redis GEO distance (Makassar coordinates)
   console.log('\n[4] Testing Redis GEO Calculation...');
   try {
-    const dist = await redis.geodist('courier:geo', '991', '992', 'km');
+    const dist = await redis.geodist('courier:geo', '991', '992', 'KM');
     console.log(`✅ Jarak GPS Kurir #991 ke #992 via Redis GEO: ${dist} km`);
   } catch (err) {
     console.log('GEO Dist info:', err);
