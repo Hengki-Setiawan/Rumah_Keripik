@@ -2074,3 +2074,15 @@ export const adminNotifications = sqliteTable('admin_notifications', {
 export type AdminNotification = typeof adminNotifications.$inferSelect;
 export type InsertAdminNotification = typeof adminNotifications.$inferInsert;
 
+// ─── TELEGRAM ADMIN NOTIFICATION RECIPIENTS ─────────────────────────────────
+export const telegramAdminChats = sqliteTable('telegram_admin_chats', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  chatId: text('chat_id').notNull().unique(),
+  nama: text('nama'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now', 'utc'))`),
+});
+
+export type TelegramAdminChat = typeof telegramAdminChats.$inferSelect;
+export type InsertTelegramAdminChat = typeof telegramAdminChats.$inferInsert;
+
