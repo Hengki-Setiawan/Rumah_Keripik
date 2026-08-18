@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
       "lucide-react",
       "recharts",
       "motion",
-      "framer-motion",
       "@base-ui/react",
     ],
   },
