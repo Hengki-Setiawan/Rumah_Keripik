@@ -1,6 +1,10 @@
 import { spawnSync } from 'child_process';
 
 const commands: Array<[string, string[]]> = [
+  // Baseline schema (drizzle journal 0000) lalu migrasi runtime berurutan.
+  // `db:migrate` (drizzle-kit migrate) no-op jika sudah pernah diterapkan.
+  ['npm', ['run', 'db:migrate']],
+  ['npm', ['run', 'db:migrate:v2']],
   ['npm', ['run', 'db:migrate:v3']],
   ['npm', ['run', 'db:migrate:v4']],
   ['npm', ['run', 'db:migrate:v5']],
@@ -26,6 +30,7 @@ const commands: Array<[string, string[]]> = [
   ['npm', ['run', 'db:migrate:v26']],
   ['npm', ['run', 'db:migrate:v27']],
   ['npm', ['run', 'db:migrate:v28']],
+  ['npm', ['run', 'db:migrate:v29']],
 ];
 
 for (const [cmd, args] of commands) {

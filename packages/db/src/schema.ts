@@ -1495,7 +1495,6 @@ export const expoPushTokens = sqliteTable(
   },
   (table) => ({
     customerIdx: index('idx_expo_push_customer').on(table.customerId),
-    tokenIdx: unique('idx_expo_push_token').on(table.token),
     courierIdx: index('idx_expo_push_courier').on(table.courierId),
   })
 );
@@ -2050,7 +2049,6 @@ export const courierKpiDaily = sqliteTable('courier_kpi_daily', {
   totalEarnings: integer('total_earnings').notNull().default(0),
   computedAt: text('computed_at').notNull().default(sql`(datetime('now', 'utc'))`),
 }, (table) => ({
-  kpiCourierDateIdx: index('idx_kpi_courier_date').on(table.courierId, table.kpiDate),
   kpiUnique: uniqueIndex('idx_kpi_courier_date_unique').on(table.courierId, table.kpiDate),
 }));
 
