@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { couriers, deliveryAssignment, deliveryEvents, transaksi } from '@/lib/schema';
 import { sendCourierPushNotification, sendOrderPushNotification } from '@/lib/expo-push';
@@ -16,9 +16,11 @@ type DispatchResult = {
 };
 
 // Auto-dispatch: order yang sudah siap kirim (payment verified / COD approved →
-// order_status='processing') TAPI belum punya delivery_assignment, otomatis
-// ditugaskan ke kurir aktif terdekat dengan beban pengiriman terendah.
+// order_status='processing' ATAU 'shipping') TAPI belum punya delivery_assignment,
+// otomatis ditugaskan ke kurir aktif terdekat dengan beban pengiriman terendah.
 // Beban = jumlah deliveryAssignment aktif (Siap_Dikirim + Dalam_Pengiriman).
+// 'shipping' ikut di-scan agar order yang sudah ditandai kirim tapi belum ter-assign
+// (mis. admin-set status) tidak tersangkut selamanya tanpa kurir.
 export async function autoDispatchReadyOrders(): Promise<DispatchResult> {
   const result: DispatchResult = { scanned: 0, assigned: 0, skippedNoCourier: 0, skippedNoCoord: 0 };
 
@@ -34,7 +36,7 @@ export async function autoDispatchReadyOrders(): Promise<DispatchResult> {
     .from(transaksi)
     .leftJoin(deliveryAssignment, eq(deliveryAssignment.id_transaksi, transaksi.id_transaksi))
     .where(and(
-      eq(transaksi.order_status, 'processing'),
+      inArray(transaksi.order_status, ['processing', 'shipping']),
       isNull(deliveryAssignment.id_transaksi),
       // Skip pesanan yang sudah masuk jalur (sistem jalur) — kurir harus memilih
       // jalurnya, bukan di-assign per-pesanan. Unique (route_date, id_transaksi).

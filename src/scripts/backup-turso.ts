@@ -112,9 +112,43 @@ async function dumpDatabase(): Promise<void> {
   console.log(`Backup metadata written: ${metaPath}`);
   console.log(`SQL backup written: ${sqlPath}`);
   console.log(`Tables: ${tablesResult.rows.length}, rows: ${totalRows}, size: ${fs.statSync(sqlPath).size} bytes`);
+
+  const oldBackups = fs
+    .readdirSync(backupDir)
+    .filter((f) => /^backup-.*\.sql$/.test(f))
+    .sort()
+    .reverse();
+  for (const f of oldBackups.slice(7)) {
+    fs.unlinkSync(path.join(backupDir, f));
+    const meta = f.replace(/\.sql$/, '.json');
+    if (fs.existsSync(path.join(backupDir, meta))) fs.unlinkSync(path.join(backupDir, meta));
+    console.log(`pruned: ${f}`);
+  }
 }
 
-dumpDatabase().catch((error) => {
-  console.error('Backup failed:', error);
-  process.exit(1);
+// @libsql client mem-probe schema saat koneksi pertama (getIsSchemaDatabase);
+// bila jaringan ke Turso timeout, probe ini melempar rejection async yang
+// TIDAK ter-catch oleh promise utama. Jaringannya: jangan sampai proses mati.
+process.on('unhandledRejection', (reason) => {
+  console.error('[backup] unhandledRejection (schema-probe/network):', reason);
 });
+
+async function main() {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      await dumpDatabase();
+      return;
+    } catch (err) {
+      const isLast = attempt === MAX_ATTEMPTS;
+      console.error(`[backup] attempt ${attempt}/${MAX_ATTEMPTS} gagal:`, (err as Error).message);
+      if (isLast) {
+        console.error('[backup] SEMUA attempt gagal.');
+        process.exit(1);
+      }
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+}
+
+main();
