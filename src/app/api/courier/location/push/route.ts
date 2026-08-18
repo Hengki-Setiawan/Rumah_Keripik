@@ -5,6 +5,8 @@ import {eq} from 'drizzle-orm';
 import {requireCourierAuth} from '@/lib/courier-auth';
 import {z} from 'zod';
 
+import { cacheCourierLocation } from '@/lib/redis';
+
 const LocationPushSchema = z.object({
   orderId: z.string(),
   lat: z.string(),
@@ -25,6 +27,16 @@ export async function POST(req: Request) {
     }
 
     const { orderId, lat, lng, etaMinutes } = body.data;
+    const now = new Date().toISOString();
+
+    // Cache to Upstash Redis
+    void cacheCourierLocation({
+      courierId: courier.id,
+      lat,
+      lng,
+      recordedAt: now,
+      orderId,
+    }).catch(() => undefined);
 
     await db.insert(trackingEvents).values({
       orderId,
@@ -38,7 +50,7 @@ export async function POST(req: Request) {
     await db.update(couriers).set({
       last_lat: lat,
       last_lng: lng,
-      last_location_at: new Date().toISOString(),
+      last_location_at: now,
     }).where(eq(couriers.id, courier.id));
 
     return NextResponse.json({ ok: true });
