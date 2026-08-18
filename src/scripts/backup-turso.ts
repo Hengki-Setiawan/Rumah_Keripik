@@ -126,7 +126,29 @@ async function dumpDatabase(): Promise<void> {
   }
 }
 
-dumpDatabase().catch((error) => {
-  console.error('Backup failed:', error);
-  process.exit(1);
+// @libsql client mem-probe schema saat koneksi pertama (getIsSchemaDatabase);
+// bila jaringan ke Turso timeout, probe ini melempar rejection async yang
+// TIDAK ter-catch oleh promise utama. Jaringannya: jangan sampai proses mati.
+process.on('unhandledRejection', (reason) => {
+  console.error('[backup] unhandledRejection (schema-probe/network):', reason);
 });
+
+async function main() {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      await dumpDatabase();
+      return;
+    } catch (err) {
+      const isLast = attempt === MAX_ATTEMPTS;
+      console.error(`[backup] attempt ${attempt}/${MAX_ATTEMPTS} gagal:`, (err as Error).message);
+      if (isLast) {
+        console.error('[backup] SEMUA attempt gagal.');
+        process.exit(1);
+      }
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+}
+
+main();
