@@ -60,6 +60,7 @@
         "db:migrate:v2": "tsx src/scripts/migrate-v2.ts",
         "db:migrate:v28": "tsx src/scripts/migrate-v28-indexes.ts",
         "db:migrate:v29": "tsx src/scripts/migrate-v29-schema-sync.ts",
+        "db:migrate:v30": "tsx src/scripts/migrate-v30-telegram-admin-chats.ts",
         "db:migrate:warehouse": "tsx src/scripts/migrate-update-warehouse.ts",
         "db:drill-restore": "tsx src/scripts/drill-restore.ts",
         "db:migrate:all": "tsx src/scripts/migrate-all.ts",
@@ -129,3 +130,5 @@
         "typescript": "^5"
     }
 }
+
+

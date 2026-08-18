@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { verifyCourierAuth } from '@/lib/courier/auth';
 import { couriers } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
+import { pushTelegramAdminNotification } from '@/lib/telegram-admin';
 
 const IncidentSchema = z.object({
   type: z.enum(['kecelakaan', 'kendaraan_mogok', 'cuaca_ekstrem', 'keamanan', 'kesehatan', 'lainnya']),
@@ -93,6 +94,14 @@ export async function POST(req: Request) {
     } catch {
       // Fallback if table doesn't exist
     }
+
+    const severityLabel = body.severity === 'emergency' ? '🚨 EMERGENCY' : body.severity === 'high' ? '⚠️ TINGGI' : body.severity === 'low' ? 'Ringan' : 'Sedang';
+    pushTelegramAdminNotification({
+      title: `${severityLabel} Insiden Kurir`,
+      body: `Jenis: ${body.type}\nKurir: ${courier?.name ?? '-'}\n${body.description ? `Deskripsi: ${body.description}` : ''}\n${body.lat && body.lng ? `Lokasi: https://maps.google.com/?q=${body.lat},${body.lng}` : ''}`,
+      dedupeKey: `sos:${auth.courierId}:${Date.now()}`,
+      actions: [{ text: 'Lihat SOS', url: `${process.env.NEXTAUTH_URL || ''}/sos` }],
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true, data: { message: 'Incident reported' } });
   } catch (error) {

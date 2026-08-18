@@ -24,6 +24,8 @@ import { buildPaymentInstructionPayload, generatePaymentIntentId } from '@/lib/p
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
 import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
 import { resolveOrderCoordinates } from '@/lib/geocoding';
+import { pushTelegramAdminNotification } from '@/lib/telegram-admin';
+import { resolvePublicBaseUrl } from '@/lib/public-url';
 
 export type CreateChatOrderInput = {
   chatSessionId: string;
@@ -282,6 +284,13 @@ export async function createOrderFromChatCart(input: CreateChatOrderInput) {
     if (updatedSession) {
       await tx.update(customerSessions).set({ customerId: customer.idCustomer, lastSeenAt: sql`(datetime('now', 'utc'))` }).where(eq(customerSessions.id, updatedSession.customerSessionId));
     }
+
+    pushTelegramAdminNotification({
+      title: '🛒 Order Baru (Chat)',
+      body: `Kode: ${kodePesanan}\nNama: ${input.customer.name}\nTotal: Rp ${totalBayar.toLocaleString('id-ID')}\nMetode: ${configuredMethod.label}\nStatus: ${statusPembayaran === 'Menunggu_Verifikasi' ? 'Perlu verifikasi admin' : 'Menunggu pembayaran'}`,
+      dedupeKey: `order:${idTransaksi}`,
+      actions: [{ text: 'Buka Transaksi', url: `${resolvePublicBaseUrl()}/transaksi` }],
+    }).catch(() => {});
 
     return {
       idTransaksi,

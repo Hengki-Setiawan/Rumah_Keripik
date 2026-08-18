@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { adminNotifications } from '@/lib/schema';
 import { desc, eq, sql } from 'drizzle-orm';
+import { pushTelegramAdminNotification } from '@/lib/telegram-admin';
 
 export type AdminNotifCategory = 'stock' | 'payment' | 'dispatch' | 'delivery' | 'system' | 'order';
 
@@ -17,6 +18,15 @@ export async function createAdminNotification(input: {
       body: input.body ?? null,
       metaJson: input.metaJson ? JSON.stringify(input.metaJson) : null,
     });
+    pushTelegramAdminNotification({
+      title: `🔔 ${input.title}`,
+      body: input.body,
+      dedupeKey: input.title,
+      actions:
+        input.metaJson?.href && typeof input.metaJson.href === 'string'
+          ? [{ text: 'Buka di Dashboard', url: input.metaJson.href }]
+          : undefined,
+    }).catch(() => {});
     return true;
   } catch (err) {
     console.error('[AdminNotification] create failed:', err);

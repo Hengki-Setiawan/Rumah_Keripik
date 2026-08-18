@@ -24,6 +24,8 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { resolveCustomerByPhone } from '@/lib/customer-resolver';
 import { setupOrderPaymentAfterCreate } from '@/lib/payments/order-payment-setup';
 import { resolveOrderCoordinates } from '@/lib/geocoding';
+import { pushTelegramAdminNotification } from '@/lib/telegram-admin';
+import { resolvePublicBaseUrl } from '@/lib/public-url';
 
 export const runtime = 'nodejs';
 
@@ -342,6 +344,13 @@ export async function POST(req: Request) {
       method: result.method,
       items: result.items,
     });
+
+    pushTelegramAdminNotification({
+      title: '🛒 Order Baru (Web)',
+      body: `Kode: ${result.kodePesanan}\nNama: ${result.customer.name}\nTotal: Rp ${result.totalBayar.toLocaleString('id-ID')}\nMetode: ${result.method?.label ?? ''}\nStatus: ${result.statusPembayaran === 'Menunggu_Verifikasi' ? 'Perlu verifikasi admin' : 'Menunggu pembayaran'}`,
+      dedupeKey: `order:${result.idTransaksi}`,
+      actions: [{ text: 'Buka Transaksi', url: `${resolvePublicBaseUrl()}/transaksi` }],
+    }).catch(() => {});
 
     const response = NextResponse.json({
       ok: true,

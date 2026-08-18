@@ -29,7 +29,7 @@ interface AdminNotificationItem {
 const coreMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/transaksi', label: 'Transaksi', icon: ShoppingCart, activeHrefs: ['/transaksi', '/pembayaran'] },
-  { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat'] },
+  { href: '/hub-komunikasi', label: 'Komunikasi', icon: MessageSquare, activeHrefs: ['/hub-komunikasi', '/livechat', '/telegram-bot'] },
   { href: '/master-data/produk', label: 'Produk', icon: Package },
   { href: '/master-data/pelanggan', label: 'Pelanggan & Mitra', icon: Users },
   { href: '/kurir', label: 'Kurir', icon: Truck, activeHrefs: ['/kurir', '/kurir/live', '/kurir/assign', '/kurir/payroll', '/kurir/performa', '/kurir/zona', '/kurir/riwayat', '/kurir/rute', '/kurir/kendaraan', '/kurir/analitik'] },
