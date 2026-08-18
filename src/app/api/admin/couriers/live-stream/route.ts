@@ -3,6 +3,8 @@ import { couriers } from '@/lib/schema';
 import { desc } from 'drizzle-orm';
 import { requireAdminRole } from '@/lib/admin-actor';
 
+import { getAllCachedCourierLocations } from '@/lib/redis';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -23,21 +25,28 @@ export async function GET(req: Request) {
   let closed = false;
 
   async function fetchSnapshot() {
-    const rows = await db
-      .select()
-      .from(couriers)
-      .orderBy(desc(couriers.created_at));
+    const [rows, redisCache] = await Promise.all([
+      db.select().from(couriers).orderBy(desc(couriers.created_at)),
+      getAllCachedCourierLocations().catch(() => new Map()),
+    ]);
 
-    return rows.map((c) => ({
-      id: c.id,
-      name: c.name,
-      phone: c.phone,
-      vehicle: c.vehicle,
-      last_lat: c.last_lat,
-      last_lng: c.last_lng,
-      last_location_at: c.last_location_at,
-      is_active: c.is_active === 1,
-    }));
+    return rows.map((c) => {
+      const cached = redisCache.get(c.id);
+      const last_lat = cached ? cached.lat : c.last_lat;
+      const last_lng = cached ? cached.lng : c.last_lng;
+      const last_location_at = cached ? cached.recordedAt : c.last_location_at;
+
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        vehicle: c.vehicle,
+        last_lat,
+        last_lng,
+        last_location_at,
+        is_active: c.is_active === 1,
+      };
+    });
   }
 
   const stream = new ReadableStream({
@@ -50,16 +59,23 @@ export async function GET(req: Request) {
 
       await push().catch(() => {});
       const timer = setInterval(() => push().catch(() => {}), PUSH_INTERVAL_MS);
+      const pingTimer = setInterval(() => {
+        if (!closed) {
+          try { controller.enqueue(encoder.encode(': ping\n\n')); } catch { closed = true; }
+        }
+      }, 15_000);
 
       const timeout = setTimeout(() => {
         closed = true;
         clearInterval(timer);
+        clearInterval(pingTimer);
         controller.close();
       }, MAX_AGE_MS);
 
       req.signal.addEventListener('abort', () => {
         closed = true;
         clearInterval(timer);
+        clearInterval(pingTimer);
         clearTimeout(timeout);
         controller.close();
       });

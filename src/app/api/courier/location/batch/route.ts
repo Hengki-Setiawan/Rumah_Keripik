@@ -5,6 +5,8 @@ import { requireCourierAuth } from '@/lib/courier-auth';
 import { CourierLocationBatchSchema } from '@/lib/courier-types';
 import { eq } from 'drizzle-orm';
 
+import { cacheCourierLocation } from '@/lib/redis';
+
 export async function POST(request: Request) {
   try {
     const courier = await requireCourierAuth(request);
@@ -20,6 +22,16 @@ export async function POST(request: Request) {
 
     const lastLocation = parsed.data.locations[parsed.data.locations.length - 1];
     const now = new Date().toISOString();
+
+    // Cache to Upstash Redis
+    void cacheCourierLocation({
+      courierId: courier.id,
+      lat: String(lastLocation.lat),
+      lng: String(lastLocation.lng),
+      recordedAt: new Date(lastLocation.timestamp).toISOString(),
+      speed: lastLocation.speed ?? null,
+      accuracy: lastLocation.accuracy ?? null,
+    }).catch(() => undefined);
 
     await db
       .update(couriers)
