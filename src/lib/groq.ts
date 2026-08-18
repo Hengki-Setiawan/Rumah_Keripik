@@ -1,7 +1,7 @@
 /**
  * Groq LLM Client dengan fallback chain
- * Primary: llama-3.3-70b-versatile
- * Fallback 1: llama-3.1-8b-instant
+ * Primary: openai/gpt-oss-20b
+ * Fallback 1: qwen/qwen3.6-27b
  * Fallback 2: Gemini (jika diperlukan)
  */
 
@@ -12,7 +12,7 @@ interface Message {
 
 interface LLMResult {
   text: string;
-  provider: 'groq-70b' | 'groq-8b' | 'gemini';
+  provider: 'groq-20b' | 'groq-27b' | 'gemini';
   model?: string;
   tokensUsed?: number;
 }
@@ -20,12 +20,12 @@ interface LLMResult {
 // Model chain untuk fallback
 const GROQ_CHAIN = [
   {
-    model: 'llama-3.3-70b-versatile',
-    label: 'LLaMA 3.3 70b',
+    model: 'openai/gpt-oss-20b',
+    label: 'GPT-OSS 20b',
   },
   {
-    model: 'llama-3.1-8b-instant',
-    label: 'LLaMA 3.1 8b',
+    model: 'qwen/qwen3.6-27b',
+    label: 'Qwen 3.6 27b',
   },
 ];
 
@@ -106,7 +106,7 @@ export async function callGroqLLM(
 
       return {
         text,
-        provider: i === 0 ? 'groq-70b' : 'groq-8b',
+        provider: i === 0 ? 'groq-20b' : 'groq-27b',
         model: modelConfig.model,
         tokensUsed: data.usage?.total_tokens,
       };

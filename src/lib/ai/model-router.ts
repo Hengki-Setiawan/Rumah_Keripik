@@ -18,8 +18,8 @@ import type { AIModelTaskConfig, AITask, AIProviderConfig, GenerateTextInput, Ge
 export const defaultProviderConfigs: AIProviderConfig[] = [
   { id: 'deterministic', name: 'deterministic', enabled: true, apiKeyEnv: '', defaultModel: 'template', supportsToolCalling: false, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 180, priority: 99 },
   { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'gemma-4-31b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
-  { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'llama-3.3/3.1 fallback chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
-  { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-2.5-flash-lite', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
+  { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'gpt-oss-20b / qwen3.6-27b chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
+  { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-3.5-flash-lite', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
   { id: 'qwen', name: 'qwen', enabled: false, baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', apiKeyEnv: 'QWEN_API_KEY', defaultModel: 'qwen-plus', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 4 },
   { id: 'ollama', name: 'ollama', enabled: false, baseUrl: 'http://localhost:11434/v1', apiKeyEnv: 'OLLAMA_API_KEY', defaultModel: 'qwen3', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 5 },
 ];
@@ -181,7 +181,7 @@ export async function generateTextWithRouter(input: GenerateTextInput): Promise<
         return routed;
       }
       if (provider.name === 'gemini') {
-        const routed = await generateGeminiText(sanitizedMessages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-2.5-flash');
+        const routed = await generateGeminiText(sanitizedMessages, maxTokens, temperature, input.systemPrompt, provider.defaultModel || 'gemini-3.5-flash-lite');
         await logRun(id, input, routed, Date.now() - started, 'success');
         recordSuccess(providerId);
         recordBandit(input.task, providerId, true, 'success', Date.now() - attemptStarted, providerOrder);
