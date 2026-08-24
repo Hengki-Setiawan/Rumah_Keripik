@@ -9,11 +9,11 @@ export async function GET() {
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     env: {
-      TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ?? 'MISSING',
-      TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'ada (' + process.env.TURSO_AUTH_TOKEN.slice(0, 20) + '...)' : 'MISSING',
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? 'MISSING',
+      TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? 'ada' : 'MISSING',
+      TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'ada' : 'MISSING',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'ada' : 'MISSING',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'ada' : 'MISSING',
-      ADMIN_USERNAME: process.env.ADMIN_USERNAME ?? 'MISSING',
+      ADMIN_USERNAME: process.env.ADMIN_USERNAME ? 'ada' : 'MISSING',
       ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ? 'ada' : 'MISSING',
     },
     tables: {} as Record<string, unknown>,
