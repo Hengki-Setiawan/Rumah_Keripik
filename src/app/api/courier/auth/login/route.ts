@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { couriers, courierSessions } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
-import { signAccessToken, signRefreshToken, generateRefreshTokenId } from '@/lib/auth-jwt';
+import { signAccessToken, signRefreshToken, generateRefreshTokenId, sha256Hex } from '@/lib/auth-jwt';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 const LoginSchema = z.object({
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
     await db.insert(courierSessions).values({
       courierId: courier.id,
-      token: refreshToken,
+      token: sha256Hex(refreshToken),
       device_id: deviceId || null,
       is_active: true,
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),

@@ -55,6 +55,18 @@ export function generateRefreshTokenId(): string {
   return `RFT-${randomBytes(16).toString('hex')}`;
 }
 
+import { createHash, timingSafeEqual } from 'crypto';
+
+export function sha256Hex(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+export function timingSafeEqualStr(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest();
+  const hb = createHash('sha256').update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
 export interface AuthResult {
   authenticated: boolean;
   payload: RumahKeripikJWT | null;

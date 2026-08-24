@@ -1,3 +1,5 @@
+import { timingSafeEqualStr } from '@/lib/auth-jwt';
+
 export function validateCronRequest(req: Request) {
   const configuredSecret = process.env.CRON_SECRET;
   if (process.env.NODE_ENV === 'production' && !configuredSecret) {
@@ -5,11 +7,11 @@ export function validateCronRequest(req: Request) {
   }
   if (!configuredSecret) return { ok: true };
 
-  const auth = req.headers.get('authorization');
-  const querySecret = new URL(req.url).searchParams.get('secret');
-  const validHeader = auth === `Bearer ${configuredSecret}`;
-  const validQuery = querySecret === configuredSecret;
-  if (!validHeader && !validQuery) return { ok: false, status: 401, error: 'Unauthorized' };
+  // Hanya terima header Authorization (Vercel Cron & cron-job.org keduanya memakai Bearer).
+  // Jalur query-param ?secret= dihapus: nilai bisa bocor ke access log.
+  const auth = req.headers.get('authorization') ?? '';
+  const validHeader = timingSafeEqualStr(auth, `Bearer ${configuredSecret}`);
+  if (!validHeader) return { ok: false, status: 401, error: 'Unauthorized' };
 
   return { ok: true };
 }
