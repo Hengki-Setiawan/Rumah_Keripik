@@ -50,3 +50,8 @@ next-env.d.ts
 
 # Build logs (hasil verifikasi lokal, bukan artefak repo)
 build-fase*.log
+dev-kripik.log
+
+# Private session notes & local test DB (jangan pernah commit)
+/_ctx/
+/tmp/
