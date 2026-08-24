@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const cookieStore = await cookies();
   const owned =
     Boolean(order.status_token && token && token === order.status_token) ||
-    (async () => {
+    (await (async () => {
       const orderToken = cookieStore.get('rk_order_session')?.value;
       if (orderToken && order.id_session) {
         const [orderSession] = await db
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         if (session?.customerId === order.id_customer) return true;
       }
       return false;
-    })();
+    })());
 
   if (!owned) {
     return NextResponse.json({ ok: false, error: 'Order bukan milik sesi ini' }, { status: 403 });
