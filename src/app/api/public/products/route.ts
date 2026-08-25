@@ -6,11 +6,13 @@ import { getProductImageUrl } from '@/lib/cloudinary-url';
 import { formatRupiah } from '@/lib/utils';
 import { getCachedData, setCachedData } from '@/lib/redis-cache';
 
+const CDN_CACHE_CONTROL = 'public, s-maxage=300, stale-while-revalidate=3600';
+
 export async function GET() {
   const cacheKey = 'public_products_list';
   const cached = await getCachedData<any[]>(cacheKey);
   if (cached) {
-    return NextResponse.json({ ok: true, products: cached });
+    return NextResponse.json({ ok: true, products: cached }, { headers: { 'Cache-Control': CDN_CACHE_CONTROL } });
   }
 
   const rows = await db
@@ -97,10 +99,13 @@ export async function GET() {
 
   await setCachedData(cacheKey, resultProducts, 60);
 
-  return NextResponse.json({
-    ok: true,
-    products: resultProducts,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      products: resultProducts,
+    },
+    { headers: { 'Cache-Control': CDN_CACHE_CONTROL } }
+  );
 }
 
 function parseTags(value: string | null) {

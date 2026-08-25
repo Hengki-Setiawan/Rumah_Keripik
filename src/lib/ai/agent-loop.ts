@@ -93,7 +93,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       contextSummaryPrompt,
       availableSkills.length > 0 ? `SKILLS TERSEDIA (Layer 1 Metadata):\n${availableSkills.map((s) => `- ${s.name}: ${s.description}`).join('\n')}` : '',
       activeSkillFull ? `\n[ACTIVE SKILL INSTRUCTIONS - ${activeSkillFull.name}]\n${activeSkillFull.instructions}` : '',
-      knowledgeChunks.length > 0 ? `Knowledge base relevan:\n${knowledgeChunks.map((chunk, i) => `[${i + 1}] ${chunk.judul}: ${chunk.teks.slice(0, 200)}`).join('\n')}` : '',
+      knowledgeChunks.length > 0 ? `Knowledge base relevan:\n${knowledgeChunks.map((chunk, i) => `[${i + 1}] ${chunk.judul}: ${chunk.teks.slice(0, 120)}`).join('\n')}` : '',
       `\nRIWAYAT LANGKAH DI GILIRAN INI:\n${scratchpadText}`,
       `\nPESAN PELANGGAN:\n${userMessage}`,
       `\nTOOL YANG TERSEDIA:\n${AGENTIC_TOOLS}`,
@@ -224,8 +224,8 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
           toolTimeout,
         ]);
         const summary = typeof result === 'object' && result !== null
-          ? JSON.stringify(result).slice(0, 300)
-          : String(result).slice(0, 300);
+          ? JSON.stringify(result).slice(0, 160)
+          : String(result).slice(0, 160);
         scratchpad.push({ type: 'observation', tool: toolName, result: summary });
 
         if (toolName === 'addToCart' || toolName === 'add_to_cart') {

@@ -55,7 +55,7 @@ export async function GET(req: Request) {
         closed = true;
         clearInterval(timer);
         controller.close();
-      }, 50_000);
+      }, 25_000);
 
       req.signal.addEventListener('abort', () => {
         closed = true;

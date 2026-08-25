@@ -24,6 +24,7 @@ import type { AIChatResponse, ChatComponent } from '@/lib/chat-v3/types';
 import { getAgentLoopConfig, shouldUseAgentLoop } from '@/lib/ai/feature-flags';
 import { runAgentLoop } from '@/lib/ai/agent-loop';
 import { semanticCacheLookup, semanticCacheStore } from '@/lib/ai/semantic-cache-integration';
+import { cacheableCategoryForIntent } from '@/lib/ai/semantic-cache';
 
 const RECENT_MESSAGE_DEDUPE_MS = 20_000;
 const recentMessageSeen = new Map<string, number>();
@@ -115,7 +116,8 @@ export async function buildChatResponse(chatSessionId: string, message: string):
       const parsed = AIChatResponseSchema.safeParse(parsedJson);
       if (parsed.success) {
         const response = parsed.data;
-        await semanticCacheStore(message, JSON.stringify(response), response.intent);
+        const cacheCategory = cacheableCategoryForIntent(response.intent);
+        if (cacheCategory) await semanticCacheStore(message, JSON.stringify(response), cacheCategory);
         await logAiLearningEvent({ eventType: 'chat_response', chatSessionId, intent: response.intent, outcome: response.confidence && response.confidence < 0.5 ? 'low_confidence' : 'answered', metadata: { provider: result.provider, model: result.model, knowledgeSourceIds: knowledgeChunks.map((chunk) => chunk.id) } });
         if (response.shouldCallTool && response.toolName) return await executeRequestedTool(chatSessionId, response, message);
         return response;

@@ -1,4 +1,4 @@
-import { isCacheable } from '@/lib/ai/semantic-cache';
+import { CACHEABLE_CATEGORIES, isCacheable } from '@/lib/ai/semantic-cache';
 import { getCachedData, setCachedData } from '@/lib/redis-cache';
 
 const CACHE_TTL_SEC = 12 * 60 * 60;
@@ -14,32 +14,35 @@ export async function semanticCacheLookup(
   query: string,
   task?: string,
 ): Promise<{ hit: boolean; response?: string }> {
-  if (!isCacheable({ query, task })) return { hit: false };
   if (query.trim().length < 4) return { hit: false };
+  const tasks = task ? [task] : Array.from(CACHEABLE_CATEGORIES);
 
-  try {
-    const redisKey = `semantic:${task}:${query.slice(0, 100)}`;
-    const redisHit = await getCachedData<{ response: string; category: string }>(redisKey);
-    if (redisHit) {
-      return { hit: true, response: redisHit.response };
-    }
-
-    const local = getLocalCache();
-    const now = Date.now();
-    for (const [key, entry] of local.entries()) {
-      if (now - entry.createdAt > CACHE_TTL_MS) {
-        local.delete(key);
-        continue;
+  for (const candidate of tasks) {
+    if (!isCacheable({ query, task: candidate })) continue;
+    try {
+      const redisKey = `semantic:${candidate}:${query.slice(0, 100)}`;
+      const redisHit = await getCachedData<{ response: string; category: string }>(redisKey);
+      if (redisHit) {
+        return { hit: true, response: redisHit.response };
       }
-      if (simpleSimilarity(query, key) > 0.85 && entry.category === task) {
-        return { hit: true, response: entry.response };
-      }
-    }
 
-    return { hit: false };
-  } catch {
-    return { hit: false };
+      const local = getLocalCache();
+      const now = Date.now();
+      for (const [key, entry] of local.entries()) {
+        if (now - entry.createdAt > CACHE_TTL_MS) {
+          local.delete(key);
+          continue;
+        }
+        if (simpleSimilarity(query, key) > 0.85 && entry.category === candidate) {
+          return { hit: true, response: entry.response };
+        }
+      }
+    } catch {
+      continue;
+    }
   }
+
+  return { hit: false };
 }
 
 export async function semanticCacheStore(
@@ -47,7 +50,6 @@ export async function semanticCacheStore(
   response: string,
   task: string,
 ): Promise<void> {
-  if (!isCacheable({ query, task })) return;
   if (query.trim().length < 4 || response.trim().length < 10) return;
 
   try {
