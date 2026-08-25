@@ -16,5 +16,8 @@ export async function GET() {
     .where(eq(produkKategori.is_active, 1))
     .orderBy(asc(produkKategori.sort_order), asc(produkKategori.nama_kategori));
 
-  return NextResponse.json({ ok: true, categories });
+  return NextResponse.json(
+    { ok: true, categories },
+    { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } }
+  );
 }

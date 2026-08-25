@@ -84,7 +84,7 @@
         "@libsql/client": "0.6.2",
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/api-logs": "^0.221.0",
-        "@react-pdf/renderer": "^4.5.1",
+        "@react-pdf/renderer": "^4.6.1",
         "@sentry/nextjs": "^10.68.0",
         "@types/leaflet": "^1.9.21",
         "@upstash/redis": "^1.38.2",
@@ -130,5 +130,3 @@
         "typescript": "^5"
     }
 }
-
-

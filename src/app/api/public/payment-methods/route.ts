@@ -5,11 +5,13 @@ import { paymentMethod } from '@/lib/schema';
 import { buildPublicPaymentMethodOptions } from '@/lib/payments/payment-utils';
 import { getCachedData, setCachedData } from '@/lib/redis-cache';
 
+const CDN_CACHE_CONTROL = 'public, s-maxage=300, stale-while-revalidate=3600';
+
 export async function GET() {
   const cacheKey = 'public_payment_methods';
   const cached = await getCachedData<any[]>(cacheKey);
   if (cached) {
-    return NextResponse.json({ ok: true, methods: cached });
+    return NextResponse.json({ ok: true, methods: cached }, { headers: { 'Cache-Control': CDN_CACHE_CONTROL } });
   }
 
   const methods = await db
@@ -22,8 +24,11 @@ export async function GET() {
 
   await setCachedData(cacheKey, resultMethods, 60);
 
-  return NextResponse.json({
-    ok: true,
-    methods: resultMethods,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      methods: resultMethods,
+    },
+    { headers: { 'Cache-Control': CDN_CACHE_CONTROL } }
+  );
 }

@@ -12,7 +12,7 @@ export type AgentLoopConfig = {
 export const defaultAgentLoopConfig: AgentLoopConfig = {
   enabled: true,
   rolloutPercentage: 50,
-  maxIterations: 4,
+  maxIterations: 3,
   enableSemanticCache: true,
 };
 
