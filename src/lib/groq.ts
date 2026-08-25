@@ -1,8 +1,8 @@
 /**
  * Groq LLM Client dengan fallback chain
- * Primary: openai/gpt-oss-20b
- * Fallback 1: qwen/qwen3.6-27b
- * Fallback 2: Gemini (jika diperlukan)
+ * Primary: openai/gpt-oss-20b (free tier 1K RPD)
+ * Fallback 1: openai/gpt-oss-120b (free tier 1K RPD terpisah)
+ * Keduanya gratis; qwen3.6-27b dibuang (harga paid termahal).
  */
 
 interface Message {
@@ -12,7 +12,7 @@ interface Message {
 
 interface LLMResult {
   text: string;
-  provider: 'groq-20b' | 'groq-27b' | 'gemini';
+  provider: 'groq-20b' | 'groq-120b' | 'gemini';
   model?: string;
   tokensUsed?: number;
 }
@@ -22,10 +22,12 @@ const GROQ_CHAIN = [
   {
     model: 'openai/gpt-oss-20b',
     label: 'GPT-OSS 20b',
+    provider: 'groq-20b' as const,
   },
   {
-    model: 'qwen/qwen3.6-27b',
-    label: 'Qwen 3.6 27b',
+    model: 'openai/gpt-oss-120b',
+    label: 'GPT-OSS 120b',
+    provider: 'groq-120b' as const,
   },
 ];
 
@@ -106,7 +108,7 @@ export async function callGroqLLM(
 
       return {
         text,
-        provider: i === 0 ? 'groq-20b' : 'groq-27b',
+        provider: modelConfig.provider,
         model: modelConfig.model,
         tokensUsed: data.usage?.total_tokens,
       };
