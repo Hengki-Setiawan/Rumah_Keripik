@@ -18,8 +18,9 @@ import type { AIModelTaskConfig, AITask, AIProviderConfig, GenerateTextInput, Ge
 export const defaultProviderConfigs: AIProviderConfig[] = [
   { id: 'deterministic', name: 'deterministic', enabled: true, apiKeyEnv: '', defaultModel: 'template', supportsToolCalling: false, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 180, priority: 99 },
   { id: 'cerebras', name: 'cerebras', enabled: true, baseUrl: 'https://api.cerebras.ai/v1', apiKeyEnv: 'CEREBRAS_API_KEY', defaultModel: 'gemma-4-31b', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 260, priority: 2 },
-  { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'gpt-oss-20b / qwen3.6-27b chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
+  { id: 'groq', name: 'groq', enabled: true, apiKeyEnv: 'GROQ_API_KEY', defaultModel: 'gpt-oss-20b / gpt-oss-120b chain', supportsToolCalling: true, supportsStructuredOutput: false, supportsVision: false, maxOutputTokensDefault: 180, priority: 3 },
   { id: 'gemini', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-3.5-flash-lite', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
+  { id: 'gemini3flash', name: 'gemini', enabled: true, apiKeyEnv: 'GEMINI_API_KEY', defaultModel: 'gemini-3-flash', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: true, maxOutputTokensDefault: 320, priority: 1 },
   { id: 'qwen', name: 'qwen', enabled: false, baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', apiKeyEnv: 'QWEN_API_KEY', defaultModel: 'qwen-plus', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 4 },
   { id: 'ollama', name: 'ollama', enabled: false, baseUrl: 'http://localhost:11434/v1', apiKeyEnv: 'OLLAMA_API_KEY', defaultModel: 'qwen3', supportsToolCalling: true, supportsStructuredOutput: true, supportsVision: false, maxOutputTokensDefault: 220, priority: 5 },
 ];
@@ -115,11 +116,15 @@ async function checkBudget(providerId: string): Promise<boolean> {
   }
 }
 
+// Blended per-1K USD (±85% input / 15% output), harga resmi Agustus 2026:
+// gemini flash-lite $0.30/$2.50 per M; groq gpt-oss-20b $0.075/$0.30 per M.
 export const ESTIMATED_COST_PER_1K_TOKENS: Record<string, number> = {
-  groq: 0.05,
-  gemini: 0.30,
-  cerebras: 0.08,
-  qwen: 0.08,
+  groq: 0.00011,
+  groq120: 0.00019,
+  gemini: 0.00063,
+  gemini3flash: 0.00063,
+  cerebras: 0.0006,
+  qwen: 0.0005,
 };
 
 function estimateCost(provider: string, tokensUsed: number): number {
