@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { processWorkerBatch } from '@/lib/worker-runner';
 import { validateCronRequest } from '@/lib/cron-auth';
+import { runCronJob } from '@/lib/cron-monitor';
 
 export async function GET(req: Request) {
   const auth = validateCronRequest(req);
@@ -8,6 +9,6 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const limit = Math.min(10, Math.max(1, Number(url.searchParams.get('limit') || 5)));
-  const result = await processWorkerBatch(`cron-${Date.now()}`, limit);
+  const result = await runCronJob('worker', () => processWorkerBatch(`cron-${Date.now()}`, limit));
   return NextResponse.json({ ok: true, ...result });
 }

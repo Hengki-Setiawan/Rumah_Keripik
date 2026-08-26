@@ -138,6 +138,21 @@ async function main() {
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       await dumpDatabase();
+      // Catat waktu backup terakhir agar halaman Health Check admin tahu pipeline hidup.
+      try {
+        loadEnvLocal();
+        const hbUrl = process.env.TURSO_DATABASE_URL?.replace(/^libsql:\/\//, 'https://');
+        const hbToken = process.env.TURSO_AUTH_TOKEN;
+        if (!hbUrl || !hbToken) throw new Error('env Turso tidak ada');
+        const { createClient } = await import('@libsql/client/web');
+        const hbClient = createClient({ url: hbUrl, authToken: hbToken });
+        await hbClient.execute({
+          sql: "INSERT INTO bot_setting (key, value_json, updated_at, updated_by) VALUES ('ops.last_backup_at', ?, datetime('now','utc'), 'backup-script') ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at",
+          args: [JSON.stringify(new Date().toISOString())],
+        });
+      } catch (touchErr) {
+        console.error('[backup] gagal catat ops.last_backup_at:', (touchErr as Error).message);
+      }
       return;
     } catch (err) {
       const isLast = attempt === MAX_ATTEMPTS;
