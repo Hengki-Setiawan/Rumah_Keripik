@@ -20,6 +20,7 @@ export async function checkRateLimit(key: string, limit: number, windowMs: numbe
   if (redisUrl && redisToken) {
     try {
       const cleanUrl = redisUrl.replace(/\/$/, "");
+      // Satu command EVAL (hemat 50% kuota Upstash vs pipeline INCR+EXPIRE).
       const res = await fetch(`${cleanUrl}/pipeline`, {
         method: 'POST',
         headers: {
@@ -27,8 +28,7 @@ export async function checkRateLimit(key: string, limit: number, windowMs: numbe
           'Content-Type': 'application/json',
         },
         body: JSON.stringify([
-          ['INCR', key],
-          ['EXPIRE', key, Math.ceil(windowMs / 1000), 'NX'],
+          ['EVAL', "local c = redis.call('INCR', KEYS[1]); if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1], 'NX') end; return c", '1', key, String(Math.ceil(windowMs / 1000))],
         ]),
       });
 
