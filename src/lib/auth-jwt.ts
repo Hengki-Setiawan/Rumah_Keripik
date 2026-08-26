@@ -1,11 +1,13 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { randomBytes } from 'crypto';
 
-const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-if (!jwtSecret) {
-  throw new Error('JWT_SECRET (atau NEXTAUTH_SECRET) wajib di-set untuk autentikasi JWT');
+function getSecret(): Uint8Array {
+  const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET (atau NEXTAUTH_SECRET) wajib di-set untuk autentikasi JWT');
+  }
+  return new TextEncoder().encode(jwtSecret);
 }
-const SECRET = new TextEncoder().encode(jwtSecret);
 
 export interface RumahKeripikJWT extends JWTPayload {
   sub: string;
@@ -22,7 +24,7 @@ export async function signAccessToken(payload: Omit<RumahKeripikJWT, 'iat' | 'ex
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_TTL)
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 export async function signRefreshToken(payload: Omit<RumahKeripikJWT, 'iat' | 'exp'>): Promise<string> {
@@ -30,12 +32,12 @@ export async function signRefreshToken(payload: Omit<RumahKeripikJWT, 'iat' | 'e
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(REFRESH_TOKEN_TTL)
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 export async function verifyAccessToken(token: string): Promise<RumahKeripikJWT | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET);
+    const { payload } = await jwtVerify(token, getSecret());
     return payload as unknown as RumahKeripikJWT;
   } catch {
     return null;
@@ -44,7 +46,7 @@ export async function verifyAccessToken(token: string): Promise<RumahKeripikJWT 
 
 export async function verifyRefreshToken(token: string): Promise<RumahKeripikJWT | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET);
+    const { payload } = await jwtVerify(token, getSecret());
     return payload as unknown as RumahKeripikJWT;
   } catch {
     return null;
