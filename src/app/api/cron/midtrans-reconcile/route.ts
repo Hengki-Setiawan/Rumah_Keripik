@@ -8,6 +8,7 @@ import { markOrderPaidFromGateway } from '@/lib/orders/payment-settlement';
 import { notifyChatForOrderEvent } from '@/lib/chat-v3/order-notifications';
 import { createAdminNotification } from '@/lib/admin-notifications';
 import { enqueueJob } from '@/lib/worker-queue';
+import { notifyCronFailure, touchCronHeartbeat } from '@/lib/cron-monitor';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -135,8 +136,10 @@ export async function GET(req: Request) {
       }
     }
 
+    await touchCronHeartbeat('midtrans-reconcile');
     return NextResponse.json({ ok: true, checked: pending.length, settled, failed, unchanged });
   } catch (err) {
+    await notifyCronFailure('midtrans-reconcile', err);
     console.error('[MIDTRANS_RECONCILE]', err);
     return NextResponse.json({ ok: false, error: 'Terjadi kesalahan server' }, { status: 500 });
   }

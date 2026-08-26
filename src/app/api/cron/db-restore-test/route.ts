@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
 import { backupRestoreDrills, transaksi } from '@/lib/schema'
 import { sql } from 'drizzle-orm'
+import { notifyCronFailure } from '@/lib/cron-monitor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -57,6 +58,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(drill)
   } catch (error) {
+    await notifyCronFailure('db-restore-test', error)
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Drill failed' }, { status: 500 })
   }
 }

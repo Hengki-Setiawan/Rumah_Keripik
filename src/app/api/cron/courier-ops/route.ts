@@ -4,6 +4,7 @@ import { courierPerformanceDaily, deliveryAssignment } from '@/lib/schema';
 import { sql } from 'drizzle-orm';
 import { validateCronRequest } from '@/lib/cron-auth';
 import { witaToday } from '@/lib/wita-date';
+import { notifyCronFailure, touchCronHeartbeat } from '@/lib/cron-monitor';
 
 export async function GET(req: Request) {
   const auth = validateCronRequest(req);
@@ -62,7 +63,9 @@ export async function GET(req: Request) {
     results.performance = { date, upserted };
   } catch (error) {
     results.performanceError = error instanceof Error ? error.message : String(error);
+    await notifyCronFailure('courier-ops', error);
   }
 
+  await touchCronHeartbeat('courier-ops');
   return NextResponse.json({ ok: true, ...results });
 }

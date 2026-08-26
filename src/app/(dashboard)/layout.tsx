@@ -5,7 +5,7 @@ import {signOut} from 'next-auth/react';
 import {usePathname} from 'next/navigation';
 import Link from 'next/link';
 import {BrandLogo} from '@/components/brand/BrandLogo';
-import {BarChart3, Bell, Bot, ChevronLeft, ChevronRight, Home, LogOut, Menu, MessageSquare, Package, Plus, ShieldAlert, ShoppingCart, Truck, Users, X} from 'lucide-react';
+import {BarChart3, Bell, Bot, ChevronLeft, ChevronRight, HeartPulse, Home, LogOut, Menu, MessageSquare, Package, Plus, ShieldAlert, ShoppingCart, Truck, Users, X} from 'lucide-react';
 import {ToastProvider, useToast} from '@/components/ui/toast';
 import {ConfirmModal} from '@/components/ui/modal';
 
@@ -44,6 +44,7 @@ const supportMenuItems = [
   { href: '/slo-dashboard', label: 'SLO Dashboard', icon: BarChart3 },
   { href: '/sos', label: 'SOS Darurat', icon: ShieldAlert },
   { href: '/ops-smoke', label: 'Smoke Ops', icon: ShieldAlert },
+  { href: '/ops-health', label: 'Health Check', icon: HeartPulse },
 ];
 
 const menuItems = [...coreMenuItems, ...supportMenuItems];
