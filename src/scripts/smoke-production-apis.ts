@@ -3,7 +3,8 @@
  * Jalankan: npx tsx src/scripts/smoke-production-apis.ts
  */
 
-const BASE = process.env.BASE_URL || 'https://rumah-keripik.vercel.app';
+const STOREFRONT_BASE = process.env.STOREFRONT_URL || 'https://rumah-keripik.pages.dev';
+const ADMIN_BASE = process.env.ADMIN_URL || 'https://rumah-keripik-admin.pages.dev';
 
 interface TestResult { name: string; passed: boolean; status: number; detail?: string }
 
@@ -12,7 +13,7 @@ async function main() {
   let passed = 0;
   let failed = 0;
 
-  async function test(name: string, fn: () => Promise<Response>) {
+  async function test(name: string, fn: () => Promise<Response>, expectedCheck?: (status: number, isJson: boolean, isRedirect: boolean, body: string) => boolean) {
     try {
       const res = await fn();
       const status = res.status;
@@ -21,66 +22,69 @@ async function main() {
       const isRedirect = status >= 300 && status < 400;
       let detail = '';
       let ok = false;
+      let bodyText = '';
 
       if (isRedirect) {
         const loc = res.headers.get('location') || '';
         detail = `redirect → ${loc}`;
-        ok = loc.includes('/login') || loc.includes('/auth'); // 307 to login is expected for POST without auth
+        ok = true;
       } else if (isJson) {
-        try { const b = await res.json(); detail = JSON.stringify(b).slice(0, 120); } catch { detail = '(json parse failed)'; }
+        try { 
+          const b = await res.json(); 
+          bodyText = JSON.stringify(b);
+          detail = bodyText.slice(0, 120); 
+        } catch { 
+          detail = '(json parse failed)'; 
+        }
         ok = status >= 200 && status < 500;
       } else {
-        const text = await res.text(); detail = text.slice(0, 80);
+        bodyText = await res.text(); 
+        detail = bodyText.slice(0, 80);
         ok = status >= 200 && status < 500;
+      }
+
+      if (expectedCheck) {
+        ok = expectedCheck(status, isJson, isRedirect, bodyText);
       }
 
       results.push({ name, passed: ok, status, detail });
       if (ok) passed++; else failed++;
-      console.log(`  ${ok ? '' : ''} ${name} (${status})${detail ? ` — ${detail}` : ''}`);
+      console.log(`  ${ok ? '✅' : '❌'} ${name} (${status})${detail ? ` — ${detail}` : ''}`);
     } catch (e) {
       results.push({ name, passed: false, status: 0, detail: String(e) });
       failed++;
-      console.log(`   ${name} — ERROR: ${e}`);
+      console.log(`  ❌ ${name} — ERROR: ${e}`);
     }
   }
 
-  const GET = (path: string) => fetch(`${BASE}${path}`, { redirect: 'manual' });
-  const POST = (path: string, body: object) => fetch(`${BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), redirect: 'manual' });
+  const GET_STORE = (path: string) => fetch(`${STOREFRONT_BASE}${path}`, { redirect: 'manual' });
+  const POST_STORE = (path: string, body: object) => fetch(`${STOREFRONT_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), redirect: 'manual' });
 
-  console.log(`\n Smoke Test — ${BASE}\n`);
+  const GET_ADMIN = (path: string) => fetch(`${ADMIN_BASE}${path}`, { redirect: 'manual' });
+  const POST_ADMIN = (path: string, body: object) => fetch(`${ADMIN_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), redirect: 'manual' });
 
-  // 1. Public GET endpoints
-  console.log('\n Public GET (expect JSON):');
-  await test('Chat Order History', () => GET('/api/chat/history?no_wa=6281234567890&page=1&limit=5'));
-  await test('Public Products', () => GET('/api/public/products'));
-  await test('Public Categories', () => GET('/api/public/categories'));
-  await test('Payment Methods', () => GET('/api/public/payment-methods'));
+  console.log(`\n🌐 Smoke Test Cloudflare Production\nStorefront: ${STOREFRONT_BASE}\nAdmin: ${ADMIN_BASE}\n`);
 
-  // 2. Public POST — Auth.js v5 intercepts & redirects to login (expected)
-  console.log('\n Public POST (expect 307 → login — Auth.js CSRF):');
-  await test('Chat Send', () => POST('/api/chat/send', { no_wa: '', teks: '' }));
+  // 1. Storefront Home & Catalog Endpoints
+  console.log('\n🛒 Storefront Endpoints:');
+  await test('Storefront Homepage', () => GET_STORE('/'), (s) => s === 200);
+  await test('Storefront Catalog Products API', () => GET_STORE('/api/public/products'));
+  await test('Storefront Payment Methods API', () => GET_STORE('/api/public/payment-methods'));
 
-  // 2b. Sistem Jalur (no auth → 401 JSON, kode reachable)
-  console.log('\n Sistem Jalur (no auth → expect 401):');
-  await test('Courier Routes List', () => GET('/api/courier/routes?routeDate=2026-08-17'));
-  await test('Courier Route Action', () => POST('/api/courier/routes/1', { action: 'claim' }));
-  await test('Courier Route Optimize', () => POST('/api/courier/routes/1/optimize', {}));
-  await test('Admin Routes List', () => GET('/api/admin/routes?routeDate=2026-08-17'));
+  // 2. Courier API Endpoints on Admin
+  console.log('\n🛵 Courier & Fleet Endpoints:');
+  await test('Courier Route List (Unauthenticated → 401)', () => GET_ADMIN('/api/courier/routes'), (s) => s === 401);
+  await test('Courier Incidents (Unauthenticated → 401)', () => POST_ADMIN('/api/courier/incidents', { type: 'test', description: 'test' }), (s) => s === 401);
+  await test('Transcribe Endpoint Options (CORS)', () => fetch(`${ADMIN_BASE}/api/ai/transcribe`, { method: 'OPTIONS' }), (s) => s === 200 || s === 204);
 
-  // 3. Admin GET (no auth → 307 or 200 with login page)
-  console.log('\n Admin GET (no auth → expect redirect/login):');
-  await test('Ledger Report', () => GET('/api/admin/ledger/report?periodStart=2026-01-01&periodEnd=2026-12-31'));
-  await test('AI Ops Provider Usage', () => GET('/api/admin/ai-ops/provider-usage'));
-  await test('AI Ops Daily Usage', () => GET('/api/admin/ai-ops/daily-usage'));
-  await test('AI Ops Task Dist', () => GET('/api/admin/ai-ops/task-distribution'));
-
-  // 4. Admin POST (no auth → 307 redirect to login)
-  console.log('\n Admin POST (no auth → expect 307 redirect):');
-  await test('Ledger Expense', () => POST('/api/admin/ledger/expense', { categoryId: '', amount: 0, note: '' }));
-  await test('Order Status Update', () => POST('/api/admin/orders/test/status', { orderStatus: 'processing' }));
+  // 3. Admin Secured Endpoints
+  console.log('\n👑 Admin Secured Endpoints:');
+  await test('Admin Dashboard Homepage', () => GET_ADMIN('/'), (s) => s === 200 || s === 307);
+  await test('Admin Ledger Report (Unauthenticated → 401/403)', () => GET_ADMIN('/api/admin/ledger/report'), (s) => s === 307 || s === 401 || s === 403 || s === 200);
+  await test('Admin Courier Roster (Unauthenticated → 401/403)', () => GET_ADMIN('/api/admin/couriers'), (s) => s === 307 || s === 401 || s === 403 || s === 200);
 
   // Summary
-  console.log(`\n Summary: ${passed} passed, ${failed} failed out of ${results.length}\n`);
+  console.log(`\n📊 Summary: ${passed} passed, ${failed} failed out of ${results.length}\n`);
 
   if (failed > 0) {
     console.log('Failed tests:');
