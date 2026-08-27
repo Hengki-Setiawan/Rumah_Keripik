@@ -5,6 +5,8 @@
  * Keduanya gratis; qwen3.6-27b dibuang (harga paid termahal).
  */
 
+import { callWorkersAI, WORKERS_AI_MODELS } from '@/lib/workers-ai';
+
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -12,7 +14,7 @@ interface Message {
 
 interface LLMResult {
   text: string;
-  provider: 'groq-20b' | 'groq-120b' | 'gemini';
+  provider: 'groq-20b' | 'groq-120b' | 'gemini' | 'workers-ai';
   model?: string;
   tokensUsed?: number;
 }
@@ -115,9 +117,20 @@ export async function callGroqLLM(
     } catch (error) {
       console.warn(`Error Groq ${modelConfig.label}:`, error);
 
-      // Jika ini model terakhir di Groq, throw — router memindah ke provider lain
+      // Jika ini model terakhir di Groq, coba fallback ke Cloudflare Workers AI sebelum gagal
       if (i === GROQ_CHAIN.length - 1) {
-        throw new Error('Semua Groq model gagal');
+        try {
+          console.log('🔄 Groq fail/limit, mencoba fallback ke Cloudflare Workers AI...');
+          const cfResult = await callWorkersAI(messages, maxTokens, temperature, systemPrompt, WORKERS_AI_MODELS.SMART_70B);
+          return {
+            text: cfResult.text,
+            provider: 'workers-ai',
+            model: cfResult.model,
+          };
+        } catch (cfError) {
+          console.warn('Workers AI fallback juga gagal:', cfError);
+          throw new Error('Semua Groq model & Workers AI gagal');
+        }
       }
     }
   }

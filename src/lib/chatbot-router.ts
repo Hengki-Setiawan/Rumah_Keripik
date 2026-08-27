@@ -27,7 +27,7 @@ import type { OrderContext } from './order-types';
 
 export interface RouterResult {
   response: string;
-  source: 'rule' | 'order_flow' | 'groq' | 'gemini' | 'not_found';
+  source: 'rule' | 'order_flow' | 'groq' | 'gemini' | 'workers-ai' | 'not_found';
   modelUsed?: string;
   tokensUsed?: number;
 }
@@ -210,7 +210,9 @@ async function processIncomingMessageInternal(
   // Step 6 — LLM Chain
   try {
     const llmResult = await callGroqLLM(messages, 512, 0.7, systemPrompt);
-    const source = llmResult.provider === 'gemini' ? 'gemini' : 'groq';
+    const source = llmResult.provider === 'workers-ai' 
+      ? 'workers-ai' 
+      : (llmResult.provider === 'gemini' ? 'gemini' : 'groq');
     await saveCachedAiResponse(cacheKey, lowerMessage, llmResult.text, llmResult.provider, llmResult.tokensUsed);
 
     await logChat(no_wa, message, llmResult.text, source, llmResult.provider, llmResult.tokensUsed);
@@ -471,13 +473,14 @@ async function logChat(
   no_wa: string,
   userMessage: string,
   botResponse: string,
-  sumber: 'rule' | 'groq' | 'gemini' | 'not_found' | 'order_flow',
+  sumber: 'rule' | 'groq' | 'gemini' | 'not_found' | 'order_flow' | 'workers-ai',
   modelUsed?: string,
   tokensUsed?: number
 ) {
   try {
     const channel = no_wa.startsWith('tg_') ? 'telegram' : 'wa';
-    const s = sumber === 'order_flow' ? 'rule' : sumber;
+    const s: 'rule' | 'groq' | 'gemini' | 'not_found' = 
+      sumber === 'order_flow' ? 'rule' : (sumber === 'workers-ai' ? 'groq' : sumber);
     await db.insert(chatLog).values({
       no_wa_pelanggan: no_wa,
       channel,

@@ -22,5 +22,8 @@
   ],
   "images": {
     "binding": "IMAGES"
+  },
+  "ai": {
+    "binding": "AI"
   }
 }
