@@ -1,9 +1,8 @@
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
+  if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.VERCEL === '1') {
     try {
       const mod = await import('@vercel/otel');
-      const { registerOTel } = mod;
-      const { OTLPHttpProtoTraceExporter } = mod;
+      const { registerOTel, OTLPHttpProtoTraceExporter } = mod;
       registerOTel({
         serviceName: 'rumah-kripik-web',
         attributes: {
@@ -18,7 +17,6 @@ export async function register() {
       });
     } catch {
       console.log('OpenTelemetry not available (missing @vercel/otel).');
-      console.log('Next.js server-side instrumentation registered.');
     }
   }
 }

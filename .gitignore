@@ -41,8 +41,15 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# vercel
+# vercel & netlify (deprecated)
 .vercel
+.netlify
+
+# cloudflare & open-next
+/.open-next/
+/.wrangler/
+/.staging-*/
+*.bak
 
 # typescript
 *.tsbuildinfo

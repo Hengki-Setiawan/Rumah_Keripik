@@ -2,7 +2,17 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@libsql/isomorphic-ws", "@libsql/client"],
+  serverExternalPackages: [
+    "@libsql/isomorphic-ws",
+    "@libsql/client",
+    "@jridgewell/trace-mapping",
+    "@jridgewell/sourcemap-codec",
+  ],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+    ],
+  },
   experimental: {
     optimizePackageImports: [
       "lucide-react",
@@ -10,24 +20,6 @@ const nextConfig: NextConfig = {
       "motion",
       "@base-ui/react",
     ],
-  },
-  images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "res.cloudinary.com" },
-    ],
-  },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' http://localhost:3000 http://localhost:3001 https://presentasi-magang.vercel.app",
-          },
-        ],
-      },
-    ]
   },
 };
 
