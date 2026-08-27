@@ -6,6 +6,7 @@ import { verifyCourierAuth } from '@/lib/courier/auth';
 import { couriers } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
 import { pushTelegramAdminNotification } from '@/lib/telegram-admin';
+import { uploadToR2 } from '@/lib/r2-storage';
 
 const IncidentSchema = z.object({
   type: z.enum(['kecelakaan', 'kendaraan_mogok', 'cuaca_ekstrem', 'keamanan', 'kesehatan', 'lainnya']),
@@ -64,6 +65,29 @@ export async function POST(req: Request) {
     const body = IncidentSchema.parse(await req.json());
     const [courier] = await db.select().from(couriers).where(eq(couriers.id, auth.courierId)).limit(1);
 
+    let finalPhotoUrl = body.photoUrl;
+    if (finalPhotoUrl && finalPhotoUrl.startsWith('data:image/')) {
+      try {
+        const matches = finalPhotoUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const mime = matches[1];
+          const buffer = Buffer.from(matches[2], 'base64');
+          const ext = mime.split('/')[1] || 'jpg';
+          const r2Res = await uploadToR2(buffer, `incidents/incident_${auth.courierId}_${Date.now()}.${ext}`, mime);
+          if (r2Res.url) {
+            finalPhotoUrl = r2Res.url;
+          }
+        }
+      } catch (r2Err) {
+        console.warn('[R2_INCIDENT] Fallback simpan foto insiden ke R2:', r2Err);
+      }
+    }
+
+    const reportMessage = [
+      body.description,
+      finalPhotoUrl ? `Foto Bukti: ${finalPhotoUrl}` : null,
+    ].filter(Boolean).join('\n');
+
     try {
       await db.insert(sosEvents).values({
         courierId: auth.courierId,
@@ -73,7 +97,7 @@ export async function POST(req: Request) {
         severity: body.severity,
         lat: body.lat || '0',
         lng: body.lng || '0',
-        message: body.description || null,
+        message: reportMessage || null,
         status: 'active',
       });
     } catch {
@@ -88,7 +112,7 @@ export async function POST(req: Request) {
         lng: body.lng || null,
         type: body.type,
         severity: body.severity,
-        message: body.description || null,
+        message: reportMessage || null,
         status: 'open',
       });
     } catch {
@@ -98,12 +122,12 @@ export async function POST(req: Request) {
     const severityLabel = body.severity === 'emergency' ? '🚨 EMERGENCY' : body.severity === 'high' ? '⚠️ TINGGI' : body.severity === 'low' ? 'Ringan' : 'Sedang';
     pushTelegramAdminNotification({
       title: `${severityLabel} Insiden Kurir`,
-      body: `Jenis: ${body.type}\nKurir: ${courier?.name ?? '-'}\n${body.description ? `Deskripsi: ${body.description}` : ''}\n${body.lat && body.lng ? `Lokasi: https://maps.google.com/?q=${body.lat},${body.lng}` : ''}`,
+      body: `Jenis: ${body.type}\nKurir: ${courier?.name ?? '-'}\n${body.description ? `Deskripsi: ${body.description}` : ''}\n${body.lat && body.lng ? `Lokasi: https://maps.google.com/?q=${body.lat},${body.lng}` : ''}${finalPhotoUrl ? `\nFoto Bukti: ${finalPhotoUrl}` : ''}`,
       dedupeKey: `sos:${auth.courierId}:${Date.now()}`,
       actions: [{ text: 'Lihat SOS', url: `${process.env.NEXTAUTH_URL || ''}/sos` }],
     }).catch(() => {});
 
-    return NextResponse.json({ ok: true, data: { message: 'Incident reported' } });
+    return NextResponse.json({ ok: true, data: { message: 'Incident reported', photo_url: finalPhotoUrl } });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Gagal lapor insiden' }, { status: 500 });
   }
