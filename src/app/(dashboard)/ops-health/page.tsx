@@ -16,6 +16,7 @@ function badge(ok: boolean, textOk: string, textBad: string) {
 
 export default async function OpsHealthPage() {
   const heartbeats = await getCronHeartbeats();
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
   const [lastBackupRow] = await db

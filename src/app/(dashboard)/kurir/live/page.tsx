@@ -30,10 +30,16 @@ export default function LiveCourierMapPage() {
   const mapInstance = useRef<any>(null);
   const markersMapRef = useRef<Map<number, any>>(new Map());
   const [couriers, setCouriers] = useState<CourierLocation[]>([]);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('reconnecting');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourierId, setSelectedCourierId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   async function load() {
     try {
@@ -302,7 +308,7 @@ export default function LiveCourierMapPage() {
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 p-3.5 shadow-sm">
           <p className="text-2xl font-black text-emerald-600">
-            {couriers.filter((c) => c.last_location_at && (Date.now() - new Date(c.last_location_at).getTime()) < 120_000).length}
+            {couriers.filter((c) => c.last_location_at && (currentTime - new Date(c.last_location_at).getTime()) < 120_000).length}
           </p>
           <p className="text-xs font-medium text-gray-500 mt-0.5">Online &lt; 2 Menit</p>
         </div>
@@ -344,7 +350,7 @@ export default function LiveCourierMapPage() {
           {/* Scrollable Courier List */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
             {filteredCouriers.map((c) => {
-              const isOnline = c.last_location_at && (Date.now() - new Date(c.last_location_at).getTime()) < 120_000;
+              const isOnline = c.last_location_at && (currentTime - new Date(c.last_location_at).getTime()) < 120_000;
               const isSelected = selectedCourierId === c.id;
 
               return (
