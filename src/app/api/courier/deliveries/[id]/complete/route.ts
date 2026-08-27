@@ -10,6 +10,7 @@ import { insertDeliveryEvent } from '@/lib/courier-event';
 import { recordCourierEarning, bumpCourierPerformanceDaily } from '@/lib/courier-earnings';
 import { sumTrackedDistanceKm } from '@/lib/courier-distance';
 import { createAdminNotification } from '@/lib/admin-notifications';
+import { uploadToR2 } from '@/lib/r2-storage';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -50,8 +51,41 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const now = new Date().toISOString();
-    const signatureData = parsed.data.signature_base64 || parsed.data.signature_url;
-    const proofPhoto = parsed.data.proof_url || parsed.data.proof_photo_url;
+    let signatureData = parsed.data.signature_base64 || parsed.data.signature_url;
+    let proofPhoto = parsed.data.proof_url || parsed.data.proof_photo_url;
+
+    // Simpan foto bukti ke Cloudflare R2 (10 GB Free, Zero Egress Fee) jika berupa base64
+    if (proofPhoto && proofPhoto.startsWith('data:image/')) {
+      try {
+        const commaIdx = proofPhoto.indexOf(',');
+        if (commaIdx !== -1) {
+          const mime = proofPhoto.slice(5, proofPhoto.indexOf(';'));
+          const ext = mime.includes('png') ? 'png' : 'jpg';
+          const buffer = Buffer.from(proofPhoto.slice(commaIdx + 1), 'base64');
+          const r2Res = await uploadToR2(buffer, `proofs/delivery_${deliveryId}_${Date.now()}.${ext}`, mime);
+          if (r2Res.url) {
+            proofPhoto = r2Res.url;
+          }
+        }
+      } catch (r2Err) {
+        console.warn('[R2_STORAGE] Fallback simpan proof:', r2Err);
+      }
+    }
+
+    if (signatureData && signatureData.startsWith('data:image/')) {
+      try {
+        const commaIdx = signatureData.indexOf(',');
+        if (commaIdx !== -1) {
+          const buffer = Buffer.from(signatureData.slice(commaIdx + 1), 'base64');
+          const r2Res = await uploadToR2(buffer, `signatures/delivery_${deliveryId}_${Date.now()}.png`, 'image/png');
+          if (r2Res.url) {
+            signatureData = r2Res.url;
+          }
+        }
+      } catch (r2Err) {
+        console.warn('[R2_STORAGE] Fallback simpan signature:', r2Err);
+      }
+    }
 
     // Jarak aktual = lintasan titik GPS kurir dari event 'started' sampai delivered_at.
     const [startEvent] = await db

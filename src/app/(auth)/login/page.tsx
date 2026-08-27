@@ -103,6 +103,12 @@ function LoginForm() {
               />
             </div>
 
+            {/* Cloudflare Turnstile Anti-Bot Protection */}
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-[#eedecb] bg-[#fbf5ed] py-2 text-xs text-[#7a6a5a]">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Verifikasi Senyap: <strong>Cloudflare Turnstile Active</strong></span>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
